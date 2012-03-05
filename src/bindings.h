@@ -4,7 +4,6 @@
 #include "node_fuse.h"
 
 namespace NodeFuse {
-
     class Fuse : public ObjectWrap {
         public:
             static void Initialize(Handle<Object> target);
@@ -18,7 +17,6 @@ namespace NodeFuse {
 
         private:
     };
-
 }//namespace NodeFuse
 
 #endif  // SRC_BINDINGS_H

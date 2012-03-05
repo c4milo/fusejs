@@ -1,0 +1,19 @@
+{   "name" : "fusejs",
+    "version": "0.0.1",
+    "author": "Camilo Aguilar - http://github.com/c4milo",
+    "email": "camilo@cloudescape.com",
+    "description" : "Low level fuse bindings for v8 javascript engine",
+    "repositories": [
+       {
+            "type": "git",
+            "url": "http://github.com/c4milo/fusejs.git"
+       }
+    ],
+    "devDependencies": {
+        "mocha": "0.14.0"
+    },
+    "scripts": {
+       "install": "node-waf configure build"
+    },
+    "main" : "./fusejs"
+}
