@@ -1,0 +1,23 @@
+var fuse = require('fuse');
+
+var write = function () {
+
+};
+
+var read = function() {
+
+};
+
+var readdir = function() {
+
+};
+
+
+var operations = {
+    write: write,
+    read: read,
+    readdir: readdir
+};
+
+fuse.mount(operations, mountpoint, flags);
+
