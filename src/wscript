@@ -16,7 +16,7 @@ def configure(conf):
     os.putenv('PKG_CONFIG_PATH', '/usr/local/lib/pkgconfig')
 
   conf.check_cfg(package='fuse', args='--cflags --libs')
-  conf.env.CPPFLAGS = ['-D_FILE_OFFSET_BITS=64', '-D__FreeBSD__=10', '-DFUSE_USE_VERSION=28']
+  conf.env.CPPFLAGS = ['-D_FILE_OFFSET_BITS=64', '-D__FreeBSD__=10', '-DFUSE_USE_VERSION=27']
 
 def build(bld):
   obj = bld.new_task_gen("cxx", "shlib", "node_addon")

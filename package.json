@@ -10,10 +10,11 @@
        }
     ],
     "devDependencies": {
-        "mocha": "0.14.0"
+        "mocha": "0.14.0",
+	"should": "0.6.0"
     },
     "scripts": {
        "install": "node-waf configure build"
     },
-    "main" : "./fusejs"
+    "main" : "./fuse"
 }

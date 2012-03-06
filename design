@@ -1,14 +1,14 @@
 var fuse = require('fuse');
 
-var write = function () {
+var write = function (, callback) {
 
 };
 
-var read = function() {
+var read = function(, callback) {
 
 };
 
-var readdir = function() {
+var readdir = function(, callback) {
 
 };
 
@@ -19,5 +19,5 @@ var operations = {
     readdir: readdir
 };
 
-fuse.mount(operations, mountpoint, flags);
+fuse.mount(mountpoint, operations, flags);
 
