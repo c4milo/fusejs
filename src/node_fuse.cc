@@ -1,4 +1,4 @@
-// Copyright 2010, Camilo Aguilar. Cloudescape, LLC.
+// Copyright 2012, Camilo Aguilar. Cloudescape, LLC.
 #include "bindings.h"
 
 namespace NodeFuse {
@@ -10,6 +10,7 @@ namespace NodeFuse {
         Channel::Initialize(target);
         Request::Initialize(target);
         Reply::Initialize(target);
+        Operations::Initialize(target);
 
         target->Set(String::NewSymbol("version"),
                     String::New(NODE_FUSE_VERSION));
