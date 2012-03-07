@@ -12,9 +12,6 @@ describe('fuse_common.h', function() {
 
     it('fuse_mount');
     it('fuse_unmount');
-    it('fuse_daemonize');
-    it('fuse_set_signal_handlers');
-    it('fuse_remove_signal_handlers');
 });
 
 describe('fuse_lowlevel.h', function() {

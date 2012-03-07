@@ -16,6 +16,7 @@ namespace NodeFuse {
             static Handle<Value> Umount(const Arguments& args);
 
         private:
+            static Persistent<FunctionTemplate> constructor_template;
     };
 }//namespace NodeFuse
 
