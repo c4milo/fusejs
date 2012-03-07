@@ -34,7 +34,7 @@ namespace NodeFuse {
     }
 
     Handle<Value> Fuse::Umount(const Arguments& args) {
-        //umount file system
+        //umount filesystem
     }
 } //namespace NodeFuse
 
