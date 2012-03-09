@@ -16,6 +16,13 @@ namespace NodeFuse {
             static Handle<Value> Umount(const Arguments& args);
 
         private:
+            int multithreaded;
+            int foreground;
+            char *mountpoint;
+            struct fuse_args *fargs;
+            struct fuse_chan *channel;
+            struct fuse_session *session;
+            struct fuse_ops *operations;
             static Persistent<FunctionTemplate> constructor_template;
     };
 }//namespace NodeFuse

@@ -4,7 +4,7 @@ namespace NodeFuse {
     Persistent<FunctionTemplate> Fuse::constructor_template;
 
     static Persistent<String> mountpoint_sym;
-    static Persistent<String> operations_sym;
+    static Persistent<String> filesystem_sym;
     static Persistent<String> options_sym;
 
     void Fuse::Initialize(Handle<Object> target) {
@@ -23,12 +23,19 @@ namespace NodeFuse {
         target->Set(String::NewSymbol("Fuse"), constructor_template->GetFunction());
 
         mountpoint_sym        = NODE_PSYMBOL("mountpoint");
-        operations_sym        = NODE_PSYMBOL("operations");
+        filesystem_sym        = NODE_PSYMBOL("filesystem");
         options_sym           = NODE_PSYMBOL("options");
     }
 
-    Fuse::Fuse() : ObjectWrap() {}
-    Fuse::~Fuse() {}
+    Fuse::Fuse() : ObjectWrap() {
+    }
+
+    Fuse::~Fuse() {
+        fuse_opt_free_args(fargs);
+        //fuse_remove_signal_handlers(fuse_get_session(fuse));
+        fuse_unmount(mountpoint, channel);
+        free(mountpoint);
+    }
 
     Handle<Value> Fuse::New(const Arguments& args) {
         HandleScope scope;
@@ -42,45 +49,92 @@ namespace NodeFuse {
 
     Handle<Value> Fuse::Mount(const Arguments& args) {
         HandleScope scope;
-        struct fuse_chan* channel = NULL;
-        struct fuse_session* session = NULL;
-        struct fuse_args* fargs = NULL;
 
-        struct fuse_args fuse_args = FUSE_ARGS_INIT(0, NULL);
+        int argslen = args.Length();
 
-        char* mountpoint = NULL;
-        char* options = NULL;
-        char* operations = NULL;
-
-        if (args.Length() == 0) {
+        if (argslen == 0) {
             return ThrowException(Exception::TypeError(
             String::New("You must specify arguments to invoke this function")));
         }
 
         if (!args[0]->IsObject()) {
             return ThrowException(Exception::TypeError(
-            String::New("You must specify an object as first argument")));
+            String::New("You must specify an Object as first argument")));
         }
 
-        Local<Object> args_ = args[0]->ToObject();
-        THROW_IF_MISSING_PROPERTY(args_, mountpoint_sym, "mountpoint");
-        THROW_IF_MISSING_PROPERTY(args_, operations_sym, "operations");
-        THROW_IF_MISSING_PROPERTY(args_, options_sym, "options");
+        Local<Object> argsObj = args[0]->ToObject();
+        THROW_IF_MISSING_PROPERTY(argsObj, mountpoint_sym, "mountpoint");
+        THROW_IF_MISSING_PROPERTY(argsObj, filesystem_sym, "filesystem");
+        THROW_IF_MISSING_PROPERTY(argsObj, options_sym, "options");
 
-        /*THROW_IF_UNEXPECTED_TYPE("mountpoint", mountpoint_sym, "isString");
-        THROW_IF_UNEXPECTED_TYPE("operations", args_->Get(operations_sym), "Object");
-        THROW_IF_UNEXPECTED_TYPE("options", args_->Get(options_sym), "Array");*/
+        Local<Value> vmountpoint = argsObj->Get(mountpoint_sym);
+        Local<Value> vfilesystem = argsObj->Get(filesystem_sym);
+        Local<Value> voptions = argsObj->Get(options_sym);
 
-        //Local<Value>
-        //parse options
-        /*if (fuse_parse_cmdline(fargs, NULL, NULL, NULL) != 0) {
-        }*/
+        if (!vmountpoint->IsString()) {
+            return ThrowException(Exception::TypeError(
+                String::New("Wrong type for property 'mountpoint', a String is expected")));
 
-        //channel = fuse_mount(mountpoint, &fargs);
-        //session = fuse_lowlevel_new(&fargs, &fuse_ops, sizeof(fuse_ops), NULL)
-        //fuse_set_signal_handlers(session)
+        }
+
+        if (!vfilesystem->IsFunction()) {
+            return ThrowException(Exception::TypeError(
+                String::New("Wrong type for property 'filesystem', a Function is expected")));
+        }
+
+        if (!voptions->IsArray()) {
+            return ThrowException(Exception::TypeError(
+                String::New("Wrong type for property 'options', an Array is expected")));
+        }
+
+        Local<Array> options = Local<Array>::Cast(voptions);
+        int argc = options->Length();
+
+        Local<Object> currentInstance = args.This();
+        Fuse *fuse = ObjectWrap::Unwrap<Fuse>(currentInstance);
+
+        struct fuse_args fargs = FUSE_ARGS_INIT(0, NULL);
+        fuse->fargs = &fargs;
+        fuse->multithreaded = 0;
+        fuse->foreground = 0;
+
+        for (int i = 1; i < argc; i++) {
+            String::Utf8Value option(options->Get(Integer::New(i))->ToString());
+
+            if (fuse_opt_add_arg(fuse->fargs, (const char *) *option) == -1) {
+                FUSEJS_THROW_EXCEPTION("Unable to allocate memory, fuse_opt_add_arg failed: ", strerror(errno));
+                return Null();
+            }
+        }
+
+        String::Utf8Value mountpoint(vmountpoint->ToString());
+        fuse->mountpoint = *mountpoint;
+
+        int ret = fuse_parse_cmdline(fuse->fargs, NULL,
+                                        &fuse->multithreaded, &fuse->foreground);
+        if (ret == -1) {
+            FUSEJS_THROW_EXCEPTION("Error parsing fuse options: ", strerror(errno));
+            return Null();
+        }
+
+        fuse->channel = fuse_mount((const char*) fuse->mountpoint, fuse->fargs);
+        if (fuse->channel == NULL) {
+            FUSEJS_THROW_EXCEPTION("Unable to mount filesystem: ", strerror(errno));
+            return Null();
+        }
+
+        Local<Value> argv[2] = {
+            currentInstance,
+            options
+        };
+
+        Local<Function> filesystem = Local<Function>::Cast(vfilesystem);
+        Local<Object> fsobj = filesystem->NewInstance(2, argv);
+
+        //fuse->session = fuse_lowlevel_new(fuse->fargs, fuse->operations, sizeof(fuse_ops), NULL)
+        //fuse_set_signal_handlers(fuse->session)
         //fuse_session_loop()
-
+        return currentInstance;
     }
 
     Handle<Value> Fuse::Umount(const Arguments& args) {

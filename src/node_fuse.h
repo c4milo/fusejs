@@ -18,11 +18,10 @@ using namespace node;
         v8::String::New("You must have set the property " #name " in the object")));\
     }                                                                               \
 
-#define THROW_IF_UNEXPECTED_TYPE(symbol, value, expected_type)                      \
-    if (!value->expected_type()) {                                                  \
-        return v8::ThrowException(v8::Exception::TypeError(                         \
-        v8::String::New("Wrong type for " #symbol ", expected " #expected_type)));  \
-    }                                                                               \
+#define FUSEJS_THROW_EXCEPTION(err, fuse_err)                                       \
+        v8::Local<v8::Value> exception = v8::Exception::Error(                      \
+        v8::String::Concat(v8::String::New(err), v8::String::New(fuse_err)));        \
+        ThrowException(exception);
 
 namespace NodeFuse {
 

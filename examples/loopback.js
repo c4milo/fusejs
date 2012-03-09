@@ -1,10 +1,13 @@
-var fuse = require('../fuse');
-
 /**
- * Loopback filesystem operations.
+ * Loopback filesystem
  **/
 
-module.exports = {
+var Loopback = function(fuse, options) {
+    this.fuse = fuse;
+    this.options = options;
+};
+
+(function() {
     /**
      * Initialize filesystem.
      * Called before any other filesystem method.
@@ -14,9 +17,9 @@ module.exports = {
      *
      * There's no reply to this function.
      **/
-    init: function(userData, connInfo) {
+    this.init = function(userData, connInfo) {
 
-    },
+    };
 
     /**
      * Clean up filesystem.
@@ -26,9 +29,9 @@ module.exports = {
      *
      * There's no reply to this function.
      **/
-    destroy: function(userData) {
+    this.destroy = function(userData) {
 
-    },
+    };
 
     /**
      * Look up a directory entry by name and get its attributes.
@@ -39,9 +42,9 @@ module.exports = {
      *
      * Valid replies: fuse.reply_entry() or fuse.reply_err().
      **/
-    lookup: function(request, parent, name) {
+    this.lookup = function(request, parent, name) {
 
-    },
+    };
 
     /**
      * Forget about an inode
@@ -65,9 +68,9 @@ module.exports = {
      *
      * Valid replies: fuse.reply_none().
      **/
-    forget: function(request, inode, nlookup) {
+    this.forget = function(request, inode, nlookup) {
 
-    },
+    };
 
     /**
      * Get file attributes
@@ -77,15 +80,15 @@ module.exports = {
      *
      * Valid replies: fuse.reply_attr() or fuse.reply_err()
      **/
-    getattr: function(request, inode) {
+    this.getattr = function(request, inode) {
 
-    },
+    };
 
     /**
      * Set file attributes
      *
      * In the 'attr' argument only members
-     * indicated by the 'to_set' bitmask contain
+     * indicated by the 'toSet' bitmask contain
      * valid values. Other members contain undefined values.
      *
      * If the setattr was invoked from the ftruncate() system call
@@ -98,16 +101,17 @@ module.exports = {
      *
      * @param {Request} request Request instance.
      * @param {Number} inode Inode Number.
-     * @param {Object} attrs Same attributes as util.inspect(stats)
+     * @param {Object} attr Same attributes as return them for
+     * util.inspect(stats)
      * @param {Number} toSet Bit mask of attributes
      * which should be set.
      * @param {Object|Undefined} fileInfo File information.
      *
      * Valid replies: fuse.reply_attr() or fuse.reply_err()
      **/
-    setattr: function(request, inode, attrs, toSet, fileInfo) {
+    this.setattr = function(request, inode, attr, toSet, fileInfo) {
 
-    },
+    };
 
     /**
      * Read symbolic link
@@ -118,9 +122,9 @@ module.exports = {
      * Valid replies: fuse.reply_readlink() or fuse.reply_err()
      *
      */
-    readlink: function(request, inode) {
+    this.readlink = function(request, inode) {
 
-    },
+    };
 
     /**
      * Create file node
@@ -138,9 +142,9 @@ module.exports = {
      *
      * Valid replies: fuse.reply_entry() or fuse.reply_err()
      **/
-    mknod: function(request, parent, name, mode, rdev) {
+    this.mknod = function(request, parent, name, mode, rdev) {
 
-    },
+    };
 
     /**
      * Create a directory
@@ -152,9 +156,9 @@ module.exports = {
      *
      * Valid replies: fuse.reply_entry() or fuse.reply_err()
      **/
-    mkdir: function(request, parent, name, mode) {
+    this.mkdir = function(request, parent, name, mode) {
 
-    },
+    };
 
     /**
      * Remove a file
@@ -165,9 +169,9 @@ module.exports = {
      *
      * Valid replies: fuse.reply_err()
      **/
-    unlink: function(request, parent, name) {
+    this.unlink = function(request, parent, name) {
 
-    },
+    };
 
     /**
      * Remove a directory
@@ -178,9 +182,9 @@ module.exports = {
      *
      * Valid replies: fuse.reply_err()
      **/
-    rmdir: function(request, parent, name) {
+    this.rmdir = function(request, parent, name) {
 
-    },
+    };
 
     /**
      * Create a symbolic link
@@ -190,105 +194,107 @@ module.exports = {
      * @param {Number} parent Inode number of the parent directory.
      * @param {String} name Name of the symbolic link to create.
      *
-     * Valid replies: fuse_reply_entry fuse_reply_err*
+     * Valid replies: fuse.reply_entry() or fuse.reply_err()
      **/
-    symlink: function(request, link, parent, name) {
+    this.symlink = function(request, link, parent, name) {
 
-    },
+    };
 
-    rename: function() {
+    this.rename = function() {
 
-    },
+    };
 
-    link: function() {
+    this.link = function() {
 
-    },
+    };
 
-    open: function() {
+    this.open = function() {
 
-    },
+    };
 
-    read: function() {
+    this.read = function() {
 
-    },
+    };
 
-    write: function() {
+    this.write = function() {
 
-    },
+    };
 
-    flush: function() {
+    this.flush = function() {
 
-    },
+    };
 
-    release: function() {
+    this.release = function() {
 
-    },
+    };
 
-    fsync: function() {
+    this.fsync = function() {
 
-    },
+    };
 
-    opendir: function() {
+    this.opendir = function() {
 
-    },
+    };
 
-    readdir: function() {
+    this.readdir = function() {
 
-    },
+    };
 
-    releasedir: function() {
+    this.releasedir = function() {
 
-    },
+    };
 
-    fsyncdir: function() {
+    this.fsyncdir = function() {
 
-    },
+    };
 
-    statfs: function() {
+    this.statfs = function() {
 
-    },
+    };
 
-    setxattr: function() {
+    this.setxattr = function() {
 
-    },
+    };
 
-    getxattr: function() {
+    this.getxattr = function() {
 
-    },
+    };
 
-    listxattr: function() {
+    this.listxattr = function() {
 
-    },
+    };
 
-    removexattr: function() {
+    this.removexattr = function() {
 
-    },
+    };
 
-    access: function() {
+    this.access = function() {
 
-    },
+    };
 
-    create: function() {
+    this.create = function() {
 
-    },
+    };
 
-    getlk: function() {
+    this.getlk = function() {
 
-    },
+    };
 
-    setlk: function() {
+    this.setlk = function() {
 
-    },
+    };
 
-    bmap: function() {
+    this.bmap = function() {
 
-    },
+    };
 
-    ioctl: function() {
+    this.ioctl = function() {
 
-    },
+    };
 
-    poll: function() {
+    this.poll = function() {
 
-    }
-};
+    };
+}).call(Loopback.prototype);
+
+module.exports = Loopback;

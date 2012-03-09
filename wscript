@@ -8,6 +8,7 @@ def set_options(ctx):
   ctx.recurse('src')
 
 def configure(ctx):
+  ctx.env.CFLAGS = ['-g']
   ctx.recurse('src')
 
 def build(ctx):
