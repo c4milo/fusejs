@@ -6,10 +6,6 @@ namespace NodeFuse {
         HandleScope scope;
 
         Fuse::Initialize(target);
-        /*Session::Initialize(target);
-        Channel::Initialize(target);
-        Request::Initialize(target);
-        Reply::Initialize(target);*/
 
         target->Set(String::NewSymbol("version"),
                     String::New(NODE_FUSE_VERSION));

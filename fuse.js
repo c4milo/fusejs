@@ -1,41 +1,29 @@
-/**
- * Loopback filesystem
- **/
-var FileSystem = require('../fuse').FileSystem;
-var util = require('util');
+var bindings = require('./bindings');
 
-var Loopback = function(fuse, options) {
-    this.fuse = fuse;
-    this.options = options;
+var FileSystem = function() {
 
-    FileSystem.call(this);
 };
 
-util.inherits(Loopback, FileSystem);
-
 (function() {
-    /**
+     /**
      * Initialize filesystem.
      * Called before any other filesystem method.
      *
-     * param {Object} userData The user data passed to fuse.mount()
      * param {Object} connInfo Fuse connection information.
      *
      * There's no reply to this function.
      **/
-    this.init = function(userData, connInfo) {
-        console.log('Initializing Loopback filesystem!!');
+    this.init = function(connInfo) {
+
     };
 
     /**
      * Clean up filesystem.
      * Called on filesystem exit.
      *
-     * @param {Object} userData The user data passed to fuse.mount().
-     *
      * There's no reply to this function.
      **/
-    this.destroy = function(userData) {
+    this.destroy = function() {
 
     };
 
@@ -108,7 +96,7 @@ util.inherits(Loopback, FileSystem);
      * @param {Request} request Request instance.
      * @param {Number} inode Inode Number.
      * @param {Object} attr Same attributes as return them for
-     * util.inspect(stats)
+     * util.inspect(stats).
      * @param {Number} toSet Bit mask of attributes
      * which should be set.
      * @param {Object|Undefined} fileInfo File information.
@@ -126,8 +114,7 @@ util.inherits(Loopback, FileSystem);
      * @param {Number} inode Inode number.
      *
      * Valid replies: fuse.reply_readlink() or fuse.reply_err()
-     *
-     */
+     **/
     this.readlink = function(request, inode) {
 
     };
@@ -144,7 +131,7 @@ util.inherits(Loopback, FileSystem);
      * @param {Number} mode File type and mode with which
      * to create the new file.
      * @param {Number} rdev The device number
-     * (only valid if created file is a device)
+     * (only valid if created file is a device).
      *
      * Valid replies: fuse.reply_entry() or fuse.reply_err()
      **/
@@ -206,15 +193,60 @@ util.inherits(Loopback, FileSystem);
 
     };
 
-    this.rename = function() {
+    /**
+     * Rename a file
+     *
+     * @param {Request} request Request instance.
+     * @param {Number} parent Inode number of the old parent directory.
+     * @param {String} name Old name.
+     * @param {Number} newparent Inode number of the new parent directory.
+     * @param {String} newname New name.
+     *
+     * Valid replies: fuse.reply_err()
+     **/
+    this.rename = function(request, parent, name, newparent, newname) {
 
     };
 
-    this.link = function() {
+    /**
+     * Create a hard link
+     *
+     * @param {Request} request Request instance.
+     * @param {Number} inode The old inode number.
+     * @param {Number} newparent Inode number of the new parent directory.
+     * @param {String} newname New name to create.
+     *
+     * Valid replies: fuse.reply_entry() or fuse.reply_err()
+     **/
+    this.link = function(request, inode, newparent, newname) {
 
     };
 
-    this.open = function() {
+
+    /**
+     * Open a file
+     *
+     * Open flags (with the exception of O_CREAT, O_EXCL, O_NOCTTY and O_TRUNC)
+     * are available in fileInfo.flags.
+     *
+     * Filesystem may store an arbitrary file handle (pointer, index, etc)
+     * in fileInfo.fh, and use this in other all other file operations
+     * (read, write, flush, release, fsync).
+     *
+     * Filesystem may also implement stateless file I/O and not store
+     * anything in fileInfo.fh.
+     *
+     * There are also some flags (direct_io, keep_cache) which the
+     * filesystem may set in fileInfo, to change the way the file is
+     * opened. See fuse_file_info structure in <fuse_common.h> for more details.
+     *
+     * @param {Request} request Request instance.
+     * @param {Number} inode The inode number.
+     * @param {Object} fileInfo File information.
+     *
+     * Valid replies: fuse.reply_open() or fuse.reply_err()
+     **/
+    this.open = function(request, inode, fileInfo) {
 
     };
 
@@ -301,6 +333,9 @@ util.inherits(Loopback, FileSystem);
     this.poll = function() {
 
     };
-}).call(Loopback.prototype);
+}).call(FileSystem.prototype);
 
-module.exports = Loopback;
+module.exports = {
+    fuse: new bindings.Fuse(),
+    FileSystem: FileSystem
+};

@@ -2,7 +2,7 @@
     "version": "0.0.1-dev",
     "author": "Camilo Aguilar - http://github.com/c4milo",
     "email": "camilo@cloudescape.com",
-    "description" : "Low level fuse bindings for v8 javascript engine",
+    "description" : "Low level fuse bindings for NodeJS.",
     "repositories": [
        {
             "type": "git",
@@ -14,7 +14,7 @@
         "should": "0.6.0"
     },
     "scripts": {
-       "install": "node-waf configure build"
+       "install": "make"
     },
     "main" : "./fuse"
 }

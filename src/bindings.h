@@ -2,6 +2,7 @@
 #ifndef SRC_BINDINGS_H_
 #define SRC_BINDINGS_H_
 #include "node_fuse.h"
+#include "filesystem.h"
 
 namespace NodeFuse {
     class Fuse : public ObjectWrap {
@@ -13,7 +14,7 @@ namespace NodeFuse {
         protected:
             static Handle<Value> New(const Arguments& args);
             static Handle<Value> Mount(const Arguments& args);
-            static Handle<Value> Umount(const Arguments& args);
+            static Handle<Value> Unmount(const Arguments& args);
 
         private:
             int multithreaded;
@@ -22,7 +23,6 @@ namespace NodeFuse {
             struct fuse_args *fargs;
             struct fuse_chan *channel;
             struct fuse_session *session;
-            struct fuse_ops *operations;
             static Persistent<FunctionTemplate> constructor_template;
     };
 }//namespace NodeFuse

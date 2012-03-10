@@ -1,5 +1,6 @@
 // Copyright 2012, Camilo Aguilar. Cloudescape, LLC.
 #include "bindings.h"
+
 namespace NodeFuse {
     Persistent<FunctionTemplate> Fuse::constructor_template;
 
@@ -14,8 +15,8 @@ namespace NodeFuse {
 
         NODE_SET_PROTOTYPE_METHOD(t, "mount",
                                       Fuse::Mount);
-        NODE_SET_PROTOTYPE_METHOD(t, "umount",
-                                      Fuse::Umount);
+        NODE_SET_PROTOTYPE_METHOD(t, "unmount",
+                                      Fuse::Unmount);
 
         constructor_template = Persistent<FunctionTemplate>::New(t);
         constructor_template->SetClassName(String::NewSymbol("Fuse"));
@@ -31,10 +32,10 @@ namespace NodeFuse {
     }
 
     Fuse::~Fuse() {
-        fuse_opt_free_args(fargs);
-        //fuse_remove_signal_handlers(fuse_get_session(fuse));
+        /*fuse_opt_free_args(fargs);
+        fuse_remove_signal_handlers(session);
         fuse_unmount(mountpoint, channel);
-        free(mountpoint);
+        free(mountpoint);*/
     }
 
     Handle<Value> Fuse::New(const Arguments& args) {
@@ -95,8 +96,6 @@ namespace NodeFuse {
 
         struct fuse_args fargs = FUSE_ARGS_INIT(0, NULL);
         fuse->fargs = &fargs;
-        fuse->multithreaded = 0;
-        fuse->foreground = 0;
 
         for (int i = 1; i < argc; i++) {
             String::Utf8Value option(options->Get(Integer::New(i))->ToString());
@@ -129,16 +128,53 @@ namespace NodeFuse {
         };
 
         Local<Function> filesystem = Local<Function>::Cast(vfilesystem);
-        Local<Object> fsobj = filesystem->NewInstance(2, argv);
+        Persistent<Object> fsobj = Persistent<Object>::New(filesystem->NewInstance(2, argv));
 
-        //fuse->session = fuse_lowlevel_new(fuse->fargs, fuse->operations, sizeof(fuse_ops), NULL)
-        //fuse_set_signal_handlers(fuse->session)
-        //fuse_session_loop()
+        struct fuse_lowlevel_ops *operations = FileSystem::Operations();
+
+        fuse->session = fuse_lowlevel_new(fuse->fargs, operations,
+                                            sizeof(*operations), &fsobj);
+
+        if (fuse->session == NULL) {
+            fuse_unmount(fuse->mountpoint, fuse->channel);
+            FUSEJS_THROW_EXCEPTION("Error creating fuse session: ", strerror(errno));
+            return Null();
+        }
+
+        ret = fuse_set_signal_handlers(fuse->session);
+        if (ret == -1) {
+            fuse_session_destroy(fuse->session);
+            fuse_unmount(fuse->mountpoint, fuse->channel);
+            FUSEJS_THROW_EXCEPTION("Error setting fuse signal handlers: ", strerror(errno));
+            return Null();
+        }
+
+        fuse_session_add_chan(fuse->session, fuse->channel);
+
+        ret = fuse_session_loop(fuse->session);
+        if (ret == -1) {
+            fuse_remove_signal_handlers(fuse->session);
+            fuse_session_destroy(fuse->session);
+            fuse_unmount(fuse->mountpoint, fuse->channel);
+            FUSEJS_THROW_EXCEPTION("Error starting fuse session loop: ", strerror(errno));
+            return Null();
+        }
+
         return currentInstance;
     }
 
-    Handle<Value> Fuse::Umount(const Arguments& args) {
-        //umount filesystem
+    Handle<Value> Fuse::Unmount(const Arguments& args) {
+        HandleScope scope;
+
+        Local<Object> currentInstance = args.This();
+        Fuse *fuse = ObjectWrap::Unwrap<Fuse>(currentInstance);
+
+        fuse_session_remove_chan(fuse->channel);
+        fuse_remove_signal_handlers(fuse->session);
+        fuse_session_destroy(fuse->session);
+        fuse_unmount(fuse->mountpoint, fuse->channel);
+
+        return currentInstance;
     }
 } //namespace NodeFuse
 

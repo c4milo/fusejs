@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-var fuse = require('../fuse');
+var fuse = require('../fuse').fuse;
 
-var FileSystem = require('./loopback');
+var Loopback = require('./loopback');
 
 /**
  * The following options are parsed for process.argv:
@@ -22,7 +22,7 @@ var FileSystem = require('./loopback');
 
 fuse.mount({
     mountpoint: '/tmp/test',
-    filesystem: FileSystem,
+    filesystem: Loopback,
     options: process.argv
 });
 
