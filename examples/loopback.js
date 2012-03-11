@@ -8,6 +8,7 @@ var Loopback = function(fuse, options) {
     this.fuse = fuse;
     this.options = options;
 
+    console.log(options);
     FileSystem.call(this);
 };
 
@@ -25,6 +26,7 @@ util.inherits(Loopback, FileSystem);
      **/
     this.init = function(userData, connInfo) {
         console.log('Initializing Loopback filesystem!!');
+        console.log(this.options);
     };
 
     /**

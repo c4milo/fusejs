@@ -8,6 +8,7 @@ namespace NodeFuse {
     class Fuse : public ObjectWrap {
         public:
             static void Initialize(Handle<Object> target);
+            Persistent<Object> fsobj;
 
             Fuse();
             virtual ~Fuse();

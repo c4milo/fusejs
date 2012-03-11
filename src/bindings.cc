@@ -116,6 +116,8 @@ namespace NodeFuse {
             return Null();
         }
 
+        //fuse_opt_free_args(fuse->fargs);
+
         fuse->channel = fuse_mount((const char*) fuse->mountpoint, fuse->fargs);
         if (fuse->channel == NULL) {
             FUSEJS_THROW_EXCEPTION("Unable to mount filesystem: ", strerror(errno));
@@ -128,12 +130,15 @@ namespace NodeFuse {
         };
 
         Local<Function> filesystem = Local<Function>::Cast(vfilesystem);
-        Persistent<Object> fsobj = Persistent<Object>::New(filesystem->NewInstance(2, argv));
+        fuse->fsobj = Persistent<Object>::New(filesystem->NewInstance(2, argv));
+
+        assert(fuse->fsobj->IsObject());
+        assert(fuse->fsobj->Get(String::NewSymbol("init"))->IsFunction());
 
         struct fuse_lowlevel_ops *operations = FileSystem::Operations();
 
         fuse->session = fuse_lowlevel_new(fuse->fargs, operations,
-                                            sizeof(*operations), &fsobj);
+                                            sizeof(*operations), fuse);
 
         if (fuse->session == NULL) {
             fuse_unmount(fuse->mountpoint, fuse->channel);
