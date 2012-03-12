@@ -60,7 +60,19 @@ namespace NodeFuse {
     }
 
     void FileSystem::Destroy(void *userdata) {
+        HandleScope scope;
+        Fuse *fuse = static_cast<Fuse *>(userdata);
 
+        Local<Value> vdestroy = fuse->fsobj->Get(destroy_sym);
+        Local<Function> destroy = Local<Function>::Cast(vdestroy);
+
+        TryCatch try_catch;
+
+        destroy->Call(fuse->fsobj, 0, NULL);
+
+        if (try_catch.HasCaught()) {
+            FatalException(try_catch);
+        }
     }
 
     struct fuse_lowlevel_ops* FileSystem::GetOperations() {

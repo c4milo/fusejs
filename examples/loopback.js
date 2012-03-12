@@ -39,7 +39,7 @@ util.inherits(Loopback, FileSystem);
      * There's no reply to this function.
      **/
     this.destroy = function(userData) {
-
+        console.log('Cleaning up filesystem...');
     };
 
     /**
