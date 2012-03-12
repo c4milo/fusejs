@@ -135,7 +135,7 @@ namespace NodeFuse {
         assert(fuse->fsobj->IsObject());
         assert(fuse->fsobj->Get(String::NewSymbol("init"))->IsFunction());
 
-        struct fuse_lowlevel_ops *operations = FileSystem::Operations();
+        struct fuse_lowlevel_ops *operations = FileSystem::GetOperations();
 
         fuse->session = fuse_lowlevel_new(fuse->fargs, operations,
                                             sizeof(*operations), fuse);

@@ -24,7 +24,8 @@ util.inherits(Loopback, FileSystem);
      *
      * There's no reply to this function.
      **/
-    this.init = function(userData, connInfo) {
+    this.init = function(connInfo) {
+        console.log(connInfo);
         console.log('Initializing Loopback filesystem!!');
         console.log(this.options);
     };
