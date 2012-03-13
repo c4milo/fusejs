@@ -30,13 +30,14 @@ var FileSystem = function() {
     /**
      * Look up a directory entry by name and get its attributes.
      *
-     * @param {Request} request Request instance.
+     * @param {Object} context Context info of the calling process.
      * @param {Number} parent Inode number of the parent directory.
      * @param {String} name the name to look up.
+     * @param {Function} reply Function to reply to this operation.
      *
      * Valid replies: fuse.reply_entry() or fuse.reply_err().
      **/
-    this.lookup = function(request, parent, name) {
+    this.lookup = function(context, parent, name, reply) {
 
     };
 
@@ -56,25 +57,25 @@ var FileSystem = function() {
      * On unmount it is not guaranteed, that all referenced
      * inodes will receive a forget message.
      *
-     * @param {Request} request Request instance.
+     * @param {Object} context Context info of the calling process.
      * @param {Number} inode Inode number.
      * @param {Number} nlookup The number of lookups to forget.
      *
      * Valid replies: fuse.reply_none().
      **/
-    this.forget = function(request, inode, nlookup) {
+    this.forget = function(context, inode, nlookup) {
 
     };
 
     /**
      * Get file attributes
      *
-     * @param {Request} request Request instance.
+     * @param {Object} context Context info of the calling process.
      * @param {Number} inode Inode number.
      *
      * Valid replies: fuse.reply_attr() or fuse.reply_err()
      **/
-    this.getattr = function(request, inode) {
+    this.getattr = function(context, inode) {
 
     };
 
@@ -93,7 +94,7 @@ var FileSystem = function() {
      * call, or kernel version earlier than 2.6.15)
      * the fi parameter will be NULL.
      *
-     * @param {Request} request Request instance.
+     * @param {Object} context Context info of the calling process.
      * @param {Number} inode Inode Number.
      * @param {Object} attr Same attributes as return them for
      * util.inspect(stats).
@@ -103,19 +104,19 @@ var FileSystem = function() {
      *
      * Valid replies: fuse.reply_attr() or fuse.reply_err()
      **/
-    this.setattr = function(request, inode, attr, toSet, fileInfo) {
+    this.setattr = function(context, inode, attr, toSet, fileInfo) {
 
     };
 
     /**
      * Read symbolic link
      *
-     * @param {Request} request Request instance.
+     * @param {Object} context Context info of the calling process.
      * @param {Number} inode Inode number.
      *
      * Valid replies: fuse.reply_readlink() or fuse.reply_err()
      **/
-    this.readlink = function(request, inode) {
+    this.readlink = function(context, inode) {
 
     };
 
@@ -124,8 +125,7 @@ var FileSystem = function() {
      * Create a regular file, character device,
      * block device, fifo or socket node.
      *
-     *
-     * @param {Request} request Request instance.
+     * @param {Object} context Context info of the calling process.
      * @param {Number} parent Inode number of the parent directory.
      * @param {String} name Name to be created.
      * @param {Number} mode File type and mode with which
@@ -135,68 +135,68 @@ var FileSystem = function() {
      *
      * Valid replies: fuse.reply_entry() or fuse.reply_err()
      **/
-    this.mknod = function(request, parent, name, mode, rdev) {
+    this.mknod = function(context, parent, name, mode, rdev) {
 
     };
 
     /**
      * Create a directory
      *
-     * @param {Request} request Request instance.
+     * @param {Object} context Context info of the calling process.
      * @param {Number} parent Inode number of the parent directory.
      * @param {String} name Name to be created.
      * @param {Number} mode with which to create the new file.
      *
      * Valid replies: fuse.reply_entry() or fuse.reply_err()
      **/
-    this.mkdir = function(request, parent, name, mode) {
+    this.mkdir = function(context, parent, name, mode) {
 
     };
 
     /**
      * Remove a file
      *
-     * @param {Request} request Request instance.
+     * @param {Object} context Context info of the calling process.
      * @param {Number} parent Inode number of the parent directory.
      * @param {String} name Name of the file to remove.
      *
      * Valid replies: fuse.reply_err()
      **/
-    this.unlink = function(request, parent, name) {
+    this.unlink = function(context, parent, name) {
 
     };
 
     /**
      * Remove a directory
      *
-     * @param {Request} request Request instance.
+     * @param {Object} context Context info of the calling process.
      * @param {Number} parent Inode number of the parent directory.
      * @param {String} name Name of the directory to remove.
      *
      * Valid replies: fuse.reply_err()
      **/
-    this.rmdir = function(request, parent, name) {
+    this.rmdir = function(context, parent, name) {
 
     };
 
     /**
      * Create a symbolic link
      *
-     * @param {Request} request Request instance.
+     * @param {Object} context Context info of the calling process.
      * @param {String} link The contents of the symbolic link.
      * @param {Number} parent Inode number of the parent directory.
      * @param {String} name Name of the symbolic link to create.
      *
      * Valid replies: fuse.reply_entry() or fuse.reply_err()
      **/
-    this.symlink = function(request, link, parent, name) {
+    this.symlink = function(context, link, parent, name) {
 
     };
 
     /**
      * Rename a file
      *
-     * @param {Request} request Request instance.
+     * @param {Object} context Context info of the calling process.
      * @param {Number} parent Inode number of the old parent directory.
      * @param {String} name Old name.
      * @param {Number} newparent Inode number of the new parent directory.
@@ -204,21 +204,21 @@ var FileSystem = function() {
      *
      * Valid replies: fuse.reply_err()
      **/
-    this.rename = function(request, parent, name, newparent, newname) {
+    this.rename = function(context, parent, name, newparent, newname) {
 
     };
 
     /**
      * Create a hard link
      *
-     * @param {Request} request Request instance.
+     * @param {Object} context Context info of the calling process.
      * @param {Number} inode The old inode number.
      * @param {Number} newparent Inode number of the new parent directory.
      * @param {String} newname New name to create.
      *
      * Valid replies: fuse.reply_entry() or fuse.reply_err()
      **/
-    this.link = function(request, inode, newparent, newname) {
+    this.link = function(context, inode, newparent, newname) {
 
     };
 
@@ -240,13 +240,13 @@ var FileSystem = function() {
      * filesystem may set in fileInfo, to change the way the file is
      * opened. See fuse_file_info structure in <fuse_common.h> for more details.
      *
-     * @param {Request} request Request instance.
+     * @param {Object} context Context info of the calling process.
      * @param {Number} inode The inode number.
      * @param {Object} fileInfo File information.
      *
      * Valid replies: fuse.reply_open() or fuse.reply_err()
      **/
-    this.open = function(request, inode, fileInfo) {
+    this.open = function(context, inode, fileInfo) {
 
     };
 
