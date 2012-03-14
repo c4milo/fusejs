@@ -1,4 +1,5 @@
 #include "filesystem.h"
+#include "reply.h"
 #include "bindings.h"
 
 namespace NodeFuse {
@@ -7,16 +8,16 @@ namespace NodeFuse {
         init: FileSystem::Init,
         destroy: FileSystem::Destroy,
         lookup: FileSystem::Lookup,
-        forget: FileSystem::Forget,
-        getattr: FileSystem::GetAttr
+        /*forget: FileSystem::Forget,
+        getattr: FileSystem::GetAttr*/
     };
 
     //Operations symbols
     static Persistent<String> init_sym = NODE_PSYMBOL("init");
     static Persistent<String> destroy_sym = NODE_PSYMBOL("destroy");
     static Persistent<String> lookup_sym = NODE_PSYMBOL("lookup");
-    static Persistent<String> forget_sym = NODE_PSYMBOL("forget");
-    static Persistent<String> getattr_sym = NODE_PSYMBOL("getattr");
+    /*static Persistent<String> forget_sym = NODE_PSYMBOL("forget");
+    static Persistent<String> getattr_sym = NODE_PSYMBOL("getattr");*/
 
     //fuse_conn_info symbols
     //Major version of the fuse protocol
@@ -92,18 +93,24 @@ namespace NodeFuse {
         Local<Number> parentInode = Number::New(parent);
         Local<String> entryName = String::New(name);
 
-        Local<Value> argv[3] = {context, parentInode, entryName};
 
+        Reply *reply = new Reply();
+        reply->request = req;
+        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        reply->Wrap(replyObj);
+
+
+        Local<Value> argv[4] = {context, parentInode,
+                                entryName, replyObj};
         TryCatch try_catch;
-
-        lookup->Call(fuse->fsobj, 3, argv);
+        lookup->Call(fuse->fsobj, 4, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
     }
 
-    void FileSystem::Forget(fuse_req_t req, fuse_ino_t ino, unsigned long nlookup) {
+    /*void FileSystem::Forget(fuse_req_t req, fuse_ino_t ino, unsigned long nlookup) {
         Fuse *fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
         Local<Value> vforget = fuse->fsobj->Get(forget_sym);
@@ -120,7 +127,7 @@ namespace NodeFuse {
 
     void FileSystem::GetAttr(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi) {
 
-    }
+    }*/
 
     struct fuse_lowlevel_ops* FileSystem::GetOperations() {
         return &fuse_ops;

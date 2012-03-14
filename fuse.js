@@ -33,7 +33,7 @@ var FileSystem = function() {
      * @param {Object} context Context info of the calling process.
      * @param {Number} parent Inode number of the parent directory.
      * @param {String} name the name to look up.
-     * @param {Function} reply Function to reply to this operation.
+     * @param {Function} reply Function to answer this operation.
      *
      * Valid replies: fuse.reply_entry() or fuse.reply_err().
      **/

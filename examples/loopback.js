@@ -28,7 +28,7 @@ util.inherits(Loopback, FileSystem);
     this.lookup = function(context, parent, name, reply) {
         console.log('Lookup!');
         console.log(context);
-        //reply();
+        reply.entry(entry);
     };
 
     this.forget = function(context, inode, nlookup) {

@@ -5,8 +5,6 @@
 namespace NodeFuse {
     class FileSystem {
         public:
-            static void Initialize();
-
             FileSystem();
             virtual ~FileSystem();
 
@@ -14,8 +12,8 @@ namespace NodeFuse {
             static void Init(void *userdata, struct fuse_conn_info *conn);
             static void Destroy(void *userdata);
             static void Lookup(fuse_req_t req, fuse_ino_t parent, const char *name);
-            static void Forget(fuse_req_t req, fuse_ino_t ino, unsigned long nlookup);
-            static void GetAttr(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi);
+            //static void Forget(fuse_req_t req, fuse_ino_t ino, unsigned long nlookup);
+            //static void GetAttr(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi);
     };
 }//namespace NodeFuse
 

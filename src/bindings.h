@@ -8,10 +8,11 @@ namespace NodeFuse {
     class Fuse : public ObjectWrap {
         public:
             static void Initialize(Handle<Object> target);
-            static Persistent<Object> fsobj;
+            Persistent<Object> fsobj;
 
             Fuse();
             virtual ~Fuse();
+
         protected:
             static Handle<Value> New(const Arguments& args);
             static Handle<Value> Mount(const Arguments& args);

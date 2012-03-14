@@ -24,7 +24,7 @@ using namespace node;
         ThrowException(exception);
 
 namespace NodeFuse {
-    const struct fuse_entry_param* ToFuseEntryParam(Handle<Value> value);
+    const struct fuse_entry_param* ObjectToFuseEntryParam(Handle<Value> value);
     Handle<Value> FuseEntryParamToObject(const struct fuse_entry_param* entry);
     Handle<Value> RequestContextToObject(const struct fuse_ctx* ctx);
 }

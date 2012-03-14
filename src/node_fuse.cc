@@ -1,5 +1,6 @@
 // Copyright 2012, Camilo Aguilar. Cloudescape, LLC.
 #include "bindings.h"
+#include "reply.h"
 
 namespace NodeFuse {
     static Persistent<String> uid_sym = NODE_PSYMBOL("uid");
@@ -10,6 +11,7 @@ namespace NodeFuse {
         HandleScope scope;
 
         Fuse::Initialize(target);
+        Reply::Initialize();
 
         target->Set(String::NewSymbol("version"),
                     String::New(NODE_FUSE_VERSION));
@@ -21,10 +23,13 @@ namespace NodeFuse {
     const struct fuse_entry_param* ObjectToFuseEntryParam(Handle<Value> value) {
         HandleScope scope;
 
+        Local<Object> e = value->ToObject();
+        return NULL;
     }
 
     Handle<Value> FuseEntryParamToObject(const struct fuse_entry_param* entry) {
         HandleScope scope;
+
     }
 
     Handle<Value> RequestContextToObject(const struct fuse_ctx* ctx) {
