@@ -52,12 +52,14 @@ namespace NodeFuse {
             return Null();
         }
 
-        const struct fuse_entry_param* entry = ObjectToFuseEntryParam(arg);
-        if (entry == NULL) {
+        fuse_entry_param entry;
+
+        ret = ObjectToFuseEntryParam(arg, &entry);
+        if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Unrecognized fuse entry structure: ", "Unable to reply the operation");
             return Null();
         }
 
-        fuse_reply_entry(reply->request, entry);
+        fuse_reply_entry(reply->request, &entry);
     }
 } //ends namespace NodeFuse
