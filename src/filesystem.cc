@@ -8,16 +8,16 @@ namespace NodeFuse {
         init: FileSystem::Init,
         destroy: FileSystem::Destroy,
         lookup: FileSystem::Lookup,
-        /*forget: FileSystem::Forget,
-        getattr: FileSystem::GetAttr*/
+        forget: FileSystem::Forget,
+        getattr: FileSystem::GetAttr
     };
 
     //Operations symbols
     static Persistent<String> init_sym = NODE_PSYMBOL("init");
     static Persistent<String> destroy_sym = NODE_PSYMBOL("destroy");
     static Persistent<String> lookup_sym = NODE_PSYMBOL("lookup");
-    /*static Persistent<String> forget_sym = NODE_PSYMBOL("forget");
-    static Persistent<String> getattr_sym = NODE_PSYMBOL("getattr");*/
+    static Persistent<String> forget_sym = NODE_PSYMBOL("forget");
+    static Persistent<String> getattr_sym = NODE_PSYMBOL("getattr");
 
     //fuse_conn_info symbols
     //Major version of the fuse protocol
@@ -93,12 +93,10 @@ namespace NodeFuse {
         Local<Number> parentInode = Number::New(parent);
         Local<String> entryName = String::New(name);
 
-
         Reply *reply = new Reply();
         reply->request = req;
         Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
-
 
         Local<Value> argv[4] = {context, parentInode,
                                 entryName, replyObj};
@@ -110,24 +108,53 @@ namespace NodeFuse {
         }
     }
 
-    /*void FileSystem::Forget(fuse_req_t req, fuse_ino_t ino, unsigned long nlookup) {
+    void FileSystem::Forget(fuse_req_t req, fuse_ino_t ino, unsigned long nlookup_) {
+        HandleScope scope;
         Fuse *fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
         Local<Value> vforget = fuse->fsobj->Get(forget_sym);
         Local<Function> forget = Local<Function>::Cast(vforget);
 
-        TryCatch try_catch;
+        Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
+        Local<Number> inode = Number::New(ino);
+        Local<Integer> nlookup = Integer::New(nlookup_);
 
-        forget->Call(fuse->fsobj, 0, NULL);
+        Local<Value> argv[3] = {context, inode, nlookup};
+
+        TryCatch try_catch;
+        forget->Call(fuse->fsobj, 3, argv);
+
+        if (try_catch.HasCaught()) {
+            FatalException(try_catch);
+        }
+
+        fuse_reply_none(req);
+    }
+
+    void FileSystem::GetAttr(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi) {
+        HandleScope scope;
+        Fuse *fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+
+        Local<Value> vgetattr = fuse->fsobj->Get(getattr_sym);
+        Local<Function> getattr = Local<Function>::Cast(vgetattr);
+
+        Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
+        Local<Number> inode = Number::New(ino);
+
+        Reply *reply = new Reply();
+        reply->request = req;
+        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        reply->Wrap(replyObj);
+
+        Local<Value> argv[3] = {context, inode, replyObj};
+
+        TryCatch try_catch;
+        getattr->Call(fuse->fsobj, 3, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
     }
-
-    void FileSystem::GetAttr(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi) {
-
-    }*/
 
     struct fuse_lowlevel_ops* FileSystem::GetOperations() {
         return &fuse_ops;

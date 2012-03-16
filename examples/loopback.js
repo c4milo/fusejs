@@ -2,6 +2,8 @@
  * Loopback filesystem
  **/
 var FileSystem = require('../fuse').FileSystem;
+var PosixError = require('../fuse').PosixError;
+
 var util = require('util');
 
 var Loopback = function(options) {
@@ -28,38 +30,64 @@ util.inherits(Loopback, FileSystem);
     this.lookup = function(context, parent, name, reply) {
         console.log('Lookup!');
         console.log(context);
+        var entry = {
+            inode: 1234,
+            generation: 2,
+            attr: {
+                dev: 234881026,
+                ino: 13420595,
+                mode: 33188,
+                nlink: 1,
+                uid: 501,
+                gid: 20,
+                rdev: 0,
+                size: 11,
+                blksize: 4096,
+                blocks: 8,
+                atime: 1331780451475, //Date.now();
+                mtime: 1331780451475, //Date.now();
+                ctime: 1331780451475, //Date.now();
+            },
+            attr_timeout: 30, //in seconds
+            entry_timeout: 60 //in seconds
+        };
+
         reply.entry(entry);
+        //reply.entry(PosixError.ENOENT);
     };
 
     this.forget = function(context, inode, nlookup) {
+        console.log('Forget was called!!');
+    };
+
+    this.getattr = function(context, inode, reply) {
+        console.log('Getattr was called!!');
+        console.log(context);
+        console.log(inode);
+        reply.attr(PosixError.EIO);
+    };
+
+    this.setattr = function(context, inode, attr, toSet, fileInfo, reply) {
 
     };
 
-    this.getattr = function(context, inode) {
+    this.readlink = function(context, inode, reply) {
 
     };
 
-    this.setattr = function(context, inode, attr, toSet, fileInfo) {
+    this.mknod = function(context, parent, name, mode, rdev, reply) {
 
     };
 
-    this.readlink = function(context, inode) {
+    this.mkdir = function(context, parent, name, mode, reply) {
 
     };
 
-    this.mknod = function(context, parent, name, mode, rdev) {
+    this.unlink = function(context, parent, name, reply) {
 
     };
 
-    this.mkdir = function(context, parent, name, mode) {
-
-    };
-
-    this.unlink = function(context, parent, name) {
-
-    };
-
-    this.rmdir = function(context, parent, name) {
+    this.rmdir = function(context, parent, name, reply) {
 
     };
 

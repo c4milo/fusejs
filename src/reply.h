@@ -15,8 +15,7 @@ namespace NodeFuse {
 
         protected:
             static Handle<Value> Entry(const Arguments& args);
-            static Handle<Value> Forget(const Arguments& args);
-            static Handle<Value> GetAttr(const Arguments& args);
+            static Handle<Value> Attributes(const Arguments& args);
 
         private:
             fuse_req_t request;
