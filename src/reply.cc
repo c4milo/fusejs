@@ -11,6 +11,8 @@ namespace NodeFuse {
 
         NODE_SET_PROTOTYPE_METHOD(t, "entry", Reply::Entry);
         NODE_SET_PROTOTYPE_METHOD(t, "attr", Reply::Attributes);
+        NODE_SET_PROTOTYPE_METHOD(t, "readlink", Reply::ReadLink);
+        NODE_SET_PROTOTYPE_METHOD(t, "err", Reply::Error);
 
         constructor_template = Persistent<FunctionTemplate>::New(t);
         constructor_template->SetClassName(String::NewSymbol("Reply"));
@@ -33,21 +35,12 @@ namespace NodeFuse {
         }
 
         Local<Value> arg = args[0];
-
-        if (!arg->IsObject() && !arg->IsInt32()) {
+        if (!arg->IsObject()) {
             return ThrowException(Exception::TypeError(
-            String::New("You must specify an object or number as first argument")));
+            String::New("You must specify an object as first argument")));
         }
 
         int ret = -1;
-        if (arg->IsInt32()) {
-            ret = fuse_reply_err(reply->request, arg->Int32Value());
-            if (ret == -1) {
-                FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
-            }
-            return Null();
-        }
-
         struct fuse_entry_param entry;
 
         ret = ObjectToFuseEntryParam(arg, &entry);
@@ -57,6 +50,7 @@ namespace NodeFuse {
         }
 
         fuse_reply_entry(reply->request, &entry);
+        return Undefined();
     }
 
     Handle<Value> Reply::Attributes(const Arguments& args) {
@@ -73,22 +67,14 @@ namespace NodeFuse {
         }
 
         Local<Value> arg = args[0];
-
-        if (!arg->IsObject() && !arg->IsInt32()) {
+        if (!arg->IsObject()) {
             return ThrowException(Exception::TypeError(
-            String::New("You must specify an object or number as first argument")));
+            String::New("You must specify an object as first argument")));
         }
 
         int ret = -1;
-        if (arg->IsInt32()) {
-            ret = fuse_reply_err(reply->request, arg->Int32Value());
-            if (ret == -1) {
-                FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
-            }
-            return Null();
-        }
-
         struct stat statbuff;
+
         ret = ObjectToStat(arg, &statbuff);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Unrecognized stat object: ", "Unable to reply the operation");
@@ -106,6 +92,7 @@ namespace NodeFuse {
         }
 
         fuse_reply_attr(reply->request, &statbuff, timeout);
+        return Undefined();
     }
 
     Handle<Value> Reply::ReadLink(const Arguments& args) {
@@ -116,25 +103,48 @@ namespace NodeFuse {
 
         int argslen = args.Length();
 
-        Local<Value> arg = args[0];
-
-        if (!arg->IsString() && !arg->IsInt32()) {
+        if (argslen == 0) {
             return ThrowException(Exception::TypeError(
-            String::New("You must specify a string or number as first argument")));
+            String::New("You must specify arguments to invoke this function")));
         }
 
-        int ret = -1;
-        if (arg->IsInt32()) {
-            ret = fuse_reply_err(reply->request, arg->Int32Value());
-            if (ret == -1) {
-                FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
-            }
-            return Null();
+        Local<Value> arg = args[0];
+        if (!arg->IsString()) {
+            return ThrowException(Exception::TypeError(
+            String::New("You must specify a string as first argument")));
         }
 
         String::Utf8Value link(arg->ToString());
 
         fuse_reply_readlink(reply->request, (const char*) *link);
+        return Undefined();
     }
 
+    Handle<Value> Reply::Error(const Arguments& args) {
+        HandleScope scope;
+
+        Local<Object> replyObj = args.This();
+        Reply* reply = ObjectWrap::Unwrap<Reply>(replyObj);
+
+        int argslen = args.Length();
+        if (argslen == 0) {
+            return ThrowException(Exception::TypeError(
+            String::New("You must specify arguments to invoke this function")));
+        }
+
+        Local<Value> arg = args[0];
+        if (!arg->IsInt32()) {
+            return ThrowException(Exception::TypeError(
+            String::New("You must specify a number as first argument")));
+        }
+
+        int ret = -1;
+        ret = fuse_reply_err(reply->request, arg->Int32Value());
+        if (ret == -1) {
+            FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
+            return Null();
+        }
+
+        return Undefined();
+    }
 } //ends namespace NodeFuse

@@ -13,7 +13,8 @@ namespace NodeFuse {
         setattr : FileSystem::SetAttr,
         readlink: FileSystem::ReadLink,
         mknod   : FileSystem::MkNod,
-        mkdir   : FileSystem::MkDir
+        mkdir   : FileSystem::MkDir,
+        unlink  : FileSystem::Unlink
     };
 
     //Operations symbols
@@ -26,6 +27,7 @@ namespace NodeFuse {
     static Persistent<String> readlink_sym  = NODE_PSYMBOL("readlink");
     static Persistent<String> mknod_sym     = NODE_PSYMBOL("mknod");
     static Persistent<String> mkdir_sym     = NODE_PSYMBOL("mkdir");
+    static Persistent<String> unlink_sym    = NODE_PSYMBOL("unlink");
 
     //fuse_conn_info symbols
     //Major version of the fuse protocol
@@ -72,7 +74,6 @@ namespace NodeFuse {
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
-
     }
 
     void FileSystem::Destroy(void* userdata) {
@@ -122,7 +123,7 @@ namespace NodeFuse {
 
     void FileSystem::Forget(fuse_req_t req,
                             fuse_ino_t ino,
-                            unsigned long nlookup_) {
+                            unsigned long nlookup) {
         HandleScope scope;
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
@@ -131,9 +132,9 @@ namespace NodeFuse {
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Number> inode = Number::New(ino);
-        Local<Integer> nlookup = Integer::New(nlookup_);
+        Local<Integer> nlookup_ = Integer::New(nlookup);
 
-        Local<Value> argv[3] = {context, inode, nlookup};
+        Local<Value> argv[3] = {context, inode, nlookup_};
 
         TryCatch try_catch;
 
@@ -295,6 +296,35 @@ namespace NodeFuse {
         TryCatch try_catch;
 
         mkdir->Call(fuse->fsobj, 5, argv);
+
+        if (try_catch.HasCaught()) {
+            FatalException(try_catch);
+        }
+    }
+
+    void FileSystem::Unlink(fuse_req_t req,
+                            fuse_ino_t parent,
+                            const char* name) {
+        HandleScope scope;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+
+        Local<Value> vunlink = fuse->fsobj->Get(unlink_sym);
+        Local<Function> unlink = Local<Function>::Cast(vunlink);
+
+        Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
+        Local<Number> parentInode = Number::New(parent);
+        Local<String> name_ = String::New(name);
+
+        Reply* reply = new Reply();
+        reply->request = req;
+        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        reply->Wrap(replyObj);
+
+        Local<Value> argv[4] = {context, parentInode, name_, replyObj};
+
+        TryCatch try_catch;
+
+        unlink->Call(fuse->fsobj, 4, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);

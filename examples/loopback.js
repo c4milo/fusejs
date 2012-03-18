@@ -53,7 +53,7 @@ util.inherits(Loopback, FileSystem);
         };
 
         reply.entry(entry);
-        //reply.entry(PosixError.ENOENT);
+        //reply.err(PosixError.ENOENT);
     };
 
     this.forget = function(context, inode, nlookup) {
@@ -82,7 +82,7 @@ util.inherits(Loopback, FileSystem);
             ctime: 1331780451475, //Date.now();
         };
         //reply.attr(attrs, 1000);
-        reply.attr(PosixError.EIO);
+        reply.err(PosixError.EIO);
     };
 
     this.setattr = function(context, inode, attrs, reply) {
@@ -90,24 +90,24 @@ util.inherits(Loopback, FileSystem);
         console.log(attrs);
 
         //reply.attr(attrs, 1000);
-        reply.attr(PosixError.EIO);
+        reply.err(PosixError.EIO);
     };
 
     this.readlink = function(context, inode, reply) {
         console.log('Readlink was called!');
         //reply.readlink('eso');
-        reply.readlink(PosixError.EIO);
+        reply.err(PosixError.EIO);
     };
 
     this.mknod = function(context, parent, name, mode, rdev, reply) {
         console.log('Mknod was called!');
-        reply.entry(PosixError.ENOENT);
+        reply.err(PosixError.ENOENT);
         //reply.entry(entry);
     };
 
     this.mkdir = function(context, parent, name, mode, reply) {
         console.log('Mkdir was called!');
-        reply.entry(PosixError.EIO);
+        reply.err(PosixError.EIO);
         //reply.entry(entry);
     };
 

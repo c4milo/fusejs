@@ -17,6 +17,7 @@ namespace NodeFuse {
             static Handle<Value> Entry(const Arguments& args);
             static Handle<Value> Attributes(const Arguments& args);
             static Handle<Value> ReadLink(const Arguments& args);
+            static Handle<Value> Error(const Arguments& args);
 
         private:
             fuse_req_t request;

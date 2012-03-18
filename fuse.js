@@ -33,9 +33,9 @@ var FileSystem = function() {
      * @param {Object} context Context info of the calling process.
      * @param {Number} parent Inode number of the parent directory.
      * @param {String} name the name to look up.
-     * @param {Function} reply Function to answer this operation.
+     * @param {Object} reply Reply instance.
      *
-     * Valid replies: fuse.reply_entry() or fuse.reply_err().
+     * Valid replies: reply.entry() or reply.err().
      **/
     this.lookup = function(context, parent, name, reply) {
 
@@ -61,7 +61,6 @@ var FileSystem = function() {
      * @param {Number} inode Inode number.
      * @param {Number} nlookup The number of lookups to forget.
      *
-     * Valid replies: fuse.reply_none().
      **/
     this.forget = function(context, inode, nlookup) {
 
@@ -72,10 +71,11 @@ var FileSystem = function() {
      *
      * @param {Object} context Context info of the calling process.
      * @param {Number} inode Inode number.
+     * @param {Object} reply Reply instance.
      *
-     * Valid replies: fuse.reply_attr() or fuse.reply_err()
+     * Valid replies: reply.attr() or reply.err()
      **/
-    this.getattr = function(context, inode) {
+    this.getattr = function(context, inode, reply) {
 
     };
 
@@ -97,8 +97,9 @@ var FileSystem = function() {
      * @param {Object} context Context info of the calling process.
      * @param {Number} inode Inode Number.
      * @param {Object} attrs Attributes to be set.
+     * @param {Object} reply Reply instance.
      *
-     * Valid replies: reply.attr()
+     * Valid replies: reply.attr() or reply.err();
      **/
     this.setattr = function(context, inode, attrs, reply) {
 
@@ -111,7 +112,7 @@ var FileSystem = function() {
      * @param {Number} inode Inode number.
      * @param {Object} reply Reply instance.
      *
-     * Valid replies: reply.readlink()
+     * Valid replies: reply.readlink() or reply.err()
      **/
     this.readlink = function(context, inode, reply) {
 
@@ -131,7 +132,7 @@ var FileSystem = function() {
      * (only valid if created file is a device).
      * @param {Object} reply Reply instance.
      *
-     * Valid replies: reply.entry()
+     * Valid replies: reply.entry() or reply.err()
      **/
     this.mknod = function(context, parent, name, mode, rdev, reply) {
 
@@ -144,8 +145,9 @@ var FileSystem = function() {
      * @param {Number} parent Inode number of the parent directory.
      * @param {String} name Name to be created.
      * @param {Number} mode with which to create the new file.
+     * @param {Object} reply Reply instance.
      *
-     * Valid replies: reply.entry()
+     * Valid replies: reply.entry() or reply.err()
      **/
     this.mkdir = function(context, parent, name, mode, reply) {
 
@@ -157,10 +159,11 @@ var FileSystem = function() {
      * @param {Object} context Context info of the calling process.
      * @param {Number} parent Inode number of the parent directory.
      * @param {String} name Name of the file to remove.
+     * @param {Object} reply Reply instance.
      *
-     * Valid replies: fuse.reply_err()
+     * Valid replies: reply.err()
      **/
-    this.unlink = function(context, parent, name) {
+    this.unlink = function(context, parent, name, reply) {
 
     };
 
@@ -171,7 +174,7 @@ var FileSystem = function() {
      * @param {Number} parent Inode number of the parent directory.
      * @param {String} name Name of the directory to remove.
      *
-     * Valid replies: fuse.reply_err()
+     * Valid replies: reply.err()
      **/
     this.rmdir = function(context, parent, name) {
 
