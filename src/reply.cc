@@ -98,7 +98,7 @@ namespace NodeFuse {
         double timeout = 0;
         if (argslen == 2) {
             if (!args[1]->IsNumber()) {
-                FUSEJS_THROW_EXCEPTION("Invalid attribute validity timeout, ", "it should be the number of seconds in which the attributes are considered valid.");
+                FUSEJS_THROW_EXCEPTION("Invalid timeout, ", "it should be the number of seconds in which the attributes are considered valid.");
                 return Null();
             }
 
@@ -106,6 +106,35 @@ namespace NodeFuse {
         }
 
         fuse_reply_attr(reply->request, &statbuff, timeout);
+    }
+
+    Handle<Value> Reply::ReadLink(const Arguments& args) {
+        HandleScope scope;
+
+        Local<Object> replyObj = args.This();
+        Reply* reply = ObjectWrap::Unwrap<Reply>(replyObj);
+
+        int argslen = args.Length();
+
+        Local<Value> arg = args[0];
+
+        if (!arg->IsString() && !arg->IsInt32()) {
+            return ThrowException(Exception::TypeError(
+            String::New("You must specify a string or number as first argument")));
+        }
+
+        int ret = -1;
+        if (arg->IsInt32()) {
+            ret = fuse_reply_err(reply->request, arg->Int32Value());
+            if (ret == -1) {
+                FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
+            }
+            return Null();
+        }
+
+        String::Utf8Value link(arg->ToString());
+
+        fuse_reply_readlink(reply->request, (const char*) *link);
     }
 
 } //ends namespace NodeFuse

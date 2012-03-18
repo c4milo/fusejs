@@ -9,7 +9,8 @@ namespace NodeFuse {
             virtual ~FileSystem();
 
             static struct fuse_lowlevel_ops* GetOperations();
-            static void Init(void* userdata, struct fuse_conn_info* conn);
+            static void Init(void* userdata,
+                            struct fuse_conn_info* conn);
             static void Destroy(void* userdata);
             static void Lookup(fuse_req_t req,
                                 fuse_ino_t parent,
@@ -25,6 +26,7 @@ namespace NodeFuse {
                                 struct stat* attr,
                                 int to_set,
                                 struct fuse_file_info* fi);
+            static void ReadLink(fuse_req_t req, fuse_ino_t ino);
     };
 }//namespace NodeFuse
 

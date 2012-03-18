@@ -109,10 +109,11 @@ var FileSystem = function() {
      *
      * @param {Object} context Context info of the calling process.
      * @param {Number} inode Inode number.
+     * @param {Object} reply Reply instance.
      *
-     * Valid replies: fuse.reply_readlink() or fuse.reply_err()
+     * Valid replies: reply.readlink()
      **/
-    this.readlink = function(context, inode) {
+    this.readlink = function(context, inode, reply) {
 
     };
 

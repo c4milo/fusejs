@@ -10,7 +10,8 @@ namespace NodeFuse {
         lookup  : FileSystem::Lookup,
         forget  : FileSystem::Forget,
         getattr : FileSystem::GetAttr,
-        setattr : FileSystem::SetAttr
+        setattr : FileSystem::SetAttr,
+        readlink: FileSystem::ReadLink
     };
 
     //Operations symbols
@@ -19,6 +20,7 @@ namespace NodeFuse {
     static Persistent<String> lookup_sym    = NODE_PSYMBOL("lookup");
     static Persistent<String> forget_sym    = NODE_PSYMBOL("forget");
     static Persistent<String> getattr_sym   = NODE_PSYMBOL("getattr");
+    static Persistent<String> readlink_sym  = NODE_PSYMBOL("readlink");
 
     //fuse_conn_info symbols
     //Major version of the fuse protocol
@@ -189,6 +191,31 @@ namespace NodeFuse {
 
         TryCatch try_catch;
         getattr->Call(fuse->fsobj, 4, argv);
+
+        if (try_catch.HasCaught()) {
+            FatalException(try_catch);
+        }
+    }
+
+    void FileSystem::ReadLink(fuse_req_t req, fuse_ino_t ino) {
+        HandleScope scope;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+
+        Local<Value> vreadlink = fuse->fsobj->Get(readlink_sym);
+        Local<Function> readlink = Local<Function>::Cast(vreadlink);
+
+        Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
+        Local<Number> inode = Number::New(ino);
+
+        Reply* reply = new Reply();
+        reply->request = req;
+        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        reply->Wrap(replyObj);
+
+        Local<Value> argv[3] = {context, inode, replyObj};
+
+        TryCatch try_catch;
+        readlink->Call(fuse->fsobj, 3, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);

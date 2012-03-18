@@ -94,11 +94,13 @@ util.inherits(Loopback, FileSystem);
     };
 
     this.readlink = function(context, inode, reply) {
-
+        console.log('Readlink was called!');
+        reply.readlink('eso');
+        //reply.readlink(PosixError.EIO);
     };
 
     this.mknod = function(context, parent, name, mode, rdev, reply) {
-
+        
     };
 
     this.mkdir = function(context, parent, name, mode, reply) {
