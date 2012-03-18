@@ -145,9 +145,9 @@ var FileSystem = function() {
      * @param {String} name Name to be created.
      * @param {Number} mode with which to create the new file.
      *
-     * Valid replies: fuse.reply_entry() or fuse.reply_err()
+     * Valid replies: reply.entry()
      **/
-    this.mkdir = function(context, parent, name, mode) {
+    this.mkdir = function(context, parent, name, mode, reply) {
 
     };
 

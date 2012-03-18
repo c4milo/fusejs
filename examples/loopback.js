@@ -95,17 +95,20 @@ util.inherits(Loopback, FileSystem);
 
     this.readlink = function(context, inode, reply) {
         console.log('Readlink was called!');
-        reply.readlink('eso');
-        //reply.readlink(PosixError.EIO);
+        //reply.readlink('eso');
+        reply.readlink(PosixError.EIO);
     };
 
     this.mknod = function(context, parent, name, mode, rdev, reply) {
         console.log('Mknod was called!');
-        reply.entry();
+        reply.entry(PosixError.ENOENT);
+        //reply.entry(entry);
     };
 
     this.mkdir = function(context, parent, name, mode, reply) {
-
+        console.log('Mkdir was called!');
+        reply.entry(PosixError.EIO);
+        //reply.entry(entry);
     };
 
     this.unlink = function(context, parent, name, reply) {
