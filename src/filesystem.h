@@ -39,6 +39,9 @@ namespace NodeFuse {
             static void Unlink(fuse_req_t req,
                                fuse_ino_t parent,
                                const char* name);
+            static void RmDir(fuse_req_t req,
+                              fuse_ino_t parent,
+                              const char* name);
     };
 }//namespace NodeFuse
 

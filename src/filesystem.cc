@@ -14,7 +14,8 @@ namespace NodeFuse {
         readlink: FileSystem::ReadLink,
         mknod   : FileSystem::MkNod,
         mkdir   : FileSystem::MkDir,
-        unlink  : FileSystem::Unlink
+        unlink  : FileSystem::Unlink,
+        rmdir   : FileSystem::RmDir
     };
 
     //Operations symbols
@@ -28,6 +29,7 @@ namespace NodeFuse {
     static Persistent<String> mknod_sym     = NODE_PSYMBOL("mknod");
     static Persistent<String> mkdir_sym     = NODE_PSYMBOL("mkdir");
     static Persistent<String> unlink_sym    = NODE_PSYMBOL("unlink");
+    static Persistent<String> rmdir_sym    = NODE_PSYMBOL("rmdir");
 
     //fuse_conn_info symbols
     //Major version of the fuse protocol
@@ -330,6 +332,37 @@ namespace NodeFuse {
             FatalException(try_catch);
         }
     }
+
+    void FileSystem::RmDir(fuse_req_t req,
+                           fuse_ino_t parent,
+                           const char* name) {
+        HandleScope scope;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+
+        Local<Value> vrmdir = fuse->fsobj->Get(rmdir_sym);
+        Local<Function> rmdir = Local<Function>::Cast(vrmdir);
+
+        Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
+        Local<Number> parentInode = Number::New(parent);
+        Local<String> name_ = String::New(name);
+
+        Reply* reply = new Reply();
+        reply->request = req;
+        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        reply->Wrap(replyObj);
+
+        Local<Value> argv[4] = {context, parentInode, name_, replyObj};
+
+        TryCatch try_catch;
+
+        rmdir->Call(fuse->fsobj, 4, argv);
+
+        if (try_catch.HasCaught()) {
+            FatalException(try_catch);
+        }
+
+    }
+
 
     struct fuse_lowlevel_ops* FileSystem::GetOperations() {
         return &fuse_ops;

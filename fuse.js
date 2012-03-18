@@ -176,7 +176,7 @@ var FileSystem = function() {
      *
      * Valid replies: reply.err()
      **/
-    this.rmdir = function(context, parent, name) {
+    this.rmdir = function(context, parent, name, reply) {
 
     };
 

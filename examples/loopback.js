@@ -112,11 +112,13 @@ util.inherits(Loopback, FileSystem);
     };
 
     this.unlink = function(context, parent, name, reply) {
-
+        console.log('Unlink was called!');
+        reply.err(PosixError.EIO);
     };
 
     this.rmdir = function(context, parent, name, reply) {
-
+        console.log('Rmdir was called!');
+        reply.err(0);
     };
 
     this.symlink = function(context, link, parent, name) {
