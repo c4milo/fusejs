@@ -96,15 +96,11 @@ var FileSystem = function() {
      *
      * @param {Object} context Context info of the calling process.
      * @param {Number} inode Inode Number.
-     * @param {Object} attr Same attributes as return them for
-     * util.inspect(stats).
-     * @param {Number} toSet Bit mask of attributes
-     * which should be set.
-     * @param {Object|Undefined} fileInfo File information.
+     * @param {Object} attrs Attributes to be set.
      *
-     * Valid replies: fuse.reply_attr() or fuse.reply_err()
+     * Valid replies: reply.attr()
      **/
-    this.setattr = function(context, inode, attr, toSet, fileInfo) {
+    this.setattr = function(context, inode, attrs, reply) {
 
     };
 

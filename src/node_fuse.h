@@ -28,6 +28,7 @@ namespace NodeFuse {
     int ObjectToStat(Handle<Value> value, struct stat* stat);
     Handle<Value> FuseEntryParamToObject(const struct fuse_entry_param* entry);
     Handle<Value> RequestContextToObject(const struct fuse_ctx* ctx);
+    Handle<Value> GetAttrsToBeSet(int to_set, struct stat* stat);
 }
 
 #endif  // SRC_NODE_FUSE_H_

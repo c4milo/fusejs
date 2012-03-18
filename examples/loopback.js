@@ -64,11 +64,33 @@ util.inherits(Loopback, FileSystem);
         console.log('Getattr was called!!');
         console.log(context);
         console.log(inode);
+
+        //stat object
+        var attrs = {
+            dev: 234881026,
+            ino: 13420595,
+            mode: 33188,
+            nlink: 1,
+            uid: 501,
+            gid: 20,
+            rdev: 0,
+            size: 11,
+            blksize: 4096,
+            blocks: 8,
+            atime: 1331780451475, //Date.now();
+            mtime: 1331780451475, //Date.now();
+            ctime: 1331780451475, //Date.now();
+        };
+        //reply.attr(attrs, 1000);
         reply.attr(PosixError.EIO);
     };
 
-    this.setattr = function(context, inode, attr, toSet, fileInfo, reply) {
+    this.setattr = function(context, inode, attrs, reply) {
+        console.log('Setattr was called!!');
+        console.log(attrs);
 
+        //reply.attr(attrs, 1000);
+        reply.attr(PosixError.EIO);
     };
 
     this.readlink = function(context, inode, reply) {

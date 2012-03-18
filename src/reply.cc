@@ -16,17 +16,14 @@ namespace NodeFuse {
         constructor_template->SetClassName(String::NewSymbol("Reply"));
     }
 
-    Reply::Reply() : ObjectWrap() {
-
-    }
-
+    Reply::Reply() : ObjectWrap() {}
     Reply::~Reply() {}
 
     Handle<Value> Reply::Entry(const Arguments& args) {
         HandleScope scope;
 
         Local<Object> replyObj = args.This();
-        Reply *reply = ObjectWrap::Unwrap<Reply>(replyObj);
+        Reply* reply = ObjectWrap::Unwrap<Reply>(replyObj);
 
         int argslen = args.Length();
 
@@ -51,7 +48,7 @@ namespace NodeFuse {
             return Null();
         }
 
-        fuse_entry_param entry;
+        struct fuse_entry_param entry;
 
         ret = ObjectToFuseEntryParam(arg, &entry);
         if (ret == -1) {
@@ -66,7 +63,7 @@ namespace NodeFuse {
         HandleScope scope;
 
         Local<Object> replyObj = args.This();
-        Reply *reply = ObjectWrap::Unwrap<Reply>(replyObj);
+        Reply* reply = ObjectWrap::Unwrap<Reply>(replyObj);
 
         int argslen = args.Length();
 
@@ -92,14 +89,23 @@ namespace NodeFuse {
         }
 
         struct stat statbuff;
-
         ret = ObjectToStat(arg, &statbuff);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Unrecognized stat object: ", "Unable to reply the operation");
             return Null();
         }
 
-        fuse_reply_attr(reply->request, &statbuff, 0); //grab timeout from js object
+        double timeout = 0;
+        if (argslen == 2) {
+            if (!args[1]->IsNumber()) {
+                FUSEJS_THROW_EXCEPTION("Invalid attribute validity timeout, ", "it should be the number of seconds in which the attributes are considered valid.");
+                return Null();
+            }
+
+            timeout = args[1]->NumberValue();
+        }
+
+        fuse_reply_attr(reply->request, &statbuff, timeout);
     }
 
 } //ends namespace NodeFuse

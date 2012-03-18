@@ -78,6 +78,37 @@ namespace NodeFuse {
         return 0;
     }
 
+    Handle<Value> GetAttrsToBeSet(int to_set, struct stat* stat) {
+        HandleScope scope;
+        Local<Object> attrs = Object::New();
+
+        if (to_set & FUSE_SET_ATTR_MODE) {
+            attrs->Set(mode_sym, Integer::New(stat->st_mode));
+        }
+
+        if (to_set & FUSE_SET_ATTR_UID) {
+            attrs->Set(uid_sym, Integer::New(stat->st_uid));
+        }
+
+        if (to_set & FUSE_SET_ATTR_GID) {
+            attrs->Set(gid_sym, Integer::New(stat->st_gid));
+        }
+
+        if (to_set & FUSE_SET_ATTR_SIZE) {
+            attrs->Set(size_sym, Number::New(stat->st_size));
+        }
+
+        if (to_set & FUSE_SET_ATTR_ATIME) {
+            attrs->Set(atime_sym, NODE_UNIXTIME_V8(stat->st_atime));
+        }
+
+        if (to_set & FUSE_SET_ATTR_MTIME) {
+            attrs->Set(mtime_sym, NODE_UNIXTIME_V8(stat->st_mtime));
+        }
+
+        return scope.Close(attrs);
+    }
+
     Handle<Value> FuseEntryParamToObject(const struct fuse_entry_param* entry) {
         HandleScope scope;
 

@@ -5,40 +5,42 @@
 namespace NodeFuse {
 
     static struct fuse_lowlevel_ops fuse_ops = {
-        init: FileSystem::Init,
-        destroy: FileSystem::Destroy,
-        lookup: FileSystem::Lookup,
-        forget: FileSystem::Forget,
-        getattr: FileSystem::GetAttr
+        init    : FileSystem::Init,
+        destroy : FileSystem::Destroy,
+        lookup  : FileSystem::Lookup,
+        forget  : FileSystem::Forget,
+        getattr : FileSystem::GetAttr,
+        setattr : FileSystem::SetAttr
     };
 
     //Operations symbols
-    static Persistent<String> init_sym = NODE_PSYMBOL("init");
-    static Persistent<String> destroy_sym = NODE_PSYMBOL("destroy");
-    static Persistent<String> lookup_sym = NODE_PSYMBOL("lookup");
-    static Persistent<String> forget_sym = NODE_PSYMBOL("forget");
-    static Persistent<String> getattr_sym = NODE_PSYMBOL("getattr");
+    static Persistent<String> init_sym      = NODE_PSYMBOL("init");
+    static Persistent<String> destroy_sym   = NODE_PSYMBOL("destroy");
+    static Persistent<String> lookup_sym    = NODE_PSYMBOL("lookup");
+    static Persistent<String> forget_sym    = NODE_PSYMBOL("forget");
+    static Persistent<String> getattr_sym   = NODE_PSYMBOL("getattr");
 
     //fuse_conn_info symbols
     //Major version of the fuse protocol
-    static Persistent<String> conn_info_proto_major_sym = NODE_PSYMBOL("proto_major");
+    static Persistent<String> conn_info_proto_major_sym     = NODE_PSYMBOL("proto_major");
     //Minor version of the fuse protocol
-    static Persistent<String> conn_info_proto_minor_sym = NODE_PSYMBOL("proto_minor");
+    static Persistent<String> conn_info_proto_minor_sym     = NODE_PSYMBOL("proto_minor");
     //Is asynchronous read supported
-    static Persistent<String> conn_info_async_read_sym = NODE_PSYMBOL("async_read");
+    static Persistent<String> conn_info_async_read_sym      = NODE_PSYMBOL("async_read");
     //Maximum size of the write buffer
-    static Persistent<String> conn_info_max_write_sym = NODE_PSYMBOL("max_write");
+    static Persistent<String> conn_info_max_write_sym       = NODE_PSYMBOL("max_write");
     //Maximum readahead
-    static Persistent<String> conn_info_max_readahead_sym = NODE_PSYMBOL("max_readahead");
+    static Persistent<String> conn_info_max_readahead_sym   = NODE_PSYMBOL("max_readahead");
     //Capability flags, that the kernel supports
-    static Persistent<String> conn_info_capable_sym = NODE_PSYMBOL("capable");
+    static Persistent<String> conn_info_capable_sym         = NODE_PSYMBOL("capable");
     //Capability flags, that the filesystem wants to enable
-    static Persistent<String> conn_info_want_sym = NODE_PSYMBOL("want");
+    static Persistent<String> conn_info_want_sym            = NODE_PSYMBOL("want");
 
 
-    void FileSystem::Init(void *userdata, struct fuse_conn_info *conn) {
+    void FileSystem::Init(  void* userdata,
+                            struct fuse_conn_info* conn) {
         HandleScope scope;
-        Fuse *fuse = static_cast<Fuse *>(userdata);
+        Fuse* fuse = static_cast<Fuse *>(userdata);
 
         Local<Value> vinit = fuse->fsobj->Get(init_sym);
         Local<Function> init = Local<Function>::Cast(vinit);
@@ -66,9 +68,9 @@ namespace NodeFuse {
 
     }
 
-    void FileSystem::Destroy(void *userdata) {
+    void FileSystem::Destroy(void* userdata) {
         HandleScope scope;
-        Fuse *fuse = static_cast<Fuse *>(userdata);
+        Fuse* fuse = static_cast<Fuse *>(userdata);
 
         Local<Value> vdestroy = fuse->fsobj->Get(destroy_sym);
         Local<Function> destroy = Local<Function>::Cast(vdestroy);
@@ -82,9 +84,11 @@ namespace NodeFuse {
         }
     }
 
-    void FileSystem::Lookup(fuse_req_t req, fuse_ino_t parent, const char *name) {
+    void FileSystem::Lookup(fuse_req_t req,
+                            fuse_ino_t parent,
+                            const char* name) {
         HandleScope scope;
-        Fuse *fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
         Local<Value> vlookup = fuse->fsobj->Get(lookup_sym);
         Local<Function> lookup = Local<Function>::Cast(vlookup);
@@ -93,7 +97,7 @@ namespace NodeFuse {
         Local<Number> parentInode = Number::New(parent);
         Local<String> entryName = String::New(name);
 
-        Reply *reply = new Reply();
+        Reply* reply = new Reply();
         reply->request = req;
         Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
@@ -108,9 +112,11 @@ namespace NodeFuse {
         }
     }
 
-    void FileSystem::Forget(fuse_req_t req, fuse_ino_t ino, unsigned long nlookup_) {
+    void FileSystem::Forget(fuse_req_t req,
+                            fuse_ino_t ino,
+                            unsigned long nlookup_) {
         HandleScope scope;
-        Fuse *fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
         Local<Value> vforget = fuse->fsobj->Get(forget_sym);
         Local<Function> forget = Local<Function>::Cast(vforget);
@@ -131,7 +137,38 @@ namespace NodeFuse {
         fuse_reply_none(req);
     }
 
-    void FileSystem::GetAttr(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi) {
+    void FileSystem::GetAttr(fuse_req_t req,
+                            fuse_ino_t ino,
+                            struct fuse_file_info* fi) {
+        HandleScope scope;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+
+        Local<Value> vgetattr = fuse->fsobj->Get(getattr_sym);
+        Local<Function> getattr = Local<Function>::Cast(vgetattr);
+
+        Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
+        Local<Number> inode = Number::New(ino);
+
+        Reply* reply = new Reply();
+        reply->request = req;
+        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        reply->Wrap(replyObj);
+
+        Local<Value> argv[3] = {context, inode, replyObj};
+
+        TryCatch try_catch;
+        getattr->Call(fuse->fsobj, 3, argv);
+
+        if (try_catch.HasCaught()) {
+            FatalException(try_catch);
+        }
+    }
+
+    void FileSystem::SetAttr(fuse_req_t req,
+                            fuse_ino_t ino,
+                            struct stat* attr,
+                            int to_set,
+                            struct fuse_file_info* fi) {
         HandleScope scope;
         Fuse *fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
@@ -141,15 +178,17 @@ namespace NodeFuse {
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Number> inode = Number::New(ino);
 
+        Local<Object> attrs = GetAttrsToBeSet(to_set, attr)->ToObject();
+
         Reply *reply = new Reply();
         reply->request = req;
         Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
-        Local<Value> argv[3] = {context, inode, replyObj};
+        Local<Value> argv[4] = {context, inode, attrs, replyObj};
 
         TryCatch try_catch;
-        getattr->Call(fuse->fsobj, 3, argv);
+        getattr->Call(fuse->fsobj, 4, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
