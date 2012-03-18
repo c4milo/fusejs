@@ -129,10 +129,11 @@ var FileSystem = function() {
      * to create the new file.
      * @param {Number} rdev The device number
      * (only valid if created file is a device).
+     * @param {Object} reply Reply instance.
      *
-     * Valid replies: fuse.reply_entry() or fuse.reply_err()
+     * Valid replies: reply.entry()
      **/
-    this.mknod = function(context, parent, name, mode, rdev) {
+    this.mknod = function(context, parent, name, mode, rdev, reply) {
 
     };
 

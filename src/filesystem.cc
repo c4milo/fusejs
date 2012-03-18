@@ -11,7 +11,8 @@ namespace NodeFuse {
         forget  : FileSystem::Forget,
         getattr : FileSystem::GetAttr,
         setattr : FileSystem::SetAttr,
-        readlink: FileSystem::ReadLink
+        readlink: FileSystem::ReadLink,
+        mknod   : FileSystem::MkNod
     };
 
     //Operations symbols
@@ -20,7 +21,9 @@ namespace NodeFuse {
     static Persistent<String> lookup_sym    = NODE_PSYMBOL("lookup");
     static Persistent<String> forget_sym    = NODE_PSYMBOL("forget");
     static Persistent<String> getattr_sym   = NODE_PSYMBOL("getattr");
+    static Persistent<String> setattr_sym   = NODE_PSYMBOL("setattr");
     static Persistent<String> readlink_sym  = NODE_PSYMBOL("readlink");
+    static Persistent<String> mknod_sym     = NODE_PSYMBOL("mknod");
 
     //fuse_conn_info symbols
     //Major version of the fuse protocol
@@ -39,8 +42,8 @@ namespace NodeFuse {
     static Persistent<String> conn_info_want_sym            = NODE_PSYMBOL("want");
 
 
-    void FileSystem::Init(  void* userdata,
-                            struct fuse_conn_info* conn) {
+    void FileSystem::Init(void* userdata,
+                          struct fuse_conn_info* conn) {
         HandleScope scope;
         Fuse* fuse = static_cast<Fuse *>(userdata);
 
@@ -107,6 +110,7 @@ namespace NodeFuse {
         Local<Value> argv[4] = {context, parentInode,
                                 entryName, replyObj};
         TryCatch try_catch;
+
         lookup->Call(fuse->fsobj, 4, argv);
 
         if (try_catch.HasCaught()) {
@@ -130,6 +134,7 @@ namespace NodeFuse {
         Local<Value> argv[3] = {context, inode, nlookup};
 
         TryCatch try_catch;
+
         forget->Call(fuse->fsobj, 3, argv);
 
         if (try_catch.HasCaught()) {
@@ -140,8 +145,8 @@ namespace NodeFuse {
     }
 
     void FileSystem::GetAttr(fuse_req_t req,
-                            fuse_ino_t ino,
-                            struct fuse_file_info* fi) {
+                             fuse_ino_t ino,
+                             struct fuse_file_info* fi) {
         HandleScope scope;
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
@@ -159,6 +164,7 @@ namespace NodeFuse {
         Local<Value> argv[3] = {context, inode, replyObj};
 
         TryCatch try_catch;
+
         getattr->Call(fuse->fsobj, 3, argv);
 
         if (try_catch.HasCaught()) {
@@ -167,15 +173,15 @@ namespace NodeFuse {
     }
 
     void FileSystem::SetAttr(fuse_req_t req,
-                            fuse_ino_t ino,
-                            struct stat* attr,
-                            int to_set,
-                            struct fuse_file_info* fi) {
+                             fuse_ino_t ino,
+                             struct stat* attr,
+                             int to_set,
+                             struct fuse_file_info* fi) {
         HandleScope scope;
         Fuse *fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
-        Local<Value> vgetattr = fuse->fsobj->Get(getattr_sym);
-        Local<Function> getattr = Local<Function>::Cast(vgetattr);
+        Local<Value> vsetattr = fuse->fsobj->Get(setattr_sym);
+        Local<Function> setattr = Local<Function>::Cast(vsetattr);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Number> inode = Number::New(ino);
@@ -190,7 +196,8 @@ namespace NodeFuse {
         Local<Value> argv[4] = {context, inode, attrs, replyObj};
 
         TryCatch try_catch;
-        getattr->Call(fuse->fsobj, 4, argv);
+
+        setattr->Call(fuse->fsobj, 4, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
@@ -215,7 +222,44 @@ namespace NodeFuse {
         Local<Value> argv[3] = {context, inode, replyObj};
 
         TryCatch try_catch;
+
         readlink->Call(fuse->fsobj, 3, argv);
+
+        if (try_catch.HasCaught()) {
+            FatalException(try_catch);
+        }
+    }
+
+    void FileSystem::MkNod(fuse_req_t req,
+                           fuse_ino_t parent,
+                           const char* name,
+                           mode_t mode,
+                           dev_t rdev) {
+        HandleScope scope;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+
+        Local<Value> vmknod = fuse->fsobj->Get(mknod_sym);
+        Local<Function> mknod = Local<Function>::Cast(vmknod);
+
+        Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
+        Local<Number> parentInode = Number::New(parent);
+
+        Local<String> name_ = String::New(name);
+        Local<Integer> mode_ = Integer::New(mode);
+        Local<Integer> rdev_ = Integer::New(rdev);
+
+        Reply* reply = new Reply();
+        reply->request = req;
+        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        reply->Wrap(replyObj);
+
+        Local<Value> argv[6] = {context, parentInode,
+                                name_, mode_,
+                                rdev_, replyObj};
+
+        TryCatch try_catch;
+
+        mknod->Call(fuse->fsobj, 6, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);

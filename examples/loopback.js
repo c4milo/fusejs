@@ -100,7 +100,8 @@ util.inherits(Loopback, FileSystem);
     };
 
     this.mknod = function(context, parent, name, mode, rdev, reply) {
-        
+        console.log('Mknod was called!');
+        reply.entry();
     };
 
     this.mkdir = function(context, parent, name, mode, reply) {
