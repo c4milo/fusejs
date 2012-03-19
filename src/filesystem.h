@@ -42,6 +42,10 @@ namespace NodeFuse {
             static void RmDir(fuse_req_t req,
                               fuse_ino_t parent,
                               const char* name);
+            static void SymLink(fuse_req_t req,
+                                const char* link,
+                                fuse_ino_t parent,
+                                const char* name);
     };
 }//namespace NodeFuse
 

@@ -15,7 +15,8 @@ namespace NodeFuse {
         mknod   : FileSystem::MkNod,
         mkdir   : FileSystem::MkDir,
         unlink  : FileSystem::Unlink,
-        rmdir   : FileSystem::RmDir
+        rmdir   : FileSystem::RmDir,
+        symlink : FileSystem::SymLink
     };
 
     //Operations symbols
@@ -29,7 +30,8 @@ namespace NodeFuse {
     static Persistent<String> mknod_sym     = NODE_PSYMBOL("mknod");
     static Persistent<String> mkdir_sym     = NODE_PSYMBOL("mkdir");
     static Persistent<String> unlink_sym    = NODE_PSYMBOL("unlink");
-    static Persistent<String> rmdir_sym    = NODE_PSYMBOL("rmdir");
+    static Persistent<String> rmdir_sym     = NODE_PSYMBOL("rmdir");
+    static Persistent<String> symlink_sym   = NODE_PSYMBOL("symlink");
 
     //fuse_conn_info symbols
     //Major version of the fuse protocol
@@ -360,7 +362,37 @@ namespace NodeFuse {
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
+    }
 
+    void FileSystem::SymLink(fuse_req_t req,
+                             const char* link,
+                             fuse_ino_t parent,
+                             const char* name) {
+        HandleScope scope;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+
+        Local<Value> vsymlink = fuse->fsobj->Get(symlink_sym);
+        Local<Function> symlink = Local<Function>::Cast(vsymlink);
+
+        Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
+        Local<Number> parentInode = Number::New(parent);
+        Local<String> name_ = String::New(name);
+        Local<String> link_ = String::New(link);
+
+        Reply* reply = new Reply();
+        reply->request = req;
+        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        reply->Wrap(replyObj);
+
+        Local<Value> argv[5] = {context, parentInode, link_, name_, replyObj};
+
+        TryCatch try_catch;
+
+        symlink->Call(fuse->fsobj, 5, argv);
+
+        if (try_catch.HasCaught()) {
+            FatalException(try_catch);
+        }
     }
 
 

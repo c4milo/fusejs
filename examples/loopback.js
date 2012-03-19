@@ -121,8 +121,10 @@ util.inherits(Loopback, FileSystem);
         reply.err(0);
     };
 
-    this.symlink = function(context, link, parent, name) {
-
+    this.symlink = function(context, parent, link, name, reply) {
+        console.log('Symlink was called!');
+        reply.err(0);
+        //reply.entry(entry);
     };
 
     this.rename = function() {

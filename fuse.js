@@ -184,13 +184,14 @@ var FileSystem = function() {
      * Create a symbolic link
      *
      * @param {Object} context Context info of the calling process.
-     * @param {String} link The contents of the symbolic link.
      * @param {Number} parent Inode number of the parent directory.
+     * @param {String} link The contents of the symbolic link.
      * @param {String} name Name of the symbolic link to create.
+     * @param {Object} reply Reply instance.
      *
-     * Valid replies: fuse.reply_entry() or fuse.reply_err()
+     * Valid replies: reply.entry() or reply.err()
      **/
-    this.symlink = function(context, link, parent, name) {
+    this.symlink = function(context, parent, link, name, reply) {
 
     };
 
