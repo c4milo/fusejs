@@ -16,7 +16,8 @@ namespace NodeFuse {
         mkdir   : FileSystem::MkDir,
         unlink  : FileSystem::Unlink,
         rmdir   : FileSystem::RmDir,
-        symlink : FileSystem::SymLink
+        symlink : FileSystem::SymLink,
+        rename  : FileSystem::Rename
     };
 
     //Operations symbols
@@ -32,6 +33,7 @@ namespace NodeFuse {
     static Persistent<String> unlink_sym    = NODE_PSYMBOL("unlink");
     static Persistent<String> rmdir_sym     = NODE_PSYMBOL("rmdir");
     static Persistent<String> symlink_sym   = NODE_PSYMBOL("symlink");
+    static Persistent<String> rename_sym    = NODE_PSYMBOL("rename");
 
     //fuse_conn_info symbols
     //Major version of the fuse protocol
@@ -389,6 +391,41 @@ namespace NodeFuse {
         TryCatch try_catch;
 
         symlink->Call(fuse->fsobj, 5, argv);
+
+        if (try_catch.HasCaught()) {
+            FatalException(try_catch);
+        }
+    }
+
+    void FileSystem::Rename(fuse_req_t req,
+                               fuse_ino_t parent,
+                               const char *name,
+                               fuse_ino_t newparent,
+                               const char *newname) {
+        HandleScope scope;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+
+        Local<Value> vrename = fuse->fsobj->Get(rename_sym);
+        Local<Function> rename = Local<Function>::Cast(vrename);
+
+        Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
+        Local<Number> parentInode = Number::New(parent);
+        Local<String> name_ = String::New(name);
+        Local<Number> newParentInode = Number::New(newparent);
+        Local<String> newName = String::New(newname);
+
+        Reply* reply = new Reply();
+        reply->request = req;
+        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        reply->Wrap(replyObj);
+
+        Local<Value> argv[6] = {context, parentInode,
+                                name_, newParentInode,
+                                newName, replyObj};
+
+        TryCatch try_catch;
+
+        rename->Call(fuse->fsobj, 6, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);

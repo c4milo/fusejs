@@ -201,12 +201,13 @@ var FileSystem = function() {
      * @param {Object} context Context info of the calling process.
      * @param {Number} parent Inode number of the old parent directory.
      * @param {String} name Old name.
-     * @param {Number} newparent Inode number of the new parent directory.
-     * @param {String} newname New name.
+     * @param {Number} newParent Inode number of the new parent directory.
+     * @param {String} newName New name.
+     * @param {Object} reply Reply instance.
      *
-     * Valid replies: fuse.reply_err()
+     * Valid replies: reply.err()
      **/
-    this.rename = function(context, parent, name, newparent, newname) {
+    this.rename = function(context, parent, name, newParent, newName, reply) {
 
     };
 

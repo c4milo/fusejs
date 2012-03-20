@@ -127,8 +127,10 @@ util.inherits(Loopback, FileSystem);
         //reply.entry(entry);
     };
 
-    this.rename = function() {
-
+    this.rename = function(context, parent, name, newParent, newName, reply) {
+        console.log('Rename was called!');
+        reply.err(0);
+        //reply.err(PosixError.EIO);
     };
 
     this.link = function() {
