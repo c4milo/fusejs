@@ -17,7 +17,9 @@ namespace NodeFuse {
         unlink  : FileSystem::Unlink,
         rmdir   : FileSystem::RmDir,
         symlink : FileSystem::SymLink,
-        rename  : FileSystem::Rename
+        rename  : FileSystem::Rename,
+        link    : FileSystem::Link,
+        open    : FileSystem::Open
     };
 
     //Operations symbols
@@ -34,6 +36,8 @@ namespace NodeFuse {
     static Persistent<String> rmdir_sym     = NODE_PSYMBOL("rmdir");
     static Persistent<String> symlink_sym   = NODE_PSYMBOL("symlink");
     static Persistent<String> rename_sym    = NODE_PSYMBOL("rename");
+    static Persistent<String> link_sym      = NODE_PSYMBOL("link");
+    static Persistent<String> open_sym      = NODE_PSYMBOL("open");
 
     //fuse_conn_info symbols
     //Major version of the fuse protocol
@@ -61,6 +65,7 @@ namespace NodeFuse {
         Local<Function> init = Local<Function>::Cast(vinit);
 
         //These properties will be read-only for now.
+        //TODO set accessors for read/write properties
         Local<Object> info = Object::New();
         info->Set(conn_info_proto_major_sym, Integer::New(conn->proto_major));
         info->Set(conn_info_proto_minor_sym, Integer::New(conn->proto_minor));
@@ -386,7 +391,8 @@ namespace NodeFuse {
         Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
-        Local<Value> argv[5] = {context, parentInode, link_, name_, replyObj};
+        Local<Value> argv[5] = {context, parentInode,
+                                link_, name_, replyObj};
 
         TryCatch try_catch;
 
@@ -398,10 +404,10 @@ namespace NodeFuse {
     }
 
     void FileSystem::Rename(fuse_req_t req,
-                               fuse_ino_t parent,
-                               const char *name,
-                               fuse_ino_t newparent,
-                               const char *newname) {
+                            fuse_ino_t parent,
+                            const char *name,
+                            fuse_ino_t newparent,
+                            const char *newname) {
         HandleScope scope;
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
@@ -426,6 +432,67 @@ namespace NodeFuse {
         TryCatch try_catch;
 
         rename->Call(fuse->fsobj, 6, argv);
+
+        if (try_catch.HasCaught()) {
+            FatalException(try_catch);
+        }
+    }
+
+    void FileSystem::Link(fuse_req_t req,
+                             fuse_ino_t ino,
+                             fuse_ino_t newparent,
+                             const char* newname) {
+        HandleScope scope;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+
+        Local<Value> vlink = fuse->fsobj->Get(link_sym);
+        Local<Function> link = Local<Function>::Cast(vlink);
+
+        Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
+        Local<Number> inode = Number::New(ino);
+        Local<Number> newParent = Number::New(newparent);
+        Local<String> newName = String::New(newname);
+
+        Reply* reply = new Reply();
+        reply->request = req;
+        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        reply->Wrap(replyObj);
+
+        Local<Value> argv[5] = {context, inode,
+                                newParent, newName, replyObj};
+
+        TryCatch try_catch;
+
+        link->Call(fuse->fsobj, 5, argv);
+
+        if (try_catch.HasCaught()) {
+            FatalException(try_catch);
+        }
+    }
+
+    void FileSystem::Open(fuse_req_t req,
+                          fuse_ino_t ino,
+                          struct fuse_file_info *fi) {
+        HandleScope scope;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+
+        Local<Value> vopen = fuse->fsobj->Get(open_sym);
+        Local<Function> open = Local<Function>::Cast(vopen);
+
+        Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
+        Local<Number> inode = Number::New(ino);
+        Local<Object> finfo = FileInfoToObject(fi)->ToObject();
+
+        Reply* reply = new Reply();
+        reply->request = req;
+        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        reply->Wrap(replyObj);
+
+        Local<Value> argv[4] = {context, inode, finfo, replyObj};
+
+        TryCatch try_catch;
+
+        open->Call(fuse->fsobj, 4, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);

@@ -48,9 +48,16 @@ namespace NodeFuse {
                                 const char* name);
             static void Rename(fuse_req_t req,
                                fuse_ino_t parent,
-                               const char *name,
+                               const char* name,
                                fuse_ino_t newparent,
-                               const char *newname);
+                               const char* newname);
+            static void Link(fuse_req_t req,
+                             fuse_ino_t ino,
+                             fuse_ino_t newparent,
+                             const char* newname);
+            static void Open(fuse_req_t req,
+                             fuse_ino_t ino,
+                             struct fuse_file_info* fi);
     };
 }//namespace NodeFuse
 

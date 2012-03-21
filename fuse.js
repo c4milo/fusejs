@@ -218,10 +218,11 @@ var FileSystem = function() {
      * @param {Number} inode The old inode number.
      * @param {Number} newparent Inode number of the new parent directory.
      * @param {String} newname New name to create.
+     * @param {Object} reply Reply instance.
      *
-     * Valid replies: fuse.reply_entry() or fuse.reply_err()
+     * Valid replies: reply.entry() or reply.err()
      **/
-    this.link = function(context, inode, newparent, newname) {
+    this.link = function(context, inode, newParent, newName, reply) {
 
     };
 
@@ -246,10 +247,11 @@ var FileSystem = function() {
      * @param {Object} context Context info of the calling process.
      * @param {Number} inode The inode number.
      * @param {Object} fileInfo File information.
+     * @param {Object} reply Reply instance.
      *
-     * Valid replies: fuse.reply_open() or fuse.reply_err()
+     * Valid replies: reply.open() or reply.err()
      **/
-    this.open = function(context, inode, fileInfo) {
+    this.open = function(context, inode, fileInfo, reply) {
 
     };
 

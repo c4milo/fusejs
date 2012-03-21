@@ -3,25 +3,37 @@
 #include "reply.h"
 
 namespace NodeFuse {
-    static Persistent<String> uid_sym = NODE_PSYMBOL("uid");
-    static Persistent<String> gid_sym = NODE_PSYMBOL("gid");
-    static Persistent<String> pid_sym = NODE_PSYMBOL("pid");
-    static Persistent<String> dev_sym = NODE_PSYMBOL("dev");
-    static Persistent<String> mode_sym = NODE_PSYMBOL("mode");
-    static Persistent<String> nlink_sym = NODE_PSYMBOL("nlink");
-    static Persistent<String> rdev_sym = NODE_PSYMBOL("rdev");
-    static Persistent<String> size_sym = NODE_PSYMBOL("size");
-    static Persistent<String> blksize_sym = NODE_PSYMBOL("blksize");
-    static Persistent<String> blocks_sym = NODE_PSYMBOL("blocks");
-    static Persistent<String> atime_sym = NODE_PSYMBOL("atime");
-    static Persistent<String> mtime_sym = NODE_PSYMBOL("mtime");
-    static Persistent<String> ctime_sym = NODE_PSYMBOL("ctime");
+    //stat struct symbols
+    static Persistent<String> uid_sym       = NODE_PSYMBOL("uid");
+    static Persistent<String> gid_sym       = NODE_PSYMBOL("gid");
+    static Persistent<String> pid_sym       = NODE_PSYMBOL("pid");
+    static Persistent<String> dev_sym       = NODE_PSYMBOL("dev");
+    static Persistent<String> mode_sym      = NODE_PSYMBOL("mode");
+    static Persistent<String> nlink_sym     = NODE_PSYMBOL("nlink");
+    static Persistent<String> rdev_sym      = NODE_PSYMBOL("rdev");
+    static Persistent<String> size_sym      = NODE_PSYMBOL("size");
+    static Persistent<String> blksize_sym   = NODE_PSYMBOL("blksize");
+    static Persistent<String> blocks_sym    = NODE_PSYMBOL("blocks");
+    static Persistent<String> atime_sym     = NODE_PSYMBOL("atime");
+    static Persistent<String> mtime_sym     = NODE_PSYMBOL("mtime");
+    static Persistent<String> ctime_sym     = NODE_PSYMBOL("ctime");
 
-    static Persistent<String> ino_sym = NODE_PSYMBOL("inode");
-    static Persistent<String> generation_sym = NODE_PSYMBOL("generation");
-    static Persistent<String> attr_sym = NODE_PSYMBOL("attr");
-    static Persistent<String> attr_timeout_sym = NODE_PSYMBOL("attr_timeout");
+    //entry symbols
+    static Persistent<String> ino_sym           = NODE_PSYMBOL("inode");
+    static Persistent<String> generation_sym    = NODE_PSYMBOL("generation");
+    static Persistent<String> attr_sym          = NODE_PSYMBOL("attr");
+    static Persistent<String> attr_timeout_sym  = NODE_PSYMBOL("attr_timeout");
     static Persistent<String> entry_timeout_sym = NODE_PSYMBOL("entry_timeout");
+
+    //file info symbols
+    static Persistent<String> flags_sym         = NODE_PSYMBOL("flags");
+    static Persistent<String> writepage_sym     = NODE_PSYMBOL("writepage");
+    static Persistent<String> direct_io_sym     = NODE_PSYMBOL("direct_io");
+    static Persistent<String> keep_cache_sym    = NODE_PSYMBOL("keep_cache");
+    static Persistent<String> flush_sym         = NODE_PSYMBOL("flush");
+    static Persistent<String> nonseekable_sym   = NODE_PSYMBOL("nonseekable");
+    static Persistent<String> file_handle_sym   = NODE_PSYMBOL("fh");
+    static Persistent<String> lock_owner_sym    = NODE_PSYMBOL("lock_owner");
 
     void InitializeFuse(Handle<Object> target) {
         HandleScope scope;
@@ -107,6 +119,23 @@ namespace NodeFuse {
         }
 
         return scope.Close(attrs);
+    }
+
+    Handle<Value> FileInfoToObject(struct fuse_file_info* fi) {
+        HandleScope scope;
+        Local<Object> info = Object::New();
+        //TODO set accessors for info.fh
+
+        info->Set(flags_sym, Integer::New(fi->flags));
+        info->Set(writepage_sym, Integer::New(fi->writepage));
+        info->Set(direct_io_sym, Integer::NewFromUnsigned(fi->direct_io));
+        info->Set(keep_cache_sym, Integer::NewFromUnsigned(fi->keep_cache));
+        info->Set(flush_sym, Integer::NewFromUnsigned(fi->flush));
+        //info->Set(nonseekable_sym, Integer::NewFromUnsigned(fi->nonseekable));
+        info->Set(file_handle_sym, Number::New(fi->fh));
+        info->Set(lock_owner_sym, Number::New(fi->lock_owner));
+
+        return scope.Close(info);
     }
 
     Handle<Value> FuseEntryParamToObject(const struct fuse_entry_param* entry) {

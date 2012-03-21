@@ -133,12 +133,16 @@ util.inherits(Loopback, FileSystem);
         //reply.err(PosixError.EIO);
     };
 
-    this.link = function() {
-
+    this.link = function(context, inode, newParent, newName, reply) {
+        console.log('Link was called!');
+        reply.err(PosixError.EIO);
+        //reply.entry(entry);
     };
 
-    this.open = function() {
-
+    this.open = function(context, inode, fileInfo, reply) {
+        console.log('Open was called!);
+        reply.err(0);
+        //reply.open();
     };
 
     this.read = function() {
