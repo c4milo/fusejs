@@ -140,7 +140,7 @@ util.inherits(Loopback, FileSystem);
     };
 
     this.open = function(context, inode, fileInfo, reply) {
-        console.log('Open was called!);
+        console.log('Open was called!');
         reply.err(0);
         //reply.open();
     };
