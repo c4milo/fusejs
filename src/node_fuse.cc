@@ -1,6 +1,7 @@
 // Copyright 2012, Camilo Aguilar. Cloudescape, LLC.
 #include "bindings.h"
 #include "reply.h"
+#include "file_info.h"
 
 namespace NodeFuse {
     //stat struct symbols
@@ -30,7 +31,7 @@ namespace NodeFuse {
 
         Fuse::Initialize(target);
         Reply::Initialize();
-        //FileInfo::Initialize();
+        FileInfo::Initialize();
         //FileFlags::Initialize();
 
         target->Set(String::NewSymbol("version"),
