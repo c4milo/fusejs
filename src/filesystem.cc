@@ -1,5 +1,6 @@
 #include "filesystem.h"
 #include "reply.h"
+#include "file_info.h"
 #include "bindings.h"
 
 namespace NodeFuse {
@@ -481,14 +482,18 @@ namespace NodeFuse {
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Number> inode = Number::New(ino);
-        Local<Object> finfo = FileInfoToObject(fi)->ToObject();
+
+        FileInfo* info = new FileInfo();
+        info->fi = fi;
+        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        info->Wrap(infoObj);
 
         Reply* reply = new Reply();
         reply->request = req;
         Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
-        Local<Value> argv[4] = {context, inode, finfo, replyObj};
+        Local<Value> argv[4] = {context, inode, infoObj, replyObj};
 
         TryCatch try_catch;
 

@@ -25,21 +25,13 @@ namespace NodeFuse {
     static Persistent<String> attr_timeout_sym  = NODE_PSYMBOL("attr_timeout");
     static Persistent<String> entry_timeout_sym = NODE_PSYMBOL("entry_timeout");
 
-    //file info symbols
-    static Persistent<String> flags_sym         = NODE_PSYMBOL("flags");
-    static Persistent<String> writepage_sym     = NODE_PSYMBOL("writepage");
-    static Persistent<String> direct_io_sym     = NODE_PSYMBOL("direct_io");
-    static Persistent<String> keep_cache_sym    = NODE_PSYMBOL("keep_cache");
-    static Persistent<String> flush_sym         = NODE_PSYMBOL("flush");
-    static Persistent<String> nonseekable_sym   = NODE_PSYMBOL("nonseekable");
-    static Persistent<String> file_handle_sym   = NODE_PSYMBOL("fh");
-    static Persistent<String> lock_owner_sym    = NODE_PSYMBOL("lock_owner");
-
     void InitializeFuse(Handle<Object> target) {
         HandleScope scope;
 
         Fuse::Initialize(target);
         Reply::Initialize();
+        //FileInfo::Initialize();
+        //FileFlags::Initialize();
 
         target->Set(String::NewSymbol("version"),
                     String::New(NODE_FUSE_VERSION));
@@ -121,10 +113,9 @@ namespace NodeFuse {
         return scope.Close(attrs);
     }
 
-    Handle<Value> FileInfoToObject(struct fuse_file_info* fi) {
+    /*Handle<Value> FileInfoToObject(struct fuse_file_info* fi) {
         HandleScope scope;
         Local<Object> info = Object::New();
-        //TODO set accessors for info.fh
 
         info->Set(flags_sym, Integer::New(fi->flags));
         info->Set(writepage_sym, Integer::New(fi->writepage));
@@ -135,8 +126,9 @@ namespace NodeFuse {
         info->Set(file_handle_sym, Number::New(fi->fh));
         info->Set(lock_owner_sym, Number::New(fi->lock_owner));
 
+        //TODO set accessors for info.fh
         return scope.Close(info);
-    }
+    }*/
 
     Handle<Value> FuseEntryParamToObject(const struct fuse_entry_param* entry) {
         HandleScope scope;
