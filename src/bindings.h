@@ -6,6 +6,7 @@
 
 namespace NodeFuse {
     class Fuse : public ObjectWrap {
+        //friend class FileSystem;
         public:
             static void Initialize(Handle<Object> target);
             Persistent<Object> fsobj;

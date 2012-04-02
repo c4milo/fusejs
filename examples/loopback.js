@@ -30,6 +30,7 @@ util.inherits(Loopback, FileSystem);
     this.lookup = function(context, parent, name, reply) {
         console.log('Lookup!');
         console.log(context);
+        console.log(name);
         var entry = {
             inode: 1234,
             generation: 2,
