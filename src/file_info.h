@@ -6,9 +6,17 @@
 namespace NodeFuse {
     class FileInfo : public ObjectWrap {
         friend class FileSystem;
+        friend class Reply;
 
         public:
             static void Initialize();
+            static inline bool HasInstance(v8::Handle<v8::Value> value) {
+                if (!value->IsObject()) {
+                    return false;
+                }
+                v8::Local<v8::Object> object = value->ToObject();
+                return constructor_template->HasInstance(object);
+            }
 
             FileInfo();
             virtual ~FileInfo();

@@ -473,7 +473,7 @@ namespace NodeFuse {
 
     void FileSystem::Open(fuse_req_t req,
                           fuse_ino_t ino,
-                          struct fuse_file_info *fi) {
+                          struct fuse_file_info* fi) {
         HandleScope scope;
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
@@ -493,7 +493,8 @@ namespace NodeFuse {
         Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
-        Local<Value> argv[4] = {context, inode, infoObj, replyObj};
+        Local<Value> argv[4] = {context, inode,
+                                infoObj, replyObj};
 
         TryCatch try_catch;
 

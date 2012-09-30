@@ -1,5 +1,6 @@
 // Copyright 2012, Camilo Aguilar. Cloudescape, LLC.
 #include "reply.h"
+#include "file_info.h"
 
 namespace NodeFuse {
     Persistent<FunctionTemplate> Reply::constructor_template;
@@ -13,6 +14,7 @@ namespace NodeFuse {
         NODE_SET_PROTOTYPE_METHOD(t, "attr", Reply::Attributes);
         NODE_SET_PROTOTYPE_METHOD(t, "readlink", Reply::ReadLink);
         NODE_SET_PROTOTYPE_METHOD(t, "err", Reply::Error);
+        NODE_SET_PROTOTYPE_METHOD(t, "open", Reply::Open);
 
         constructor_template = Persistent<FunctionTemplate>::New(t);
         constructor_template->SetClassName(String::NewSymbol("Reply"));
@@ -49,7 +51,12 @@ namespace NodeFuse {
             return Null();
         }
 
-        fuse_reply_entry(reply->request, &entry);
+        ret = fuse_reply_entry(reply->request, &entry);
+        if (ret == -1) {
+            FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
+            return Null();
+        }
+
         return Undefined();
     }
 
@@ -91,7 +98,12 @@ namespace NodeFuse {
             timeout = args[1]->NumberValue();
         }
 
-        fuse_reply_attr(reply->request, &statbuff, timeout);
+        ret = fuse_reply_attr(reply->request, &statbuff, timeout);
+        if (ret == -1) {
+            FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
+            return Null();
+        }
+
         return Undefined();
     }
 
@@ -116,7 +128,13 @@ namespace NodeFuse {
 
         String::Utf8Value link(arg->ToString());
 
-        fuse_reply_readlink(reply->request, (const char*) *link);
+        int ret = -1;
+        ret = fuse_reply_readlink(reply->request, (const char*) *link);
+        if (ret == -1) {
+            FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
+            return Null();
+        }
+
         return Undefined();
     }
 
@@ -140,6 +158,36 @@ namespace NodeFuse {
 
         int ret = -1;
         ret = fuse_reply_err(reply->request, arg->Int32Value());
+        if (ret == -1) {
+            FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
+            return Null();
+        }
+
+        return Undefined();
+    }
+
+    Handle<Value> Reply::Open(const Arguments& args) {
+        HandleScope scope;
+
+        Local<Object> replyObj = args.This();
+        Reply* reply = ObjectWrap::Unwrap<Reply>(replyObj);
+
+        int argslen = args.Length();
+        if (argslen == 0) {
+            return ThrowException(Exception::TypeError(
+            String::New("You must specify arguments to invoke this function")));
+        }
+
+        Local<Object> fiobj = args[0]->ToObject();
+        if (!FileInfo::HasInstance(fiobj)) {
+            return ThrowException(Exception::TypeError(
+            String::New("You must specify a FileInfo object as first argument")));
+        }
+
+        FileInfo* fileInfo = ObjectWrap::Unwrap<FileInfo>(fiobj);
+
+        int ret = -1;
+        ret = fuse_reply_open(reply->request, fileInfo->fi);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
             return Null();
