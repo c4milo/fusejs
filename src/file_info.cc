@@ -34,8 +34,12 @@ namespace NodeFuse {
         constructor_template->SetClassName(String::NewSymbol("FileInfo"));
     }
 
+    FileInfo::FileInfo() : ObjectWrap() {}
+    FileInfo::~FileInfo() {}
+
     Handle<Value> FileInfo::GetFlags(Local<String> property, const AccessorInfo& info) {
         FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
+        return Undefined();
         /*
            O_RDONLY        open for reading only
            O_WRONLY        open for writing only
@@ -95,9 +99,11 @@ namespace NodeFuse {
 
     Handle<Value> FileInfo::GetNonSeekable(Local<String> property, const AccessorInfo& info) {
         FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
-        //TODO check FUSE VERSION
-        //return fileInfo->fi->nonseekable ? True() : False();
+#if FUSE_USE_VERSION > 27
+        return fileInfo->fi->nonseekable ? True() : False();
+#else
         return False();
+#endif
     }
 
     void FileInfo::SetNonSeekable(Local<String> property, Local<Value> value, const AccessorInfo& info) {
@@ -106,7 +112,9 @@ namespace NodeFuse {
         if (!value->IsBoolean()) {
             FUSEJS_THROW_EXCEPTION("Invalid value type: ", "a Boolean was expected");
         }
-        //fileInfo->fi->nonseekable = value->IsTrue() ? 1 : 0;
+#if FUSE_USE_VERSION > 27
+        fileInfo->fi->nonseekable = value->IsTrue() ? 1 : 0;
+#endif
     }
 
     void FileInfo::SetFileHandle(Local<String> property, Local<Value> value, const AccessorInfo& info) {
