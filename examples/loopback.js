@@ -147,8 +147,9 @@ util.inherits(Loopback, FileSystem);
         reply.open(fileInfo);
     };
 
-    this.read = function() {
-
+    this.read = function(context, inode, size, offset, fileInfo, reply) {
+        console.log('Read was called!');
+        reply.buffer(new Buffer('hellow world'));
     };
 
     this.write = function() {

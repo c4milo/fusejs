@@ -20,7 +20,8 @@ namespace NodeFuse {
         symlink : FileSystem::SymLink,
         rename  : FileSystem::Rename,
         link    : FileSystem::Link,
-        open    : FileSystem::Open
+        open    : FileSystem::Open,
+        read    : FileSystem::Read
     };
 
     //Operations symbols
@@ -39,6 +40,7 @@ namespace NodeFuse {
     static Persistent<String> rename_sym    = NODE_PSYMBOL("rename");
     static Persistent<String> link_sym      = NODE_PSYMBOL("link");
     static Persistent<String> open_sym      = NODE_PSYMBOL("open");
+    static Persistent<String> read_sym      = NODE_PSYMBOL("read");
 
     //fuse_conn_info symbols
     //Major version of the fuse protocol
@@ -499,6 +501,45 @@ namespace NodeFuse {
         TryCatch try_catch;
 
         open->Call(fuse->fsobj, 4, argv);
+
+        if (try_catch.HasCaught()) {
+            FatalException(try_catch);
+        }
+    }
+
+    void FileSystem::Read(fuse_req_t req,
+              fuse_ino_t ino,
+              size_t size_,
+              off_t off,
+              struct fuse_file_info* fi) {
+        HandleScope scope;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+
+        Local<Value> vread = fuse->fsobj->Get(read_sym);
+        Local<Function> read = Local<Function>::Cast(vread);
+
+        Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
+        Local<Number> inode = Number::New(ino);
+        Local<Integer> size = Integer::New(size_);
+        Local<Integer> offset = Integer::New(off);
+
+        FileInfo* info = new FileInfo();
+        info->fi = fi;
+        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        info->Wrap(infoObj);
+
+        Reply* reply = new Reply();
+        reply->request = req;
+        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        reply->Wrap(replyObj);
+
+        Local<Value> argv[6] = {context, inode,
+                                size, offset,
+                                infoObj, replyObj};
+
+        TryCatch try_catch;
+
+        read->Call(fuse->fsobj, 6, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);

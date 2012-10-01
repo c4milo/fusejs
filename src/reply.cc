@@ -1,6 +1,7 @@
 // Copyright 2012, Camilo Aguilar. Cloudescape, LLC.
 #include "reply.h"
 #include "file_info.h"
+#include "node_buffer.h"
 
 namespace NodeFuse {
     Persistent<FunctionTemplate> Reply::constructor_template;
@@ -15,6 +16,7 @@ namespace NodeFuse {
         NODE_SET_PROTOTYPE_METHOD(t, "readlink", Reply::ReadLink);
         NODE_SET_PROTOTYPE_METHOD(t, "err", Reply::Error);
         NODE_SET_PROTOTYPE_METHOD(t, "open", Reply::Open);
+        NODE_SET_PROTOTYPE_METHOD(t, "buffer", Reply::Buffer);
 
         constructor_template = Persistent<FunctionTemplate>::New(t);
         constructor_template->SetClassName(String::NewSymbol("Reply"));
@@ -194,5 +196,36 @@ namespace NodeFuse {
         }
 
         return Undefined();
+    }
+
+    Handle<Value> Reply::Buffer(const Arguments& args) {
+        HandleScope scope;
+
+        Local<Object> replyObj = args.This();
+        Reply* reply = ObjectWrap::Unwrap<Reply>(replyObj);
+
+        int argslen = args.Length();
+        if (argslen == 0) {
+            return ThrowException(Exception::TypeError(
+            String::New("You must specify arguments to invoke this function")));
+        }
+
+        if (!Buffer::HasInstance(args[0])) {
+            return ThrowException(Exception::TypeError(
+            String::New("You must specify a Buffer object as first argument")));
+        }
+
+        Local<Object> buffer = args[0]->ToObject();
+        const char* data = Buffer::Data(buffer);
+
+        int ret = -1;
+        ret = fuse_reply_buf(reply->request, data, Buffer::Length(buffer));
+        if (ret == -1) {
+            FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
+            return Null();
+        }
+
+        return Undefined();
+
     }
 } //ends namespace NodeFuse
