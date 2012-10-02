@@ -4,8 +4,6 @@
 namespace NodeFuse {
     Persistent<FunctionTemplate> FileInfo::constructor_template;
 
-    //FIXME DRY by writing a macro
-
     static Persistent<String> flags_sym         = NODE_PSYMBOL("flags");
     static Persistent<String> writepage_sym     = NODE_PSYMBOL("writepage");
     static Persistent<String> direct_io_sym     = NODE_PSYMBOL("direct_io");
@@ -14,6 +12,22 @@ namespace NodeFuse {
     static Persistent<String> nonseekable_sym   = NODE_PSYMBOL("nonseekable");
     static Persistent<String> file_handle_sym   = NODE_PSYMBOL("fh");
     static Persistent<String> lock_owner_sym    = NODE_PSYMBOL("lock_owner");
+
+    //Open flags
+    static Persistent<String> rdonly_sym    = NODE_PSYMBOL("rdonly");
+    static Persistent<String> wronly_sym    = NODE_PSYMBOL("wronly");
+    static Persistent<String> rdwr_sym      = NODE_PSYMBOL("rdwr");
+    static Persistent<String> nonblock_sym  = NODE_PSYMBOL("nonblock");
+    static Persistent<String> append_sym    = NODE_PSYMBOL("append");
+    static Persistent<String> creat_sym     = NODE_PSYMBOL("creat");
+    static Persistent<String> trunc_sym     = NODE_PSYMBOL("trunc");
+    static Persistent<String> excl_sym      = NODE_PSYMBOL("excl");
+    static Persistent<String> shlock_sym    = NODE_PSYMBOL("shlock");
+    static Persistent<String> exlock_sym    = NODE_PSYMBOL("exlock");
+    static Persistent<String> nofollow_sym  = NODE_PSYMBOL("nofollow");
+    static Persistent<String> symlink_sym   = NODE_PSYMBOL("symlink");
+    static Persistent<String> evtonly_sym   = NODE_PSYMBOL("evtonly");
+
 
     void FileInfo::Initialize() {
         Local<FunctionTemplate> t = FunctionTemplate::New();
@@ -38,8 +52,24 @@ namespace NodeFuse {
     FileInfo::~FileInfo() {}
 
     Handle<Value> FileInfo::GetFlags(Local<String> property, const AccessorInfo& info) {
-        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
-        return Undefined();
+        HandleScope scope;
+        FileInfo* fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
+        Local<Object> flagsObj = Object::New();
+
+        //Initializes object
+        flagsObj->Set(rdonly_sym, False());
+        flagsObj->Set(wronly_sym, False());
+        flagsObj->Set(rdwr_sym, False());
+        flagsObj->Set(nonblock_sym, False());
+        flagsObj->Set(append_sym, False());
+        flagsObj->Set(creat_sym, False());
+        flagsObj->Set(trunc_sym, False());
+        flagsObj->Set(excl_sym, False());
+        flagsObj->Set(shlock_sym, False());
+        flagsObj->Set(exlock_sym, False());
+        flagsObj->Set(nofollow_sym, False());
+        flagsObj->Set(symlink_sym, False());
+        flagsObj->Set(evtonly_sym, False());
         /*
            O_RDONLY        open for reading only
            O_WRONLY        open for writing only
@@ -55,6 +85,61 @@ namespace NodeFuse {
            O_SYMLINK       allow open of symlinks
            O_EVTONLY       descriptor requested for event notifications only
         */
+
+        int flags = fileInfo->fi->flags;
+        if (flags & O_RDONLY) {
+            flagsObj->Set(rdonly_sym, True());
+        }
+
+        if (flags & O_WRONLY) {
+            flagsObj->Set(wronly_sym, True());
+        }
+
+        if (flags & O_RDWR) {
+            flagsObj->Set(rdwr_sym, True());
+        }
+
+        if (flags & O_NONBLOCK) {
+            flagsObj->Set(nonblock_sym, True());
+        }
+
+        if (flags & O_APPEND) {
+            flagsObj->Set(append_sym, True());
+        }
+
+        if (flags & O_CREAT) {
+            flagsObj->Set(creat_sym, True());
+        }
+
+        if (flags & O_TRUNC) {
+            flagsObj->Set(trunc_sym, True());
+        }
+
+        if (flags & O_EXCL) {
+            flagsObj->Set(excl_sym, True());
+        }
+
+        if (flags & O_SHLOCK) {
+            flagsObj->Set(shlock_sym, True());
+        }
+
+        if (flags & O_EXLOCK) {
+            flagsObj->Set(exlock_sym, True());
+        }
+
+        if (flags & O_NOFOLLOW) {
+            flagsObj->Set(nofollow_sym, True());
+        }
+
+        if (flags & O_SYMLINK) {
+            flagsObj->Set(symlink_sym, True());
+        }
+
+        if (flags & O_EVTONLY) {
+            flagsObj->Set(evtonly_sym, True());
+        }
+
+        return scope.Close(flagsObj);
     }
 
     Handle<Value> FileInfo::GetWritePage(Local<String> property, const AccessorInfo& info) {
