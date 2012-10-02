@@ -19,6 +19,7 @@ namespace NodeFuse {
         NODE_SET_PROTOTYPE_METHOD(t, "buffer", Reply::Buffer);
         NODE_SET_PROTOTYPE_METHOD(t, "write", Reply::Write);
         NODE_SET_PROTOTYPE_METHOD(t, "statfs", Reply::StatFs);
+        NODE_SET_PROTOTYPE_METHOD(t, "create", Reply::Create);
 
         constructor_template = Persistent<FunctionTemplate>::New(t);
         constructor_template->SetClassName(String::NewSymbol("Reply"));
@@ -288,6 +289,51 @@ namespace NodeFuse {
         }
 
         ret = fuse_reply_statfs(reply->request, &buf);
+        if (ret == -1) {
+            FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
+            return Null();
+        }
+
+        return Undefined();
+    }
+
+    Handle<Value> Reply::Create(const Arguments& args) {
+        HandleScope scope;
+
+        Local<Object> replyObj = args.This();
+        Reply* reply = ObjectWrap::Unwrap<Reply>(replyObj);
+
+        int argslen = args.Length();
+
+        if (argslen == 0 || argslen < 2) {
+            return ThrowException(Exception::TypeError(
+            String::New("You must specify at least two arguments to invoke this function")));
+        }
+
+        Local<Value> params = args[0];
+        if (!params->IsObject()) {
+            return ThrowException(Exception::TypeError(
+            String::New("You must specify an object as first argument")));
+        }
+
+        int ret = -1;
+        struct fuse_entry_param entry;
+
+        ret = ObjectToFuseEntryParam(params, &entry);
+        if (ret == -1) {
+            FUSEJS_THROW_EXCEPTION("Unrecognized fuse entry structure: ", "Unable to reply the operation");
+            return Null();
+        }
+
+        Local<Object> fiobj = args[1]->ToObject();
+        if (!FileInfo::HasInstance(fiobj)) {
+            return ThrowException(Exception::TypeError(
+            String::New("You must specify a FileInfo object as second argument")));
+        }
+
+        FileInfo* fileInfo = ObjectWrap::Unwrap<FileInfo>(fiobj);
+
+        ret = fuse_reply_create(reply->request, &entry, fileInfo->fi);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
             return Null();

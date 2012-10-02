@@ -31,7 +31,9 @@ namespace NodeFuse {
         readdir     : FileSystem::ReadDir,
         releasedir  : FileSystem::ReleaseDir,
         fsyncdir    : FileSystem::FSyncDir,
-        statfs      : FileSystem::StatFs
+        statfs      : FileSystem::StatFs,
+        //access      : FileSystem::Access,
+        //create      : FileSystem::Create
         //setxattr    : FileSystem::SetXAttr
         //getxattr    : FileSystem::GetXAttr
     };
@@ -64,6 +66,8 @@ namespace NodeFuse {
     static Persistent<String> statfs_sym      = NODE_PSYMBOL("statfs");
     static Persistent<String> setxattr_sym    = NODE_PSYMBOL("setxattr");
     static Persistent<String> getxattr_sym    = NODE_PSYMBOL("getxattr");
+    static Persistent<String> access_sym      = NODE_PSYMBOL("access");
+    static Persistent<String> create_sym      = NODE_PSYMBOL("create");
 
     //fuse_conn_info symbols
     //Major version of the fuse protocol
@@ -645,8 +649,8 @@ namespace NodeFuse {
     }
 
     void FileSystem::Release(fuse_req_t req,
-                                fuse_ino_t ino,
-                                struct fuse_file_info* fi) {
+                             fuse_ino_t ino,
+                             struct fuse_file_info* fi) {
         HandleScope scope;
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
@@ -887,10 +891,10 @@ namespace NodeFuse {
 
     void FileSystem::SetXAttr(fuse_req_t req,
                               fuse_ino_t ino,
-                              const char* name,
-                              const char* value,
-                              size_t size,
-                              int flags) {
+                              const char* name_,
+                              const char* value_,
+                              size_t size_,
+                              int flags_) {
         HandleScope scope;
         Fuse *fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
@@ -899,19 +903,23 @@ namespace NodeFuse {
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Number> inode = Number::New(ino);
-
-        //Local<Object> attrs = GetAttrsToBeSet(to_set, attr)->ToObject();
+        Local<String> name = String::New(name_);
+        Local<String> value = String::New(value_);
+        Local<Number> size = Number::New(size_);
+        Local<Integer> flags = Integer::New(flags_); //TODO change for an object with accessors
 
         Reply *reply = new Reply();
         reply->request = req;
         Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
-        Local<Value> argv[4] = {context, inode, /*attrs,*/ replyObj};
+        Local<Value> argv[7] = {context, inode,
+                                name, value,
+                                size, flags, replyObj};
 
         TryCatch try_catch;
 
-        setxattr->Call(fuse->fsobj, 4, argv);
+        setxattr->Call(fuse->fsobj, 7, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
@@ -963,8 +971,32 @@ namespace NodeFuse {
 
     void FileSystem::Access(fuse_req_t req,
                             fuse_ino_t ino,
-                            int mask) {
+                            int mask_) {
+        HandleScope scope;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
+        Local<Value> vaccess = fuse->fsobj->Get(access_sym);
+        Local<Function> access = Local<Function>::Cast(vaccess);
+
+        Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
+        Local<Number> inode = Number::New(ino);
+        Local<Integer> mask = Integer::New(mask_);
+
+        Reply* reply = new Reply();
+        reply->request = req;
+        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        reply->Wrap(replyObj);
+
+        Local<Value> argv[4] = {context, inode,
+                                mask, replyObj};
+
+        TryCatch try_catch;
+
+        access->Call(fuse->fsobj, 4, argv);
+
+        if (try_catch.HasCaught()) {
+            FatalException(try_catch);
+        }
     }
 
     void FileSystem::Create(fuse_req_t req,
@@ -972,7 +1004,38 @@ namespace NodeFuse {
                             const char* name,
                             mode_t mode,
                             struct fuse_file_info* fi) {
+        HandleScope scope;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
+        Local<Value> vcreate = fuse->fsobj->Get(create_sym);
+        Local<Function> create = Local<Function>::Cast(vcreate);
+
+        Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
+        Local<Number> parentInode = Number::New(parent);
+        Local<String> name_ = String::New(name);
+        Local<Integer> mode_ = Integer::New(mode);
+
+        FileInfo* info = new FileInfo();
+        info->fi = fi;
+        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        info->Wrap(infoObj);
+
+        Reply* reply = new Reply();
+        reply->request = req;
+        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        reply->Wrap(replyObj);
+
+        Local<Value> argv[6] = {context, parentInode,
+                                name_, mode_,
+                                infoObj, replyObj};
+
+        TryCatch try_catch;
+
+        create->Call(fuse->fsobj, 6, argv);
+
+        if (try_catch.HasCaught()) {
+            FatalException(try_catch);
+        }
     }
 
     void FileSystem::GetLk(fuse_req_t req,
