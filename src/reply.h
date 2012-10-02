@@ -20,6 +20,8 @@ namespace NodeFuse {
             static Handle<Value> Error(const Arguments& args);
             static Handle<Value> Open(const Arguments& args);
             static Handle<Value> Buffer(const Arguments& args);
+            static Handle<Value> Write(const Arguments& args);
+            static Handle<Value> StatFs(const Arguments& args);
 
         private:
             fuse_req_t request;

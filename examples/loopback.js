@@ -3,6 +3,7 @@
  **/
 var FileSystem = require('../fuse').FileSystem;
 var PosixError = require('../fuse').PosixError;
+//var Util = require('../fuse').Util;
 
 var util = require('util');
 
@@ -150,42 +151,81 @@ util.inherits(Loopback, FileSystem);
     this.read = function(context, inode, size, offset, fileInfo, reply) {
         console.log('Read was called!');
         reply.buffer(new Buffer('hellow world'));
+        //reply.err(0);
     };
 
-    this.write = function() {
-
+    this.write = function(context, inode, buffer, offset, fileInfo, reply) {
+        console.log('Write was called!');
+        console.log('Writing ' + buffer);
+        reply.write(buffer.length);
+        //reply.err(0);
     };
 
-    this.flush = function() {
-
+    this.flush = function(context, inode, fileInfo, reply) {
+        console.log('Flush was called!');
+        //console.log(fileInfo);
+        reply.err(0);
     };
 
-    this.release = function() {
-
+    this.release = function(context, inode, fileInfo, reply) {
+        console.log('Release was called!');
+        reply.err(0);
     };
 
-    this.fsync = function() {
-
+    //if datasync is true then only user data is flushed, not metadata
+    this.fsync = function(context, inode, datasync, fileInfo, reply) {
+        console.log('Fsync was called!');
+        console.log('datasync -> ' + datasync);
+        reply.err(0);
     };
 
-    this.opendir = function() {
-
+    this.opendir = function(context, inode, fileInfo, reply) {
+        console.log('Opendir was called!');
+        //reply.err(0);
+        reply.open(fileInfo);
     };
 
-    this.readdir = function() {
-
+    this.readdir = function(context, inode, size, offset, fileInfo, reply) {
+        console.log('Readdir was called!');
+        //TODO Implement Util.addDirEntry
+        var buffer = new Buffer(size);
+        /*Util.addDirEntry(buffer, 'dir1', stats1, offset1);
+        Util.addDirEntry(buffer, 'dir2', stats2, offset2);
+        var buffer = new Buffer(buffer);*/
+        reply.buffer(buffer);
     };
 
-    this.releasedir = function() {
-
+    this.releasedir = function(context, inode, fileInfo, reply) {
+        console.log('Releasedir was called!');
+        console.log(fileInfo);
+        reply.err(0);
     };
 
-    this.fsyncdir = function() {
-
+    //if datasync is true then only directory contents is flushed, not metadata
+    this.fsyncdir = function(context, inode, datasync, fileInfo, reply) {
+        console.log('FsyncDir was called!');
+        console.log('datasync -> ' + datasync);
+        reply.err(0);
     };
 
-    this.statfs = function() {
+    this.statfs = function(context, inode, reply) {
+        console.log('Statfs was called!');
 
+        var statvfs = {
+            bsize: 1024, /* file system block size */
+            frsize: 0, /* fragment size */
+            blocks: 0, /* size of fs in f_frsize units */
+            bfree: 0, /* # free blocks */
+            bavail: 0, /* # free blocks for unprivileged users */
+            files: 5, /* # inodes */
+            ffree: 2, /* # free inodes */
+            favail: 2, /* # free inodes for unprivileged users */
+            fsid: 4294967295, /* file system ID */
+            flag: 0, /* mount flags */
+            namemax: 1.7976931348623157e+308 /* maximum filename length */
+        };
+
+        reply.statfs(statvfs);
     };
 
     this.setxattr = function() {

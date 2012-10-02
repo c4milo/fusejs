@@ -17,6 +17,8 @@ namespace NodeFuse {
         NODE_SET_PROTOTYPE_METHOD(t, "err", Reply::Error);
         NODE_SET_PROTOTYPE_METHOD(t, "open", Reply::Open);
         NODE_SET_PROTOTYPE_METHOD(t, "buffer", Reply::Buffer);
+        NODE_SET_PROTOTYPE_METHOD(t, "write", Reply::Write);
+        NODE_SET_PROTOTYPE_METHOD(t, "statfs", Reply::StatFs);
 
         constructor_template = Persistent<FunctionTemplate>::New(t);
         constructor_template->SetClassName(String::NewSymbol("Reply"));
@@ -227,5 +229,70 @@ namespace NodeFuse {
 
         return Undefined();
 
+    }
+
+    Handle<Value> Reply::Write(const Arguments& args) {
+        HandleScope scope;
+
+        Local<Object> replyObj = args.This();
+        Reply* reply = ObjectWrap::Unwrap<Reply>(replyObj);
+
+        int argslen = args.Length();
+        if (argslen == 0) {
+            return ThrowException(Exception::TypeError(
+            String::New("You must specify arguments to invoke this function")));
+        }
+
+        Local<Value> arg = args[0];
+        if (!arg->IsNumber()) {
+            return ThrowException(Exception::TypeError(
+            String::New("You must specify the number of bytes written as first argument")));
+        }
+
+        int ret = -1;
+        ret = fuse_reply_write(reply->request, arg->IntegerValue());
+        if (ret == -1) {
+            FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
+            return Null();
+        }
+
+        return Undefined();
+    }
+
+    Handle<Value> Reply::StatFs(const Arguments& args) {
+        HandleScope scope;
+
+        Local<Object> replyObj = args.This();
+        Reply* reply = ObjectWrap::Unwrap<Reply>(replyObj);
+
+        int ret = -1;
+        struct statvfs buf;
+
+        int argslen = args.Length();
+
+        if (argslen == 0) {
+            return ThrowException(Exception::TypeError(
+            String::New("You must specify arguments to invoke this function")));
+        }
+
+        Local<Value> arg = args[0];
+        if (!arg->IsObject()) {
+            return ThrowException(Exception::TypeError(
+            String::New("You must specify a object as first argument")));
+        }
+
+        ret = ObjectToStatVfs(arg, &buf);
+        if (ret == -1) {
+            FUSEJS_THROW_EXCEPTION("Unrecognized statvfs object: ", "Unable to reply the operation");
+            return Null();
+        }
+
+        ret = fuse_reply_statfs(reply->request, &buf);
+        if (ret == -1) {
+            FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
+            return Null();
+        }
+
+        return Undefined();
     }
 } //ends namespace NodeFuse

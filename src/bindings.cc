@@ -100,6 +100,7 @@ namespace NodeFuse {
         for (int i = 1; i < argc; i++) {
             String::Utf8Value option(options->Get(Integer::New(i))->ToString());
 
+            //FIXME it is fuse_opt_add_opt instead of fuse_opt_add_arg!!!
             if (fuse_opt_add_arg(fuse->fargs, (const char *) *option) == -1) {
                 FUSEJS_THROW_EXCEPTION("Unable to allocate memory, fuse_opt_add_arg failed: ", strerror(errno));
                 return Null();

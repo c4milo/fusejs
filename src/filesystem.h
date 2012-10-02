@@ -94,7 +94,7 @@ namespace NodeFuse {
                                  fuse_ino_t ino,
                                  int datasync,
                                  struct fuse_file_info* fi);
-            static void StatsFs(fuse_req_t req, fuse_ino_t ino);
+            static void StatFs(fuse_req_t req, fuse_ino_t ino);
             static void SetXAttr(fuse_req_t req,
                                  fuse_ino_t ino,
                                  const char* name,

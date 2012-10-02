@@ -2,45 +2,68 @@
 #include "reply.h"
 #include "file_info.h"
 #include "bindings.h"
+#include "node_buffer.h"
 
 namespace NodeFuse {
 
     static struct fuse_lowlevel_ops fuse_ops = {
-        init    : FileSystem::Init,
-        destroy : FileSystem::Destroy,
-        lookup  : FileSystem::Lookup,
-        forget  : FileSystem::Forget,
-        getattr : FileSystem::GetAttr,
-        setattr : FileSystem::SetAttr,
-        readlink: FileSystem::ReadLink,
-        mknod   : FileSystem::MkNod,
-        mkdir   : FileSystem::MkDir,
-        unlink  : FileSystem::Unlink,
-        rmdir   : FileSystem::RmDir,
-        symlink : FileSystem::SymLink,
-        rename  : FileSystem::Rename,
-        link    : FileSystem::Link,
-        open    : FileSystem::Open,
-        read    : FileSystem::Read
+        init        : FileSystem::Init,
+        destroy     : FileSystem::Destroy,
+        lookup      : FileSystem::Lookup,
+        forget      : FileSystem::Forget,
+        getattr     : FileSystem::GetAttr,
+        setattr     : FileSystem::SetAttr,
+        readlink    : FileSystem::ReadLink,
+        mknod       : FileSystem::MkNod,
+        mkdir       : FileSystem::MkDir,
+        unlink      : FileSystem::Unlink,
+        rmdir       : FileSystem::RmDir,
+        symlink     : FileSystem::SymLink,
+        rename      : FileSystem::Rename,
+        link        : FileSystem::Link,
+        open        : FileSystem::Open,
+        read        : FileSystem::Read,
+        write       : FileSystem::Write,
+        flush       : FileSystem::Flush,
+        release     : FileSystem::Release,
+        fsync       : FileSystem::FSync,
+        opendir     : FileSystem::OpenDir,
+        readdir     : FileSystem::ReadDir,
+        releasedir  : FileSystem::ReleaseDir,
+        fsyncdir    : FileSystem::FSyncDir,
+        statfs      : FileSystem::StatFs
+        //setxattr    : FileSystem::SetXAttr
+        //getxattr    : FileSystem::GetXAttr
     };
 
     //Operations symbols
-    static Persistent<String> init_sym      = NODE_PSYMBOL("init");
-    static Persistent<String> destroy_sym   = NODE_PSYMBOL("destroy");
-    static Persistent<String> lookup_sym    = NODE_PSYMBOL("lookup");
-    static Persistent<String> forget_sym    = NODE_PSYMBOL("forget");
-    static Persistent<String> getattr_sym   = NODE_PSYMBOL("getattr");
-    static Persistent<String> setattr_sym   = NODE_PSYMBOL("setattr");
-    static Persistent<String> readlink_sym  = NODE_PSYMBOL("readlink");
-    static Persistent<String> mknod_sym     = NODE_PSYMBOL("mknod");
-    static Persistent<String> mkdir_sym     = NODE_PSYMBOL("mkdir");
-    static Persistent<String> unlink_sym    = NODE_PSYMBOL("unlink");
-    static Persistent<String> rmdir_sym     = NODE_PSYMBOL("rmdir");
-    static Persistent<String> symlink_sym   = NODE_PSYMBOL("symlink");
-    static Persistent<String> rename_sym    = NODE_PSYMBOL("rename");
-    static Persistent<String> link_sym      = NODE_PSYMBOL("link");
-    static Persistent<String> open_sym      = NODE_PSYMBOL("open");
-    static Persistent<String> read_sym      = NODE_PSYMBOL("read");
+    static Persistent<String> init_sym        = NODE_PSYMBOL("init");
+    static Persistent<String> destroy_sym     = NODE_PSYMBOL("destroy");
+    static Persistent<String> lookup_sym      = NODE_PSYMBOL("lookup");
+    static Persistent<String> forget_sym      = NODE_PSYMBOL("forget");
+    static Persistent<String> getattr_sym     = NODE_PSYMBOL("getattr");
+    static Persistent<String> setattr_sym     = NODE_PSYMBOL("setattr");
+    static Persistent<String> readlink_sym    = NODE_PSYMBOL("readlink");
+    static Persistent<String> mknod_sym       = NODE_PSYMBOL("mknod");
+    static Persistent<String> mkdir_sym       = NODE_PSYMBOL("mkdir");
+    static Persistent<String> unlink_sym      = NODE_PSYMBOL("unlink");
+    static Persistent<String> rmdir_sym       = NODE_PSYMBOL("rmdir");
+    static Persistent<String> symlink_sym     = NODE_PSYMBOL("symlink");
+    static Persistent<String> rename_sym      = NODE_PSYMBOL("rename");
+    static Persistent<String> link_sym        = NODE_PSYMBOL("link");
+    static Persistent<String> open_sym        = NODE_PSYMBOL("open");
+    static Persistent<String> read_sym        = NODE_PSYMBOL("read");
+    static Persistent<String> write_sym       = NODE_PSYMBOL("write");
+    static Persistent<String> flush_sym       = NODE_PSYMBOL("flush");
+    static Persistent<String> release_sym     = NODE_PSYMBOL("release");
+    static Persistent<String> fsync_sym       = NODE_PSYMBOL("fsync");
+    static Persistent<String> opendir_sym     = NODE_PSYMBOL("opendir");
+    static Persistent<String> readdir_sym     = NODE_PSYMBOL("readdir");
+    static Persistent<String> releasedir_sym  = NODE_PSYMBOL("releasedir");
+    static Persistent<String> fsyncdir_sym    = NODE_PSYMBOL("fsyncdir");
+    static Persistent<String> statfs_sym      = NODE_PSYMBOL("statfs");
+    static Persistent<String> setxattr_sym    = NODE_PSYMBOL("setxattr");
+    static Persistent<String> getxattr_sym    = NODE_PSYMBOL("getxattr");
 
     //fuse_conn_info symbols
     //Major version of the fuse protocol
@@ -442,9 +465,9 @@ namespace NodeFuse {
     }
 
     void FileSystem::Link(fuse_req_t req,
-                             fuse_ino_t ino,
-                             fuse_ino_t newparent,
-                             const char* newname) {
+                          fuse_ino_t ino,
+                          fuse_ino_t newparent,
+                          const char* newname) {
         HandleScope scope;
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
@@ -508,10 +531,10 @@ namespace NodeFuse {
     }
 
     void FileSystem::Read(fuse_req_t req,
-              fuse_ino_t ino,
-              size_t size_,
-              off_t off,
-              struct fuse_file_info* fi) {
+                          fuse_ino_t ino,
+                          size_t size_,
+                          off_t off,
+                          struct fuse_file_info* fi) {
         HandleScope scope;
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
@@ -546,6 +569,454 @@ namespace NodeFuse {
         }
     }
 
+    void FileSystem::Write(fuse_req_t req,
+                           fuse_ino_t ino,
+                           const char *buf,
+                           size_t size,
+                           off_t off,
+                           struct fuse_file_info* fi) {
+        HandleScope scope;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+
+        Local<Value> vwrite = fuse->fsobj->Get(write_sym);
+        Local<Function> write = Local<Function>::Cast(vwrite);
+
+        Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
+        Local<Number> inode = Number::New(ino);
+        Local<Integer> offset = Integer::New(off);
+
+        Buffer* buffer = Buffer::New((char*) buf, size);
+
+        FileInfo* info = new FileInfo();
+        info->fi = fi;
+        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        info->Wrap(infoObj);
+
+        Reply* reply = new Reply();
+        reply->request = req;
+        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        reply->Wrap(replyObj);
+
+        Local<Value> argv[6] = {context, inode,
+                                Local<Object>::New(buffer->handle_), offset,
+                                infoObj, replyObj};
+
+        TryCatch try_catch;
+        //fprintf(stderr, "AAHHHHHHHHHHHHHHHH %d\n", ino);
+        write->Call(fuse->fsobj, 6, argv);
+
+        if (try_catch.HasCaught()) {
+            FatalException(try_catch);
+        }
+    }
+
+    void FileSystem::Flush(fuse_req_t req,
+                           fuse_ino_t ino,
+                           struct fuse_file_info* fi) {
+        HandleScope scope;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+
+        Local<Value> vflush = fuse->fsobj->Get(flush_sym);
+        Local<Function> flush = Local<Function>::Cast(vflush);
+
+        Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
+        Local<Number> inode = Number::New(ino);
+
+        FileInfo* info = new FileInfo();
+        info->fi = fi;
+        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        info->Wrap(infoObj);
+
+        Reply* reply = new Reply();
+        reply->request = req;
+        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        reply->Wrap(replyObj);
+
+        Local<Value> argv[4] = {context, inode,
+                                infoObj, replyObj};
+
+        TryCatch try_catch;
+
+        flush->Call(fuse->fsobj, 4, argv);
+
+        if (try_catch.HasCaught()) {
+            FatalException(try_catch);
+        }
+    }
+
+    void FileSystem::Release(fuse_req_t req,
+                                fuse_ino_t ino,
+                                struct fuse_file_info* fi) {
+        HandleScope scope;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+
+        Local<Value> vrelease = fuse->fsobj->Get(release_sym);
+        Local<Function> release = Local<Function>::Cast(vrelease);
+
+        Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
+        Local<Number> inode = Number::New(ino);
+
+        FileInfo* info = new FileInfo();
+        info->fi = fi;
+        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        info->Wrap(infoObj);
+
+        Reply* reply = new Reply();
+        reply->request = req;
+        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        reply->Wrap(replyObj);
+
+        Local<Value> argv[4] = {context, inode,
+                                infoObj, replyObj};
+
+        TryCatch try_catch;
+
+        release->Call(fuse->fsobj, 4, argv);
+
+        if (try_catch.HasCaught()) {
+            FatalException(try_catch);
+        }
+    }
+
+    void FileSystem::FSync(fuse_req_t req,
+                           fuse_ino_t ino,
+                           int datasync_,
+                           struct fuse_file_info* fi) {
+        HandleScope scope;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+
+        Local<Value> vfsync = fuse->fsobj->Get(fsync_sym);
+        Local<Function> fsync = Local<Function>::Cast(vfsync);
+
+        Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
+        Local<Number> inode = Number::New(ino);
+        bool datasync = datasync_ == 0 ? false : true;
+
+        FileInfo* info = new FileInfo();
+        info->fi = fi;
+        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        info->Wrap(infoObj);
+
+        Reply* reply = new Reply();
+        reply->request = req;
+        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        reply->Wrap(replyObj);
+
+        Local<Value> argv[5] = {context, inode,
+                                Boolean::New(datasync)->ToObject(),
+                                infoObj, replyObj};
+
+        TryCatch try_catch;
+
+        fsync->Call(fuse->fsobj, 5, argv);
+
+        if (try_catch.HasCaught()) {
+            FatalException(try_catch);
+        }
+    }
+
+    void FileSystem::OpenDir(fuse_req_t req,
+                             fuse_ino_t ino,
+                             struct fuse_file_info* fi) {
+        HandleScope scope;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+
+        Local<Value> vopendir = fuse->fsobj->Get(opendir_sym);
+        Local<Function> opendir = Local<Function>::Cast(vopendir);
+
+        Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
+        Local<Number> inode = Number::New(ino);
+
+        FileInfo* info = new FileInfo();
+        info->fi = fi;
+        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        info->Wrap(infoObj);
+
+        Reply* reply = new Reply();
+        reply->request = req;
+        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        reply->Wrap(replyObj);
+
+        Local<Value> argv[4] = {context, inode,
+                                infoObj, replyObj};
+
+        TryCatch try_catch;
+
+        opendir->Call(fuse->fsobj, 4, argv);
+
+        if (try_catch.HasCaught()) {
+            FatalException(try_catch);
+        }
+    }
+
+    void FileSystem::ReadDir(fuse_req_t req,
+                             fuse_ino_t ino,
+                             size_t size_,
+                             off_t off,
+                             struct fuse_file_info* fi) {
+        HandleScope scope;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+
+        Local<Value> vreaddir = fuse->fsobj->Get(readdir_sym);
+        Local<Function> readdir = Local<Function>::Cast(vreaddir);
+
+        Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
+        Local<Number> inode = Number::New(ino);
+        Local<Integer> size = Integer::New(size_);
+        Local<Integer> offset = Integer::New(off);
+
+        FileInfo* info = new FileInfo();
+        info->fi = fi;
+        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        info->Wrap(infoObj);
+
+        Reply* reply = new Reply();
+        reply->request = req;
+        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        reply->Wrap(replyObj);
+
+        Local<Value> argv[6] = {context, inode,
+                                size, offset,
+                                infoObj, replyObj};
+
+        TryCatch try_catch;
+
+        readdir->Call(fuse->fsobj, 6, argv);
+
+        if (try_catch.HasCaught()) {
+            FatalException(try_catch);
+        }
+    }
+
+    void FileSystem::ReleaseDir(fuse_req_t req,
+                                fuse_ino_t ino,
+                                struct fuse_file_info* fi) {
+        HandleScope scope;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+
+        Local<Value> vreleasedir = fuse->fsobj->Get(releasedir_sym);
+        Local<Function> releasedir = Local<Function>::Cast(vreleasedir);
+
+        Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
+        Local<Number> inode = Number::New(ino);
+
+        FileInfo* info = new FileInfo();
+        info->fi = fi;
+        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        info->Wrap(infoObj);
+
+        Reply* reply = new Reply();
+        reply->request = req;
+        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        reply->Wrap(replyObj);
+
+        Local<Value> argv[4] = {context, inode,
+                                infoObj, replyObj};
+
+        TryCatch try_catch;
+
+        releasedir->Call(fuse->fsobj, 4, argv);
+
+        if (try_catch.HasCaught()) {
+            FatalException(try_catch);
+        }
+    }
+
+    void FileSystem::FSyncDir(fuse_req_t req,
+                              fuse_ino_t ino,
+                              int datasync_,
+                              struct fuse_file_info* fi) {
+        HandleScope scope;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+
+        Local<Value> vfsyncdir = fuse->fsobj->Get(fsyncdir_sym);
+        Local<Function> fsyncdir = Local<Function>::Cast(vfsyncdir);
+
+        Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
+        Local<Number> inode = Number::New(ino);
+        bool datasync = datasync_ == 0 ? false : true;
+
+        FileInfo* info = new FileInfo();
+        info->fi = fi;
+        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        info->Wrap(infoObj);
+
+        Reply* reply = new Reply();
+        reply->request = req;
+        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        reply->Wrap(replyObj);
+
+        Local<Value> argv[5] = {context, inode,
+                                Boolean::New(datasync)->ToObject(),
+                                infoObj, replyObj};
+
+        TryCatch try_catch;
+
+        fsyncdir->Call(fuse->fsobj, 5, argv);
+
+        if (try_catch.HasCaught()) {
+            FatalException(try_catch);
+        }
+    }
+
+    void FileSystem::StatFs(fuse_req_t req, fuse_ino_t ino) {
+        HandleScope scope;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+
+        Local<Value> vstatfs = fuse->fsobj->Get(statfs_sym);
+        Local<Function> statfs = Local<Function>::Cast(vstatfs);
+
+        Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
+        Local<Number> inode = Number::New(ino);
+
+        Reply* reply = new Reply();
+        reply->request = req;
+        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        reply->Wrap(replyObj);
+
+        Local<Value> argv[3] = {context, inode, replyObj};
+
+        TryCatch try_catch;
+
+        statfs->Call(fuse->fsobj, 3, argv);
+
+        if (try_catch.HasCaught()) {
+            FatalException(try_catch);
+        }
+    }
+
+    void FileSystem::SetXAttr(fuse_req_t req,
+                              fuse_ino_t ino,
+                              const char* name,
+                              const char* value,
+                              size_t size,
+                              int flags) {
+        HandleScope scope;
+        Fuse *fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+
+        Local<Value> vsetxattr = fuse->fsobj->Get(setxattr_sym);
+        Local<Function> setxattr = Local<Function>::Cast(vsetxattr);
+
+        Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
+        Local<Number> inode = Number::New(ino);
+
+        //Local<Object> attrs = GetAttrsToBeSet(to_set, attr)->ToObject();
+
+        Reply *reply = new Reply();
+        reply->request = req;
+        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        reply->Wrap(replyObj);
+
+        Local<Value> argv[4] = {context, inode, /*attrs,*/ replyObj};
+
+        TryCatch try_catch;
+
+        setxattr->Call(fuse->fsobj, 4, argv);
+
+        if (try_catch.HasCaught()) {
+            FatalException(try_catch);
+        }
+    }
+
+    void FileSystem::GetXAttr(fuse_req_t req,
+                              fuse_ino_t ino,
+                              const char* name,
+                              size_t size) {
+        HandleScope scope;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+
+        Local<Value> vgetxattr = fuse->fsobj->Get(getxattr_sym);
+        Local<Function> getxattr = Local<Function>::Cast(vgetxattr);
+
+        Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
+        Local<Number> inode = Number::New(ino);
+
+        Reply* reply = new Reply();
+        reply->request = req;
+        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        reply->Wrap(replyObj);
+
+        Local<Value> argv[3] = {context, inode, replyObj};
+
+        TryCatch try_catch;
+
+        getxattr->Call(fuse->fsobj, 3, argv);
+
+        if (try_catch.HasCaught()) {
+            FatalException(try_catch);
+        }
+    }
+
+
+    void FileSystem::ListXAttr(fuse_req_t req,
+                               fuse_ino_t ino,
+                               size_t size) {
+
+
+    }
+
+    void FileSystem::RemoveXAttr(fuse_req_t req,
+                                 fuse_ino_t ino,
+                                 const char* name) {
+
+    }
+
+    void FileSystem::Access(fuse_req_t req,
+                            fuse_ino_t ino,
+                            int mask) {
+
+    }
+
+    void FileSystem::Create(fuse_req_t req,
+                            fuse_ino_t parent,
+                            const char* name,
+                            mode_t mode,
+                            struct fuse_file_info* fi) {
+
+    }
+
+    void FileSystem::GetLk(fuse_req_t req,
+                           fuse_ino_t ino,
+                           struct fuse_file_info* fi,
+                           struct flock* lock) {
+
+    }
+
+    void FileSystem::SetLk(fuse_req_t req,
+                           fuse_ino_t ino,
+                           struct fuse_file_info* fi,
+                           struct flock* lock,
+                           int sleep) {
+
+
+    }
+
+    void FileSystem::BMap(fuse_req_t req,
+                          fuse_ino_t ino,
+                          size_t blocksize,
+                          uint64_t idx) {
+
+    }
+
+    void FileSystem::IOCtl(fuse_req_t req,
+                           fuse_ino_t ino,
+                           int cmd,
+                           void* arg,
+                           struct fuse_file_info* fi,
+                           unsigned* flagsp,
+                           const void* in_buf,
+                           size_t in_bufsz,
+                           size_t out_bufszp) {
+
+    }
+
+    void FileSystem::Poll(fuse_req_t req,
+                          fuse_ino_t ino,
+                          struct fuse_file_info* fi,
+                          struct fuse_pollhandle* ph) {
+
+
+    }
 
     struct fuse_lowlevel_ops* FileSystem::GetOperations() {
         return &fuse_ops;

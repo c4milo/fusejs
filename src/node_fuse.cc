@@ -19,6 +19,19 @@ namespace NodeFuse {
     static Persistent<String> mtime_sym     = NODE_PSYMBOL("mtime");
     static Persistent<String> ctime_sym     = NODE_PSYMBOL("ctime");
 
+    //statvfs struct symbols
+    static Persistent<String> bsize_sym   = NODE_PSYMBOL("bsize");
+    static Persistent<String> frsize_sym  = NODE_PSYMBOL("frsize");
+    //static Persistent<String> blocks_sym  = NODE_PSYMBOL("blocks");
+    static Persistent<String> bfree_sym   = NODE_PSYMBOL("bfree");
+    static Persistent<String> bavail_sym  = NODE_PSYMBOL("bavail");
+    static Persistent<String> files_sym   = NODE_PSYMBOL("files");
+    static Persistent<String> ffree_sym   = NODE_PSYMBOL("ffree");
+    static Persistent<String> favail_sym  = NODE_PSYMBOL("favail");
+    static Persistent<String> fsid_sym    = NODE_PSYMBOL("fsid");
+    static Persistent<String> flag_sym    = NODE_PSYMBOL("flag");
+    static Persistent<String> namemax_sym = NODE_PSYMBOL("namemax");
+
     //entry symbols
     static Persistent<String> ino_sym           = NODE_PSYMBOL("inode");
     static Persistent<String> generation_sym    = NODE_PSYMBOL("generation");
@@ -79,6 +92,30 @@ namespace NodeFuse {
         statbuf->st_atime = NODE_V8_UNIXTIME(obj->Get(atime_sym));
         statbuf->st_mtime = NODE_V8_UNIXTIME(obj->Get(mtime_sym));
         statbuf->st_ctime = NODE_V8_UNIXTIME(obj->Get(ctime_sym));
+
+        return 0;
+    }
+
+    int ObjectToStatVfs(Handle<Value> value, struct statvfs* statbuf) {
+        HandleScope scope;
+
+        memset(statbuf, 0, sizeof(statbuf));
+
+        Local<Object> obj = value->ToObject();
+
+        statbuf->f_bsize = obj->Get(bsize_sym)->NumberValue();
+        statbuf->f_frsize = obj->Get(blocks_sym)->NumberValue();
+
+        statbuf->f_blocks = obj->Get(blocks_sym)->IntegerValue();
+        statbuf->f_bfree = obj->Get(bfree_sym)->IntegerValue();
+        statbuf->f_bavail = obj->Get(bavail_sym)->IntegerValue();
+        statbuf->f_files = obj->Get(files_sym)->IntegerValue();
+        statbuf->f_ffree = obj->Get(ffree_sym)->IntegerValue();
+        statbuf->f_favail = obj->Get(favail_sym)->NumberValue();
+
+        statbuf->f_fsid = obj->Get(fsid_sym)->NumberValue();
+        statbuf->f_flag = obj->Get(flag_sym)->NumberValue();
+        statbuf->f_namemax = obj->Get(namemax_sym)->NumberValue();
 
         return 0;
     }
