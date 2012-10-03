@@ -269,13 +269,16 @@ util.inherits(Loopback, FileSystem);
 
     this.getlk = function(context, inode, fileInfo, lock, reply) {
         console.log('GetLock was called!');
-        console.log(lock);
+        console.log('Lock -> ' + lock);
         //reply.lock(lock);
         reply.err(0);
     };
 
-    this.setlk = function() {
-
+    this.setlk = function(context, inode, fileInfo, lock, sleep, reply) {
+        console.log('SetLock was called!!');
+        console.log('Lock -> ' + lock);
+        console.log('sleep -> ' + sleep);
+        reply.err(0);
     };
 
     this.bmap = function() {

@@ -95,7 +95,7 @@ namespace NodeFuse {
         fuse_ops.access     = FileSystem::Access;
         fuse_ops.create     = FileSystem::Create;
         fuse_ops.getlk      = FileSystem::GetLock;
-        //fuse_ops.setlk      = FileSystem::SetLock;
+        fuse_ops.setlk      = FileSystem::SetLock;
         //fuse_ops.bmap       = FileSystem::BMap;
         //fuse_ops.ioctl      = FileSystem::IOCtl;
         //fuse_ops.poll       = FileSystem::Poll;
@@ -1181,9 +1181,40 @@ namespace NodeFuse {
                              fuse_ino_t ino,
                              struct fuse_file_info* fi,
                              struct flock* lock,
-                             int sleep) {
+                             int sleep_) {
+        HandleScope scope;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
+        Local<Value> vsetlk = fuse->fsobj->Get(setlk_sym);
+        Local<Function> setlk = Local<Function>::Cast(vsetlk);
 
+        Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
+        Local<Number> inode = Number::New(ino);
+        Local<Integer> sleep = Integer::New(sleep_);
+
+        FileInfo* info = new FileInfo();
+        info->fi = fi;
+        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        info->Wrap(infoObj);
+
+        Local<Object> lockObj = FlockToObject(lock)->ToObject();
+
+        Reply* reply = new Reply();
+        reply->request = req;
+        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        reply->Wrap(replyObj);
+
+        Local<Value> argv[6] = {context, inode,
+                                infoObj, lockObj,
+                                sleep, replyObj};
+
+        TryCatch try_catch;
+
+        setlk->Call(fuse->fsobj, 6, argv);
+
+        if (try_catch.HasCaught()) {
+            FatalException(try_catch);
+        }
     }
 
     void FileSystem::BMap(fuse_req_t req,
