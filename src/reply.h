@@ -24,6 +24,7 @@ namespace NodeFuse {
             static Handle<Value> StatFs(const Arguments& args);
             static Handle<Value> Create(const Arguments& args);
             static Handle<Value> XAttributes(const Arguments& args);
+            static Handle<Value> Lock(const Arguments& args);
 
         private:
             fuse_req_t request;

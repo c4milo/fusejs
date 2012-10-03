@@ -230,7 +230,6 @@ namespace NodeFuse {
         }
 
         return Undefined();
-
     }
 
     Handle<Value> Reply::Write(const Arguments& args) {
@@ -363,6 +362,43 @@ namespace NodeFuse {
 
         int ret = -1;
         ret = fuse_reply_xattr(reply->request, arg->Int32Value());
+        if (ret == -1) {
+            FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
+            return Null();
+        }
+
+        return Undefined();
+    }
+
+    Handle<Value> Reply::Lock(const Arguments& args) {
+        HandleScope scope;
+
+        Local<Object> replyObj = args.This();
+        Reply* reply = ObjectWrap::Unwrap<Reply>(replyObj);
+
+        int argslen = args.Length();
+
+        if (argslen == 0) {
+            return ThrowException(Exception::TypeError(
+            String::New("You must specify arguments to invoke this function")));
+        }
+
+        Local<Value> arg = args[0];
+        if (!arg->IsObject()) {
+            return ThrowException(Exception::TypeError(
+            String::New("You must specify a Lock object as first argument")));
+        }
+
+        int ret = -1;
+        struct flock lock;
+        ret = ObjectToFlock(arg, &lock);
+
+        if (ret == -1) {
+            FUSEJS_THROW_EXCEPTION("Unrecognized lock object: ", "Unable to reply the operation");
+            return Null();
+        }
+
+        ret = fuse_reply_lock(reply->request, &lock);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
             return Null();

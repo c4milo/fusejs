@@ -27,10 +27,12 @@ namespace NodeFuse {
     int ObjectToFuseEntryParam(Handle<Value> value, struct fuse_entry_param* entry);
     int ObjectToStat(Handle<Value> value, struct stat* stat);
     int ObjectToStatVfs(Handle<Value> value, struct statvfs* statvfs);
+    int ObjectToFlock(Handle<Value> value, struct flock* lock);
     Handle<Value> FuseEntryParamToObject(const struct fuse_entry_param* entry);
     Handle<Value> RequestContextToObject(const struct fuse_ctx* ctx);
     Handle<Value> GetAttrsToBeSet(int to_set, struct stat* stat);
     Handle<Value> FileInfoToObject(struct fuse_file_info* fi);
+    Handle<Value> FlockToObject(const struct flock* lock);
 }
 
 #endif  // SRC_NODE_FUSE_H_

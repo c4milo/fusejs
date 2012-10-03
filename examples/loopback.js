@@ -260,12 +260,18 @@ util.inherits(Loopback, FileSystem);
         reply.err(0);
     };
 
-    this.create = function() {
-
+    this.create = function(context, parent, name, mode, fileInfo, reply) {
+        console.log('Create was called!');
+        console.log('Create -> ' + name);
+        //reply.create({});
+        reply.err(0);
     };
 
-    this.getlk = function() {
-
+    this.getlk = function(context, inode, fileInfo, lock, reply) {
+        console.log('GetLock was called!');
+        console.log(lock);
+        //reply.lock(lock);
+        reply.err(0);
     };
 
     this.setlk = function() {

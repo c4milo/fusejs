@@ -94,7 +94,7 @@ namespace NodeFuse {
         fuse_ops.removexattr= FileSystem::RemoveXAttr;
         fuse_ops.access     = FileSystem::Access;
         fuse_ops.create     = FileSystem::Create;
-        //fuse_ops.getlk      = FileSystem::GetLock;
+        fuse_ops.getlk      = FileSystem::GetLock;
         //fuse_ops.setlk      = FileSystem::SetLock;
         //fuse_ops.bmap       = FileSystem::BMap;
         //fuse_ops.ioctl      = FileSystem::IOCtl;
@@ -1140,18 +1140,48 @@ namespace NodeFuse {
         }
     }
 
-    void FileSystem::GetLk(fuse_req_t req,
-                           fuse_ino_t ino,
-                           struct fuse_file_info* fi,
-                           struct flock* lock) {
+    void FileSystem::GetLock(fuse_req_t req,
+                             fuse_ino_t ino,
+                             struct fuse_file_info* fi,
+                             struct flock* lock) {
+        HandleScope scope;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
+        Local<Value> vgetlk = fuse->fsobj->Get(getlk_sym);
+        Local<Function> getlk = Local<Function>::Cast(vgetlk);
+
+        Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
+        Local<Number> inode = Number::New(ino);
+
+        FileInfo* info = new FileInfo();
+        info->fi = fi;
+        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        info->Wrap(infoObj);
+
+        Local<Object> lockObj = FlockToObject(lock)->ToObject();
+
+        Reply* reply = new Reply();
+        reply->request = req;
+        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        reply->Wrap(replyObj);
+
+        Local<Value> argv[5] = {context, inode,
+                                infoObj, lockObj, replyObj};
+
+        TryCatch try_catch;
+
+        getlk->Call(fuse->fsobj, 5, argv);
+
+        if (try_catch.HasCaught()) {
+            FatalException(try_catch);
+        }
     }
 
-    void FileSystem::SetLk(fuse_req_t req,
-                           fuse_ino_t ino,
-                           struct fuse_file_info* fi,
-                           struct flock* lock,
-                           int sleep) {
+    void FileSystem::SetLock(fuse_req_t req,
+                             fuse_ino_t ino,
+                             struct fuse_file_info* fi,
+                             struct flock* lock,
+                             int sleep) {
 
 
     }

@@ -132,11 +132,11 @@ namespace NodeFuse {
                                const char* name,
                                mode_t mode,
                                struct fuse_file_info* fi);
-            static void GetLk(fuse_req_t req,
+            static void GetLock(fuse_req_t req,
                               fuse_ino_t ino,
                               struct fuse_file_info* fi,
                               struct flock* lock);
-            static void SetLk(fuse_req_t req,
+            static void SetLock(fuse_req_t req,
                               fuse_ino_t ino,
                               struct fuse_file_info* fi,
                               struct flock* lock,

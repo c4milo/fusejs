@@ -39,6 +39,14 @@ namespace NodeFuse {
     static Persistent<String> attr_timeout_sym  = NODE_PSYMBOL("attr_timeout");
     static Persistent<String> entry_timeout_sym = NODE_PSYMBOL("entry_timeout");
 
+    //lock symbols
+    static Persistent<String> type_sym          = NODE_PSYMBOL("type");
+    static Persistent<String> whence_sym        = NODE_PSYMBOL("whence");
+    static Persistent<String> start_sym         = NODE_PSYMBOL("start");
+    static Persistent<String> len_sym           = NODE_PSYMBOL("len");
+    //static Persistent<String> pid_sym           = NODE_PSYMBOL("pid");
+
+
     void InitializeFuse(Handle<Object> target) {
         HandleScope scope;
 
@@ -67,7 +75,7 @@ namespace NodeFuse {
         entry->attr_timeout = obj->Get(attr_timeout_sym)->NumberValue();
         entry->entry_timeout = obj->Get(entry_timeout_sym)->NumberValue();
 
-        struct stat statbuf;
+        //struct stat statbuf;
         ret = ObjectToStat(obj->Get(attr_sym), &entry->attr);
 
         return ret;
@@ -121,6 +129,22 @@ namespace NodeFuse {
         return 0;
     }
 
+    int ObjectToFlock(Handle<Value> value, struct flock* lock) {
+        HandleScope scope;
+
+        memset(lock, 0, sizeof(lock));
+
+        Local<Object> obj = value->ToObject();
+
+        lock->l_type = obj->Get(type_sym)->IntegerValue();
+        lock->l_whence = obj->Get(whence_sym)->IntegerValue();
+        lock->l_start = obj->Get(start_sym)->IntegerValue();
+        lock->l_len = obj->Get(len_sym)->IntegerValue();
+        lock->l_pid = obj->Get(pid_sym)->IntegerValue();
+
+        return 0;
+    }
+
     Handle<Value> GetAttrsToBeSet(int to_set, struct stat* stat) {
         HandleScope scope;
         Local<Object> attrs = Object::New();
@@ -152,6 +176,8 @@ namespace NodeFuse {
         return scope.Close(attrs);
     }
 
+
+
     Handle<Value> FuseEntryParamToObject(const struct fuse_entry_param* entry) {
         HandleScope scope;
 
@@ -166,6 +192,21 @@ namespace NodeFuse {
         context->Set(pid_sym, Integer::New(ctx->pid));
 
         return scope.Close(context);
+    }
+
+    Handle<Value> FlockToObject(const struct flock *lock) {
+        HandleScope scope;
+        Local<Object> rv = Object::New();
+
+        //Specifies the type of the lock; one of F_RDLCK, F_WRLCK, or F_UNLCK.
+        rv->Set(type_sym, Integer::New(lock->l_type)); //TODO convert to object with accessors
+        //This corresponds to the whence argument to fseek or lseek, and specifies what the offset is relative to. Its value can be one of SEEK_SET, SEEK_CUR, or SEEK_END.
+        rv->Set(whence_sym, Integer::New(lock->l_whence)); //TODO convert to object with accessors
+        rv->Set(start_sym, Integer::New(lock->l_start));
+        rv->Set(len_sym, Integer::New(lock->l_len));
+        rv->Set(pid_sym, Integer::New(lock->l_pid));
+
+        return scope.Close(rv);
     }
 
     NODE_MODULE(fuse, InitializeFuse)
