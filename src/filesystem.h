@@ -9,6 +9,8 @@ namespace NodeFuse {
             virtual ~FileSystem();
 
             static struct fuse_lowlevel_ops* GetOperations();
+            static void Initialize();
+
             static void Init(void* userdata,
                              struct fuse_conn_info* conn);
             static void Destroy(void* userdata);
@@ -100,11 +102,22 @@ namespace NodeFuse {
                                  const char* name,
                                  const char* value,
                                  size_t size,
+#ifdef __APPLE__
+                                 int flags,
+                                 uint32_t position);
+#else
                                  int flags);
+
+#endif
             static void GetXAttr(fuse_req_t req,
                                  fuse_ino_t ino,
                                  const char* name,
+#ifdef __APPLE__
+                                 size_t size,
+                                 uint32_t position);
+#else
                                  size_t size);
+#endif
             static void ListXAttr(fuse_req_t req,
                                   fuse_ino_t ino,
                                   size_t size);

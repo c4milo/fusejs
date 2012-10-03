@@ -228,12 +228,17 @@ util.inherits(Loopback, FileSystem);
         reply.statfs(statvfs);
     };
 
-    this.setxattr = function() {
-
+    this.setxattr = function(context, inode, name, value, size, flags, position, reply) {
+        console.log('SetXAttr was called!');
+        console.log('Attr name -> ' + name);
+        reply.err(0);
     };
 
-    this.getxattr = function() {
-
+    this.getxattr = function(context, inode, name, size, position, reply) {
+        console.log('GetXAttr was called!');
+        console.log('Extended attribute name -> ' + name);
+        reply.err(0);
+        //reply.xattr(1024); //needed buffer size
     };
 
     this.listxattr = function() {
@@ -244,8 +249,9 @@ util.inherits(Loopback, FileSystem);
 
     };
 
-    this.access = function() {
-
+    this.access = function(context, inode, mask, reply) {
+        console.log('Access was called!');
+        reply.err(0);
     };
 
     this.create = function() {

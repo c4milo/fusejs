@@ -20,6 +20,7 @@ namespace NodeFuse {
         NODE_SET_PROTOTYPE_METHOD(t, "write", Reply::Write);
         NODE_SET_PROTOTYPE_METHOD(t, "statfs", Reply::StatFs);
         NODE_SET_PROTOTYPE_METHOD(t, "create", Reply::Create);
+        NODE_SET_PROTOTYPE_METHOD(t, "xattr", Reply::XAttributes);
 
         constructor_template = Persistent<FunctionTemplate>::New(t);
         constructor_template->SetClassName(String::NewSymbol("Reply"));
@@ -334,6 +335,34 @@ namespace NodeFuse {
         FileInfo* fileInfo = ObjectWrap::Unwrap<FileInfo>(fiobj);
 
         ret = fuse_reply_create(reply->request, &entry, fileInfo->fi);
+        if (ret == -1) {
+            FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
+            return Null();
+        }
+
+        return Undefined();
+    }
+
+    Handle<Value> Reply::XAttributes(const Arguments& args) {
+        HandleScope scope;
+
+        Local<Object> replyObj = args.This();
+        Reply* reply = ObjectWrap::Unwrap<Reply>(replyObj);
+
+        int argslen = args.Length();
+        if (argslen == 0) {
+            return ThrowException(Exception::TypeError(
+            String::New("You must specify arguments to invoke this function")));
+        }
+
+        Local<Value> arg = args[0];
+        if (!arg->IsInt32()) {
+            return ThrowException(Exception::TypeError(
+            String::New("You must specify a number as first argument")));
+        }
+
+        int ret = -1;
+        ret = fuse_reply_xattr(reply->request, arg->Int32Value());
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
             return Null();

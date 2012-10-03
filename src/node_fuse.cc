@@ -43,6 +43,7 @@ namespace NodeFuse {
         HandleScope scope;
 
         Fuse::Initialize(target);
+        FileSystem::Initialize();
         Reply::Initialize();
         FileInfo::Initialize();
         //FileFlags::Initialize();
@@ -150,23 +151,6 @@ namespace NodeFuse {
 
         return scope.Close(attrs);
     }
-
-    /*Handle<Value> FileInfoToObject(struct fuse_file_info* fi) {
-        HandleScope scope;
-        Local<Object> info = Object::New();
-
-        info->Set(flags_sym, Integer::New(fi->flags));
-        info->Set(writepage_sym, Integer::New(fi->writepage));
-        info->Set(direct_io_sym, Integer::NewFromUnsigned(fi->direct_io));
-        info->Set(keep_cache_sym, Integer::NewFromUnsigned(fi->keep_cache));
-        info->Set(flush_sym, Integer::NewFromUnsigned(fi->flush));
-        //info->Set(nonseekable_sym, Integer::NewFromUnsigned(fi->nonseekable));
-        info->Set(file_handle_sym, Number::New(fi->fh));
-        info->Set(lock_owner_sym, Number::New(fi->lock_owner));
-
-        //TODO set accessors for info.fh
-        return scope.Close(info);
-    }*/
 
     Handle<Value> FuseEntryParamToObject(const struct fuse_entry_param* entry) {
         HandleScope scope;

@@ -6,39 +6,9 @@
 
 namespace NodeFuse {
 
-    static struct fuse_lowlevel_ops fuse_ops = {
-        init        : FileSystem::Init,
-        destroy     : FileSystem::Destroy,
-        lookup      : FileSystem::Lookup,
-        forget      : FileSystem::Forget,
-        getattr     : FileSystem::GetAttr,
-        setattr     : FileSystem::SetAttr,
-        readlink    : FileSystem::ReadLink,
-        mknod       : FileSystem::MkNod,
-        mkdir       : FileSystem::MkDir,
-        unlink      : FileSystem::Unlink,
-        rmdir       : FileSystem::RmDir,
-        symlink     : FileSystem::SymLink,
-        rename      : FileSystem::Rename,
-        link        : FileSystem::Link,
-        open        : FileSystem::Open,
-        read        : FileSystem::Read,
-        write       : FileSystem::Write,
-        flush       : FileSystem::Flush,
-        release     : FileSystem::Release,
-        fsync       : FileSystem::FSync,
-        opendir     : FileSystem::OpenDir,
-        readdir     : FileSystem::ReadDir,
-        releasedir  : FileSystem::ReleaseDir,
-        fsyncdir    : FileSystem::FSyncDir,
-        statfs      : FileSystem::StatFs,
-        //access      : FileSystem::Access,
-        //create      : FileSystem::Create
-        //setxattr    : FileSystem::SetXAttr
-        //getxattr    : FileSystem::GetXAttr
-    };
+    static struct fuse_lowlevel_ops fuse_ops = {};
 
-    //Operations symbols
+    //Symbols for FUSE operations
     static Persistent<String> init_sym        = NODE_PSYMBOL("init");
     static Persistent<String> destroy_sym     = NODE_PSYMBOL("destroy");
     static Persistent<String> lookup_sym      = NODE_PSYMBOL("lookup");
@@ -66,8 +36,15 @@ namespace NodeFuse {
     static Persistent<String> statfs_sym      = NODE_PSYMBOL("statfs");
     static Persistent<String> setxattr_sym    = NODE_PSYMBOL("setxattr");
     static Persistent<String> getxattr_sym    = NODE_PSYMBOL("getxattr");
+    static Persistent<String> listxattr_sym   = NODE_PSYMBOL("listxattr");
+    static Persistent<String> removexattr_sym = NODE_PSYMBOL("removexattr");
     static Persistent<String> access_sym      = NODE_PSYMBOL("access");
     static Persistent<String> create_sym      = NODE_PSYMBOL("create");
+    static Persistent<String> getlk_sym       = NODE_PSYMBOL("getlk");
+    static Persistent<String> setlk_sym       = NODE_PSYMBOL("setlk");
+    static Persistent<String> bmap_sym        = NODE_PSYMBOL("bmap");
+    static Persistent<String> ioctl_sym       = NODE_PSYMBOL("ioctl");
+    static Persistent<String> poll_sym        = NODE_PSYMBOL("poll");
 
     //fuse_conn_info symbols
     //Major version of the fuse protocol
@@ -85,6 +62,44 @@ namespace NodeFuse {
     //Capability flags, that the filesystem wants to enable
     static Persistent<String> conn_info_want_sym            = NODE_PSYMBOL("want");
 
+    void FileSystem::Initialize() {
+        fuse_ops.init       = FileSystem::Init;
+        fuse_ops.destroy    = FileSystem::Destroy;
+        fuse_ops.lookup     = FileSystem::Lookup;
+        fuse_ops.forget     = FileSystem::Forget;
+        fuse_ops.getattr    = FileSystem::GetAttr;
+        fuse_ops.setattr    = FileSystem::SetAttr;
+        fuse_ops.readlink   = FileSystem::ReadLink;
+        fuse_ops.mknod      = FileSystem::MkNod;
+        fuse_ops.mkdir      = FileSystem::MkDir;
+        fuse_ops.unlink     = FileSystem::Unlink;
+        fuse_ops.rmdir      = FileSystem::RmDir;
+        fuse_ops.symlink    = FileSystem::SymLink;
+        fuse_ops.rename     = FileSystem::Rename;
+        fuse_ops.link       = FileSystem::Link;
+        fuse_ops.open       = FileSystem::Open;
+        fuse_ops.read       = FileSystem::Read;
+        fuse_ops.write      = FileSystem::Write;
+        fuse_ops.flush      = FileSystem::Flush;
+        fuse_ops.release    = FileSystem::Release;
+        fuse_ops.fsync      = FileSystem::FSync;
+        fuse_ops.opendir    = FileSystem::OpenDir;
+        fuse_ops.readdir    = FileSystem::ReadDir;
+        fuse_ops.releasedir = FileSystem::ReleaseDir;
+        fuse_ops.fsyncdir   = FileSystem::FSyncDir;
+        fuse_ops.statfs     = FileSystem::StatFs;
+        fuse_ops.setxattr   = FileSystem::SetXAttr;
+        fuse_ops.getxattr   = FileSystem::GetXAttr;
+        //fuse_ops.listxattr  = FileSystem::ListXAttr;
+        //fuse_ops.removexattr= FileSystem::RemoveXAttr;
+        fuse_ops.access     = FileSystem::Access;
+        fuse_ops.create     = FileSystem::Create;
+        //fuse_ops.getlk      = FileSystem::GetLock;
+        //fuse_ops.setlk      = FileSystem::SetLock;
+        //fuse_ops.bmap       = FileSystem::BMap;
+        //fuse_ops.ioctl      = FileSystem::IOCtl;
+        //fuse_ops.poll       = FileSystem::Poll;
+    }
 
     void FileSystem::Init(void* userdata,
                           struct fuse_conn_info* conn) {
@@ -889,12 +904,18 @@ namespace NodeFuse {
         }
     }
 
+    //FIXME Linux doesn't support position
     void FileSystem::SetXAttr(fuse_req_t req,
                               fuse_ino_t ino,
                               const char* name_,
                               const char* value_,
                               size_t size_,
+#ifdef __APPLE__
+                              int flags_,
+                              uint32_t position_) {
+#else
                               int flags_) {
+#endif
         HandleScope scope;
         Fuse *fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
@@ -905,21 +926,37 @@ namespace NodeFuse {
         Local<Number> inode = Number::New(ino);
         Local<String> name = String::New(name_);
         Local<String> value = String::New(value_);
+#ifdef __APPLE__
+        Local<Integer> position = Integer::New(position_);
+#endif
         Local<Number> size = Number::New(size_);
-        Local<Integer> flags = Integer::New(flags_); //TODO change for an object with accessors
+
+        //TODO change for an object with accessors
+        Local<Integer> flags = Integer::New(flags_);
 
         Reply *reply = new Reply();
         reply->request = req;
         Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
+#ifdef __APPLE__
+        Local<Value> argv[8] = {context, inode,
+                                name, value,
+                                size, flags,
+                                position, replyObj};
+#else
         Local<Value> argv[7] = {context, inode,
                                 name, value,
                                 size, flags, replyObj};
 
+#endif
         TryCatch try_catch;
 
+#ifdef __APPLE__
+        setxattr->Call(fuse->fsobj, 8, argv);
+#else
         setxattr->Call(fuse->fsobj, 7, argv);
+#endif
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
@@ -928,8 +965,13 @@ namespace NodeFuse {
 
     void FileSystem::GetXAttr(fuse_req_t req,
                               fuse_ino_t ino,
-                              const char* name,
-                              size_t size) {
+                              const char* name_,
+                              size_t size_
+#ifdef __APPLE__
+                              ,uint32_t position_) {
+#else
+                              ) {
+#endif
         HandleScope scope;
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
@@ -938,18 +980,34 @@ namespace NodeFuse {
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Number> inode = Number::New(ino);
+        Local<String> name = String::New(name_);
+        Local<Number> size = Number::New(size_);
+#ifdef __APPLE__
+        Local<Integer> position = Integer::New(position_);
+#endif
+
 
         Reply* reply = new Reply();
         reply->request = req;
         Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
-        Local<Value> argv[3] = {context, inode, replyObj};
+#ifdef __APPLE__
+        Local<Value> argv[6] = {context, inode,
+                                name, size,
+                                position, replyObj};
+#else
+        Local<Value> argv[5] = {context, inode,
+                                name, size, replyObj};
+#endif
 
         TryCatch try_catch;
 
-        getxattr->Call(fuse->fsobj, 3, argv);
-
+#ifdef __APPLE__
+        getxattr->Call(fuse->fsobj, 6, argv);
+#else
+        getxattr->Call(fuse->fsobj, 5, argv);
+#endif
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
