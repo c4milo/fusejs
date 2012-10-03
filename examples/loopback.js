@@ -281,8 +281,10 @@ util.inherits(Loopback, FileSystem);
         reply.err(0);
     };
 
-    this.bmap = function() {
-
+    this.bmap = function(context, inode, blocksize, index, reply) {
+        console.log('BMap was called!');
+        //reply.err(0);
+        reply.bmap(12344);
     };
 
     this.ioctl = function() {

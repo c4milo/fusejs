@@ -96,7 +96,7 @@ namespace NodeFuse {
         fuse_ops.create     = FileSystem::Create;
         fuse_ops.getlk      = FileSystem::GetLock;
         fuse_ops.setlk      = FileSystem::SetLock;
-        //fuse_ops.bmap       = FileSystem::BMap;
+        fuse_ops.bmap       = FileSystem::BMap;
         //fuse_ops.ioctl      = FileSystem::IOCtl;
         //fuse_ops.poll       = FileSystem::Poll;
     }
@@ -1219,9 +1219,34 @@ namespace NodeFuse {
 
     void FileSystem::BMap(fuse_req_t req,
                           fuse_ino_t ino,
-                          size_t blocksize,
+                          size_t blocksize_,
                           uint64_t idx) {
+        HandleScope scope;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
+        Local<Value> vbmap = fuse->fsobj->Get(bmap_sym);
+        Local<Function> bmap = Local<Function>::Cast(vbmap);
+
+        Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
+        Local<Number> inode = Number::New(ino);
+        Local<Integer> blocksize = Integer::New(blocksize_);
+        Local<Integer> index = Integer::New(idx);
+
+        Reply* reply = new Reply();
+        reply->request = req;
+        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        reply->Wrap(replyObj);
+
+        Local<Value> argv[5] = {context, inode,
+                                blocksize, index, replyObj};
+
+        TryCatch try_catch;
+
+        bmap->Call(fuse->fsobj, 5, argv);
+
+        if (try_catch.HasCaught()) {
+            FatalException(try_catch);
+        }
     }
 
     void FileSystem::IOCtl(fuse_req_t req,
