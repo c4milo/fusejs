@@ -241,12 +241,18 @@ util.inherits(Loopback, FileSystem);
         //reply.xattr(1024); //needed buffer size
     };
 
-    this.listxattr = function() {
-
+    this.listxattr = function(context, inode, size, reply) {
+        console.log('ListXAttr was called!');
+        console.log(size);
+        reply.err(0);
+        //reply.buffer(new Buffer('list,of,extended,attributes'));
+        //reply.xattr(1024);
     };
 
-    this.removexattr = function() {
-
+    this.removexattr = function(context, inode, name, reply) {
+        console.log('RemoveXAttr was called!');
+        console.log(name);
+        reply.err(0);
     };
 
     this.access = function(context, inode, mask, reply) {

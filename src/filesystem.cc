@@ -90,8 +90,8 @@ namespace NodeFuse {
         fuse_ops.statfs     = FileSystem::StatFs;
         fuse_ops.setxattr   = FileSystem::SetXAttr;
         fuse_ops.getxattr   = FileSystem::GetXAttr;
-        //fuse_ops.listxattr  = FileSystem::ListXAttr;
-        //fuse_ops.removexattr= FileSystem::RemoveXAttr;
+        fuse_ops.listxattr  = FileSystem::ListXAttr;
+        fuse_ops.removexattr= FileSystem::RemoveXAttr;
         fuse_ops.access     = FileSystem::Access;
         fuse_ops.create     = FileSystem::Create;
         //fuse_ops.getlk      = FileSystem::GetLock;
@@ -1013,18 +1013,62 @@ namespace NodeFuse {
         }
     }
 
-
     void FileSystem::ListXAttr(fuse_req_t req,
                                fuse_ino_t ino,
-                               size_t size) {
+                               size_t size_) {
+        HandleScope scope;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
+        Local<Value> vlistxattr = fuse->fsobj->Get(listxattr_sym);
+        Local<Function> listxattr = Local<Function>::Cast(vlistxattr);
 
+        Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
+        Local<Number> inode = Number::New(ino);
+        Local<Number> size = Number::New(size_);
+
+        Reply* reply = new Reply();
+        reply->request = req;
+        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        reply->Wrap(replyObj);
+
+        Local<Value> argv[4] = {context, inode,
+                                size, replyObj};
+        TryCatch try_catch;
+
+        listxattr->Call(fuse->fsobj, 4, argv);
+
+        if (try_catch.HasCaught()) {
+            FatalException(try_catch);
+        }
     }
 
     void FileSystem::RemoveXAttr(fuse_req_t req,
                                  fuse_ino_t ino,
-                                 const char* name) {
+                                 const char* name_) {
+        HandleScope scope;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
+        Local<Value> vremovexattr = fuse->fsobj->Get(removexattr_sym);
+        Local<Function> removexattr = Local<Function>::Cast(vremovexattr);
+
+        Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
+        Local<Number> inode = Number::New(ino);
+        Local<String> name = String::New(name_);
+
+        Reply* reply = new Reply();
+        reply->request = req;
+        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        reply->Wrap(replyObj);
+
+        Local<Value> argv[4] = {context, inode,
+                                name, replyObj};
+        TryCatch try_catch;
+
+        removexattr->Call(fuse->fsobj, 4, argv);
+
+        if (try_catch.HasCaught()) {
+            FatalException(try_catch);
+        }
     }
 
     void FileSystem::Access(fuse_req_t req,
