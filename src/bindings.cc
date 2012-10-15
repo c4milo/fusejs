@@ -28,9 +28,7 @@ namespace NodeFuse {
         options_sym           = NODE_PSYMBOL("options");
     }
 
-    Fuse::Fuse() : ObjectWrap() {
-    }
-
+    Fuse::Fuse() : ObjectWrap() {}
     Fuse::~Fuse() {
         /*fuse_opt_free_args(fargs);
         fuse_remove_signal_handlers(session);

@@ -54,7 +54,6 @@ namespace NodeFuse {
         FileSystem::Initialize();
         Reply::Initialize();
         FileInfo::Initialize();
-        //FileFlags::Initialize();
 
         target->Set(String::NewSymbol("version"),
                     String::New(NODE_FUSE_VERSION));
@@ -175,7 +174,6 @@ namespace NodeFuse {
 
         return scope.Close(attrs);
     }
-
 
 
     Handle<Value> FuseEntryParamToObject(const struct fuse_entry_param* entry) {

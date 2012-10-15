@@ -904,7 +904,6 @@ namespace NodeFuse {
         }
     }
 
-    //FIXME Linux doesn't support position
     void FileSystem::SetXAttr(fuse_req_t req,
                               fuse_ino_t ino,
                               const char* name_,

@@ -21,13 +21,23 @@ namespace NodeFuse {
         NODE_SET_PROTOTYPE_METHOD(t, "statfs", Reply::StatFs);
         NODE_SET_PROTOTYPE_METHOD(t, "create", Reply::Create);
         NODE_SET_PROTOTYPE_METHOD(t, "xattr", Reply::XAttributes);
+        NODE_SET_PROTOTYPE_METHOD(t, "addDirEntry", Reply::AddDirEntry);
 
         constructor_template = Persistent<FunctionTemplate>::New(t);
         constructor_template->SetClassName(String::NewSymbol("Reply"));
     }
 
-    Reply::Reply() : ObjectWrap() {}
-    Reply::~Reply() {}
+    Reply::Reply() : ObjectWrap() {
+        dentry_acc_size = 0;
+        dentry_cur_length = 0;
+        dentry_buffer = NULL;
+    }
+
+    Reply::~Reply() {
+        if (dentry_buffer != NULL) {
+            free(dentry_buffer);
+        }
+    }
 
     Handle<Value> Reply::Entry(const Arguments& args) {
         HandleScope scope;
@@ -434,4 +444,95 @@ namespace NodeFuse {
 
         return Undefined();
     }
+
+    Handle<Value> Reply::AddDirEntry(const Arguments& args) {
+        HandleScope scope;
+
+        Local<Object> replyObj = args.This();
+        Reply* reply = ObjectWrap::Unwrap<Reply>(replyObj);
+
+        int argslen = args.Length();
+
+        if (argslen == 0 || argslen < 5) {
+            return ThrowException(Exception::TypeError(
+            String::New("You must specify five arguments to invoke this function")));
+        }
+
+        /*if (!Buffer::HasInstance(args[0])) {
+            return ThrowException(Exception::TypeError(
+            String::New("You must specify a Buffer object as first argument")));
+        }*/
+
+        if (!args[0]->IsString()) {
+            return ThrowException(Exception::TypeError(
+                String::New("You must specify an entry name String as first argument")));
+        }
+
+        if (!args[1]->IsNumber()) {
+            return ThrowException(Exception::TypeError(
+                String::New("You must specify the requested size number as second argument")));
+        }
+
+        if (!args[2]->IsObject()) {
+            return ThrowException(Exception::TypeError(
+                String::New("You must specify stat Object as third argument")));
+        }
+
+        if (!args[3]->IsNumber()) {
+            return ThrowException(Exception::TypeError(
+                String::New("You must specify a offset number as fourth argument")));
+        }
+
+        if (!args[4]->IsNumber()) {
+            return ThrowException(Exception::TypeError(
+                String::New("You must specify the entries length number as fourth argument")));
+        }
+
+        String::Utf8Value name(args[0]->ToString());
+        size_t requestedSize = args[1]->IntegerValue();
+
+        if (reply->dentry_buffer == NULL) {
+           reply->dentry_buffer = (char *) malloc(requestedSize * sizeof(char));
+        }
+
+        char* buffer = reply->dentry_buffer;
+
+        struct stat statbuff;
+        ObjectToStat(args[2]->ToObject(), &statbuff);
+
+        off_t offset = args[3]->IntegerValue();
+        size_t entriesLength = args[4]->IntegerValue();
+
+        size_t acc_size = reply->dentry_acc_size;
+
+        size_t len = fuse_add_direntry(reply->request, (char*) (buffer + acc_size),
+                                       requestedSize - acc_size,
+                                       (const char*) *name, &statbuff, offset);
+
+        /*
+        fprintf(stderr, "Current length! -> %d\n", (int)reply->dentry_cur_length);
+        fprintf(stderr, "entriesLenght -> %d\n", (int) entriesLength);
+
+        fprintf(stderr, "Entry name -> %s\n", (const char*) *name);
+        fprintf(stderr, "Space needed for the entry -> %d\n", (int) len);
+        fprintf(stderr, "Requested size -> %d\n", (int) requestedSize);
+        fprintf(stderr, "Remaning buffer -> %d\n", (int)(requestedSize - acc_size));
+        */
+        if (len > (requestedSize - acc_size) ||
+            reply->dentry_cur_length == (entriesLength - 1)) {
+            int ret = fuse_reply_buf(reply->request, NULL, 0);
+
+            if (ret == -1) {
+                fuse_reply_err(reply->request, EIO);
+            }
+
+            return Undefined();
+        }
+
+        reply->dentry_acc_size += len;
+        reply->dentry_cur_length++;
+
+        return scope.Close(Integer::New(len));
+    }
+
 } //ends namespace NodeFuse

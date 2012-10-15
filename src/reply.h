@@ -26,9 +26,13 @@ namespace NodeFuse {
             static Handle<Value> XAttributes(const Arguments& args);
             static Handle<Value> Lock(const Arguments& args);
             static Handle<Value> BMap(const Arguments& args);
+            static Handle<Value> AddDirEntry(const Arguments& args);
 
         private:
             fuse_req_t request;
+            size_t dentry_acc_size;
+            size_t dentry_cur_length;
+            char* dentry_buffer;
             static Persistent<FunctionTemplate> constructor_template;
     };
 } //namespace NodeFuse

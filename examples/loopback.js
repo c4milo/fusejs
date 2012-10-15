@@ -3,7 +3,6 @@
  **/
 var FileSystem = require('../fuse').FileSystem;
 var PosixError = require('../fuse').PosixError;
-//var Util = require('../fuse').Util;
 
 var util = require('util');
 
@@ -31,7 +30,7 @@ util.inherits(Loopback, FileSystem);
     this.lookup = function(context, parent, name, reply) {
         console.log('Lookup!');
         console.log(context);
-        console.log(name);
+        console.log('Name -> ' + name);
         var entry = {
             inode: 1234,
             generation: 2,
@@ -187,12 +186,14 @@ util.inherits(Loopback, FileSystem);
 
     this.readdir = function(context, inode, size, offset, fileInfo, reply) {
         console.log('Readdir was called!');
-        //TODO Implement Util.addDirEntry
-        var buffer = new Buffer(size);
-        /*Util.addDirEntry(buffer, 'dir1', stats1, offset1);
-        Util.addDirEntry(buffer, 'dir2', stats2, offset2);
-        var buffer = new Buffer(buffer);*/
-        reply.buffer(buffer);
+        console.log('Readdir Size ---> ' + size);
+        var entries = ['.', '..', 'dir1', 'dir2'];
+        for (var i = 0, len = entries.length; i < len; i++) {
+          var attrs = {};
+          attrs.inode = i;
+          reply.addDirEntry(entries[i], size, attrs, offset + i, len);
+        }
+        //reply.err(0);
     };
 
     this.releasedir = function(context, inode, fileInfo, reply) {
