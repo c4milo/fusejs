@@ -3,7 +3,7 @@ Fusejs are a set of bindings for [Fuse](http://fuse.sourceforge.net/) low level 
 
 
 ## How it works
-Fuse low level API is inherently asynchronous, meaning that it won't block the nodejs main thread nor is needed [libuv](https://github.com/joyent/libuv) to make use of its thread pool. FuseJS workflow looks like:
+Fuse low level API is inherently asynchronous, meaning that it won't block the nodejs main thread. It does not need [libuv](https://github.com/joyent/libuv) thread pool either. FuseJS workflow looks like:
 
 ```                          
                         node example/hello_main.js /tmp/hello_fs
@@ -27,7 +27,7 @@ Kernel        ↕                          ↕
 
 ## Installation
 ### OSX
-In order to use FuseJS you need to install any of the Fuse implementations for OSX. OSXFuse is the one that has been used throughout the FuseJS development. Go to http://osxfuse.github.com/ and follow the instructions to get it installed. In addition, FuseJS toolchain uses `pkg-config`, you need to have it installed in your system as well, in order to compile FuseJS. It usually should come by default in your operating system, if not, then use your package manager to install it.
+In order to use FuseJS you need to install any of the Fuse implementations for OSX. OSXFuse is the one that has been used throughout the FuseJS development. Go to http://osxfuse.github.com/ and follow the instructions to get it installed. Additionally, FuseJS toolchain uses `pkg-config`, you need to have it installed in your system as well, in order to compile FuseJS. It usually should come by default in your operating system, if not, then use your package manager to install it.
 
 * download https://github.com/downloads/osxfuse/osxfuse/OSXFUSE-2.5.2.dmg
 * sudo port install pkg-config (OSX)
