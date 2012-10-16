@@ -1,7 +1,6 @@
 ## FUSEJS - Low level bindings for Fuse
 Fusejs are a set of bindings for [Fuse](http://fuse.sourceforge.net/) low level API. Even though most of the Fuse functions are already binded, this module has not been used in production. Use it at your own risk. 
 
-The main difference with https://github.com/vmware/fuse4js is that FuseJS uses Fuse low level API whereas Fuse4JS uses the high level API. Essentially, instead of **paths**, in FuseJS the filesystem implementer will receive **inode numbers** and will have more flexibility when it comes to developing caching mechanisms between other things. Although, there is not a considerable difference in performance when using one or the other.
 
 ## How it works
 Fuse low level API is inherently asynchronous, meaning that it won't block the nodejs main thread nor is needed [libuv](https://github.com/joyent/libuv) to make use of its thread pool. FuseJS workflow looks like:
@@ -24,12 +23,14 @@ Kernel        ↕                          ↕
                                         Ext4
                                         NFS
                                         ZFS
-
 ```
+
 ## Installation
 ### OSX
-In order to use FuseJS you need to install any of the Fuse implementations for OSX. OSXFuse is the one that has been used throughout the FuseJS development. Go to http://osxfuse.github.com/ and follow the instructions to get it installed. In addition, FuseJS toolchain uses `pkg-config`, you need to have it installed in your system as well, in order to compile FuseJS. Use Homebrew or Macports. 
+In order to use FuseJS you need to install any of the Fuse implementations for OSX. OSXFuse is the one that has been used throughout the FuseJS development. Go to http://osxfuse.github.com/ and follow the instructions to get it installed. In addition, FuseJS toolchain uses `pkg-config`, you need to have it installed in your system as well, in order to compile FuseJS. It usually should come by default in your operating system, if not, then use your package manager to install it.
 
+* download https://github.com/downloads/osxfuse/osxfuse/OSXFUSE-2.5.2.dmg
+* sudo port install pkg-config (OSX)
 * ```npm install fusejs``` 
 
 
@@ -37,6 +38,9 @@ In order to use FuseJS you need to install any of the Fuse implementations for O
 I haven't tested Linux yet. 
 
 
+
+## API Documentation
+All the API Documentation can be found at https://github.com/c4milo/fusejs/blob/master/fuse.js. You can also take a look at the examples in https://github.com/c4milo/fusejs/tree/master/examples
 
 ## License
 (The MIT License)
