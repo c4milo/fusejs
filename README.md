@@ -1,5 +1,5 @@
-## FUSEJS - Low level bindings for Fuse
-Fusejs are a set of bindings for [Fuse](http://fuse.sourceforge.net/) low level API. Even though most of the Fuse functions are already binded, this module has not been used in production. Use it at your own risk. 
+## FuseJS - Low level bindings for Fuse
+Fusejs are a set of NodeJS bindings for [Fuse](http://fuse.sourceforge.net/) low level API. Even though most of the Fuse functions are already binded, this module has not been used in production. Use it at your own risk. 
 
 
 ## How it works
@@ -35,7 +35,7 @@ In order to use FuseJS you need to install any of the Fuse implementations for O
 
 
 ### Linux
-I haven't tested Linux yet. 
+It has not been tested in Linux yet.
 
 
 
