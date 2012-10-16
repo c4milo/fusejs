@@ -453,15 +453,10 @@ namespace NodeFuse {
 
         int argslen = args.Length();
 
-        if (argslen == 0 || argslen < 5) {
+        if (argslen == 0 || argslen < 4) {
             return ThrowException(Exception::TypeError(
             String::New("You must specify five arguments to invoke this function")));
         }
-
-        /*if (!Buffer::HasInstance(args[0])) {
-            return ThrowException(Exception::TypeError(
-            String::New("You must specify a Buffer object as first argument")));
-        }*/
 
         if (!args[0]->IsString()) {
             return ThrowException(Exception::TypeError(
@@ -483,11 +478,6 @@ namespace NodeFuse {
                 String::New("You must specify a offset number as fourth argument")));
         }
 
-        if (!args[4]->IsNumber()) {
-            return ThrowException(Exception::TypeError(
-                String::New("You must specify the entries length number as fourth argument")));
-        }
-
         String::Utf8Value name(args[0]->ToString());
         size_t requestedSize = args[1]->IntegerValue();
 
@@ -501,25 +491,22 @@ namespace NodeFuse {
         ObjectToStat(args[2]->ToObject(), &statbuff);
 
         off_t offset = args[3]->IntegerValue();
-        size_t entriesLength = args[4]->IntegerValue();
 
         size_t acc_size = reply->dentry_acc_size;
 
         size_t len = fuse_add_direntry(reply->request, (char*) (buffer + acc_size),
                                        requestedSize - acc_size,
                                        (const char*) *name, &statbuff, offset);
-
         /*
         fprintf(stderr, "Current length! -> %d\n", (int)reply->dentry_cur_length);
-        fprintf(stderr, "entriesLenght -> %d\n", (int) entriesLength);
 
         fprintf(stderr, "Entry name -> %s\n", (const char*) *name);
         fprintf(stderr, "Space needed for the entry -> %d\n", (int) len);
         fprintf(stderr, "Requested size -> %d\n", (int) requestedSize);
         fprintf(stderr, "Remaning buffer -> %d\n", (int)(requestedSize - acc_size));
         */
-        if (len > (requestedSize - acc_size) ||
-            reply->dentry_cur_length == (entriesLength - 1)) {
+
+        if (len > (requestedSize - acc_size)) {
             int ret = fuse_reply_buf(reply->request, NULL, 0);
 
             if (ret == -1) {

@@ -191,9 +191,12 @@ util.inherits(Loopback, FileSystem);
         for (var i = 0, len = entries.length; i < len; i++) {
           var attrs = {};
           attrs.inode = i;
-          reply.addDirEntry(entries[i], size, attrs, offset + i, len);
+          reply.addDirEntry(entries[i], size, attrs, offset + i);
         }
-        //reply.err(0);
+
+        //signals end of entries, this is required or
+        //it will block the user
+        reply.buffer(new Buffer(''));
     };
 
     this.releasedir = function(context, inode, fileInfo, reply) {
