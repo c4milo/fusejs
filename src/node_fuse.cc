@@ -175,12 +175,6 @@ namespace NodeFuse {
         return scope.Close(attrs);
     }
 
-
-    Handle<Value> FuseEntryParamToObject(const struct fuse_entry_param* entry) {
-        HandleScope scope;
-
-    }
-
     Handle<Value> RequestContextToObject(const struct fuse_ctx* ctx) {
         HandleScope scope;
         Local<Object> context = Object::New();
