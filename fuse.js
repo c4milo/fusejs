@@ -491,3 +491,4 @@ module.exports = {
     FileSystem: FileSystem,
     PosixError: PosixError
 };
+
