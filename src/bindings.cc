@@ -4,7 +4,7 @@
 namespace NodeFuse {
     Persistent<FunctionTemplate> Fuse::constructor_template;
 
-    static Persistent<String> mountpoint_sym;
+    //static Persistent<String> mountpoint_sym;
     static Persistent<String> filesystem_sym;
     static Persistent<String> options_sym;
 
@@ -23,7 +23,7 @@ namespace NodeFuse {
 
         target->Set(String::NewSymbol("Fuse"), constructor_template->GetFunction());
 
-        mountpoint_sym        = NODE_PSYMBOL("mountpoint");
+        //mountpoint_sym        = NODE_PSYMBOL("mountpoint");
         filesystem_sym        = NODE_PSYMBOL("filesystem");
         options_sym           = NODE_PSYMBOL("options");
     }
@@ -74,19 +74,19 @@ namespace NodeFuse {
         }
 
         Local<Object> argsObj = args[0]->ToObject();
-        THROW_IF_MISSING_PROPERTY(argsObj, mountpoint_sym, "mountpoint");
+        //THROW_IF_MISSING_PROPERTY(argsObj, mountpoint_sym, "mountpoint");
         THROW_IF_MISSING_PROPERTY(argsObj, filesystem_sym, "filesystem");
         THROW_IF_MISSING_PROPERTY(argsObj, options_sym, "options");
 
-        Local<Value> vmountpoint = argsObj->Get(mountpoint_sym);
+        //Local<Value> vmountpoint = argsObj->Get(mountpoint_sym);
         Local<Value> vfilesystem = argsObj->Get(filesystem_sym);
         Local<Value> voptions = argsObj->Get(options_sym);
 
-        if (!vmountpoint->IsString()) {
+        /*if (!vmountpoint->IsString()) {
             return ThrowException(Exception::TypeError(
                 String::New("Wrong type for property 'mountpoint', a String is expected")));
 
-        }
+        }*/
 
         if (!vfilesystem->IsFunction()) {
             return ThrowException(Exception::TypeError(
@@ -116,10 +116,10 @@ namespace NodeFuse {
             }
         }
 
-        String::Utf8Value mountpoint(vmountpoint->ToString());
-        fuse->mountpoint = *mountpoint;
+        //String::Utf8Value mountpoint(vmountpoint->ToString());
+        //fuse->mountpoint = *mountpoint;
 
-        int ret = fuse_parse_cmdline(fuse->fargs, NULL,
+        int ret = fuse_parse_cmdline(fuse->fargs, &fuse->mountpoint,
                                         &fuse->multithreaded, &fuse->foreground);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error parsing fuse options: ", strerror(errno));
@@ -151,7 +151,7 @@ namespace NodeFuse {
         if (fuse->session == NULL) {
             fuse_unmount(fuse->mountpoint, fuse->channel);
             fuse_opt_free_args(fuse->fargs);
-            FUSEJS_THROW_EXCEPTION("Error creating fuse session: ", strerror(errno));
+            //FUSEJS_THROW_EXCEPTION("Error creating fuse session: ", strerror(errno));
             return Null();
         }
 

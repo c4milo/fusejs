@@ -21,10 +21,10 @@ namespace NodeFuse {
         private:
             int multithreaded;
             int foreground;
-            char *mountpoint;
-            struct fuse_args *fargs;
-            struct fuse_chan *channel;
-            struct fuse_session *session;
+            char* mountpoint;
+            struct fuse_args* fargs;
+            struct fuse_chan* channel;
+            struct fuse_session* session;
             static Persistent<FunctionTemplate> constructor_template;
     };
 }//namespace NodeFuse
