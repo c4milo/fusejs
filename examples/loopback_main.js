@@ -20,11 +20,11 @@ var Loopback = require('./loopback');
 
 // /dev/hda1       /mnt/WinXP      ntfs-3g      quiet,defaults,locale=en_US.utf8,umask=0,noexec
 
-//node examples/loopback_main.js -o rw -o debug
+//node examples/loopback_main.js -ofsname=ext4js,rw -f -d
 console.log(process.argv);
+
 fuse.mount({
     mountpoint: '/Users/camilo/loopback',
     filesystem: Loopback,
-    options: process.argv //['rw', 'debug']
+    options: process.argv
 });
-
