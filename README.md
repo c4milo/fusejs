@@ -37,6 +37,10 @@ In order to use FuseJS you need to install any of the Fuse implementations for O
 ### Linux
 It has not been tested in Linux yet.
 
+* sudo apt-get install libfuse-dev
+* ```npm install fusejs```
+
+
 
 
 ## API Documentation
