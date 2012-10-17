@@ -101,6 +101,12 @@ namespace NodeFuse {
         Local<Array> options = Local<Array>::Cast(voptions);
         int argc = options->Length();
 
+        //If no mountpoint is provided, show usage.
+        if (argc <= 2) {
+            options->Set(Integer::New(2), String::New("--help"));
+            argc++;
+        }
+
         Local<Object> currentInstance = args.This();
         Fuse *fuse = ObjectWrap::Unwrap<Fuse>(currentInstance);
 
