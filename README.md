@@ -6,7 +6,7 @@ Fusejs are a set of NodeJS bindings for [Fuse](http://fuse.sourceforge.net/) low
 Fuse low level API is inherently asynchronous, meaning that it won't block the nodejs main thread. It does not need [libuv](https://github.com/joyent/libuv) thread pool either. FuseJS workflow looks like:
 
 ```                          
-                        node example/hello_main.js /tmp/hello_fs
+          node example/hello.js /tmp/hello_fs -ofsname=hellofs -orw -d
                                          ↕ 
                                 Google V8 / FuseJS
                                          ↕
