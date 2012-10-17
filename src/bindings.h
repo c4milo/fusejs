@@ -6,7 +6,6 @@
 
 namespace NodeFuse {
     class Fuse : public ObjectWrap {
-        //friend class FileSystem;
         public:
             static void Initialize(Handle<Object> target);
             Persistent<Object> fsobj;
@@ -17,7 +16,7 @@ namespace NodeFuse {
         protected:
             static Handle<Value> New(const Arguments& args);
             static Handle<Value> Mount(const Arguments& args);
-            static Handle<Value> Unmount(const Arguments& args);
+            //static Handle<Value> Unmount(const Arguments& args);
 
         private:
             int multithreaded;

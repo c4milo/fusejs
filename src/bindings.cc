@@ -15,8 +15,8 @@ namespace NodeFuse {
 
         NODE_SET_PROTOTYPE_METHOD(t, "mount",
                                       Fuse::Mount);
-        NODE_SET_PROTOTYPE_METHOD(t, "unmount",
-                                      Fuse::Unmount);
+        //NODE_SET_PROTOTYPE_METHOD(t, "unmount",
+        //                              Fuse::Unmount);
 
         constructor_template = Persistent<FunctionTemplate>::New(t);
         constructor_template->SetClassName(String::NewSymbol("Fuse"));
@@ -30,10 +30,22 @@ namespace NodeFuse {
 
     Fuse::Fuse() : ObjectWrap() {}
     Fuse::~Fuse() {
-        /*fuse_opt_free_args(fargs);
-        fuse_remove_signal_handlers(session);
-        fuse_unmount(mountpoint, channel);
-        free(mountpoint);*/
+        if (fargs != NULL) {
+            fuse_opt_free_args(fargs);
+        }
+
+        if (session != NULL) {
+            fuse_remove_signal_handlers(session);
+        }
+
+        if (channel != NULL) {
+            fuse_unmount(mountpoint, channel);
+            fuse_session_remove_chan(channel);
+        }
+
+        if (mountpoint != NULL) {
+            free(mountpoint);
+        }
     }
 
     Handle<Value> Fuse::New(const Arguments& args) {
@@ -98,7 +110,6 @@ namespace NodeFuse {
         for (int i = 1; i < argc; i++) {
             String::Utf8Value option(options->Get(Integer::New(i))->ToString());
 
-            //FIXME it is fuse_opt_add_opt instead of fuse_opt_add_arg!!!
             if (fuse_opt_add_arg(fuse->fargs, (const char *) *option) == -1) {
                 FUSEJS_THROW_EXCEPTION("Unable to allocate memory, fuse_opt_add_arg failed: ", strerror(errno));
                 return Null();
@@ -114,8 +125,6 @@ namespace NodeFuse {
             FUSEJS_THROW_EXCEPTION("Error parsing fuse options: ", strerror(errno));
             return Null();
         }
-
-        //fuse_opt_free_args(fuse->fargs);
 
         fuse->channel = fuse_mount((const char*) fuse->mountpoint, fuse->fargs);
         if (fuse->channel == NULL) {
@@ -141,6 +150,7 @@ namespace NodeFuse {
 
         if (fuse->session == NULL) {
             fuse_unmount(fuse->mountpoint, fuse->channel);
+            fuse_opt_free_args(fuse->fargs);
             FUSEJS_THROW_EXCEPTION("Error creating fuse session: ", strerror(errno));
             return Null();
         }
@@ -149,17 +159,23 @@ namespace NodeFuse {
         if (ret == -1) {
             fuse_session_destroy(fuse->session);
             fuse_unmount(fuse->mountpoint, fuse->channel);
+            fuse_opt_free_args(fuse->fargs);
             FUSEJS_THROW_EXCEPTION("Error setting fuse signal handlers: ", strerror(errno));
             return Null();
         }
 
         fuse_session_add_chan(fuse->session, fuse->channel);
 
-        ret = fuse_session_loop(fuse->session);
+        ret = fuse_session_loop(fuse->session); //blocks here
+
+        //It continues executing if user unmounts the fs
+        fuse_remove_signal_handlers(fuse->session);
+        fuse_unmount(fuse->mountpoint, fuse->channel);
+        fuse_session_remove_chan(fuse->channel);
+        fuse_session_destroy(fuse->session);
+        fuse_opt_free_args(fuse->fargs);
+
         if (ret == -1) {
-            fuse_remove_signal_handlers(fuse->session);
-            fuse_session_destroy(fuse->session);
-            fuse_unmount(fuse->mountpoint, fuse->channel);
             FUSEJS_THROW_EXCEPTION("Error starting fuse session loop: ", strerror(errno));
             return Null();
         }
@@ -167,7 +183,7 @@ namespace NodeFuse {
         return currentInstance;
     }
 
-    Handle<Value> Fuse::Unmount(const Arguments& args) {
+    /*Handle<Value> Fuse::Unmount(const Arguments& args) {
         HandleScope scope;
 
         Local<Object> currentInstance = args.This();
@@ -179,6 +195,6 @@ namespace NodeFuse {
         fuse_unmount(fuse->mountpoint, fuse->channel);
 
         return currentInstance;
-    }
+    }*/
 } //namespace NodeFuse
 
