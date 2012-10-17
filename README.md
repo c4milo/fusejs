@@ -93,7 +93,7 @@ You can also take a look at the examples in:
 
 
 ## TODO
-* Fix signal handling, specially SIGINT. Whenever the filesystem is mounted and the nodejs process receives SIGINT, FUSE signal handlers don't seem to be receiving the signal.
+* Fix signal handling, specially SIGINT. Whenever the filesystem is mounted and the nodejs process receives SIGINT, FUSE signal handlers don't seem to be getting called.
 * More filesystem examples
 * Tests
 
