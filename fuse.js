@@ -483,8 +483,11 @@ var PosixError = {
     EHWPOISON           : 133/* Memory page has hardware error */
 };
 
+var fuse = new bindings.Fuse();
+fuse.fuse_version = bindings.fuse_version;
+
 module.exports = {
-    fuse: new bindings.Fuse(),
+    fuse: fuse,
     FileSystem: FileSystem,
     PosixError: PosixError
 };

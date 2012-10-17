@@ -21,6 +21,7 @@ namespace NodeFuse {
         constructor_template = Persistent<FunctionTemplate>::New(t);
         constructor_template->SetClassName(String::NewSymbol("Fuse"));
 
+        target->Set(String::NewSymbol("fuse_version"), Integer::New(fuse_version()));
         target->Set(String::NewSymbol("Fuse"), constructor_template->GetFunction());
 
         //mountpoint_sym        = NODE_PSYMBOL("mountpoint");

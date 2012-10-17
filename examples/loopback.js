@@ -6,11 +6,11 @@ var PosixError = require('../fuse').PosixError;
 
 var util = require('util');
 
-var Loopback = function(options) {
-    //this.fuse = fuse;
+var Loopback = function(fuse, options) {
+    this.fuse = fuse;
     this.options = options;
 
-    console.log(options);
+    //console.log(options);
     FileSystem.call(this);
 };
 
