@@ -103,7 +103,7 @@ namespace NodeFuse {
         int argc = options->Length();
 
         //If no mountpoint is provided, show usage.
-        if (argc <= 2) {
+        if (argc < 3) {
             options->Set(Integer::New(2), String::New("--help"));
             argc++;
         }
@@ -130,6 +130,11 @@ namespace NodeFuse {
                                         &fuse->multithreaded, &fuse->foreground);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error parsing fuse options: ", strerror(errno));
+            return Null();
+        }
+
+        if (!fuse->mountpoint) {
+            FUSEJS_THROW_EXCEPTION("Mount point argument was not found", "");
             return Null();
         }
 
@@ -175,7 +180,7 @@ namespace NodeFuse {
 
         ret = fuse_session_loop(fuse->session); //blocks here
 
-        //It continues executing if user unmounts the fs
+        //Continues executing if user unmounts the fs
         fuse_remove_signal_handlers(fuse->session);
         fuse_unmount(fuse->mountpoint, fuse->channel);
         fuse_session_remove_chan(fuse->channel);

@@ -48,7 +48,7 @@ Fuse low level API is inherently asynchronous, therefore, there is no need for l
           node example/hello.js /tmp/hello_fs -ofsname=hellofs -orw -d
                                          ↕ 
                                 Google V8 / FuseJS
-                                         ↕
+Flow starts here!                        ↕
 	ls -lah /tmp/hello_fs             libfuse
          	  ↕                          ↕
        		glibc                      glibc
@@ -95,7 +95,7 @@ You can also take a look at the examples in:
 ## TODO
 * Fix signal handling, specially SIGINT. Whenever the filesystem is mounted and the nodejs process receives SIGINT, FUSE signal handlers don't seem to be getting called.
 * More filesystem examples
-* Tests
+* **Tests >_>**
 
 ## License
 (The MIT License)
