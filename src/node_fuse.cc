@@ -19,6 +19,19 @@ namespace NodeFuse {
     static Persistent<String> mtime_sym     = NODE_PSYMBOL("mtime");
     static Persistent<String> ctime_sym     = NODE_PSYMBOL("ctime");
 
+    //statvfs struct symbols
+    static Persistent<String> bsize_sym   = NODE_PSYMBOL("bsize");
+    static Persistent<String> frsize_sym  = NODE_PSYMBOL("frsize");
+    //static Persistent<String> blocks_sym  = NODE_PSYMBOL("blocks");
+    static Persistent<String> bfree_sym   = NODE_PSYMBOL("bfree");
+    static Persistent<String> bavail_sym  = NODE_PSYMBOL("bavail");
+    static Persistent<String> files_sym   = NODE_PSYMBOL("files");
+    static Persistent<String> ffree_sym   = NODE_PSYMBOL("ffree");
+    static Persistent<String> favail_sym  = NODE_PSYMBOL("favail");
+    static Persistent<String> fsid_sym    = NODE_PSYMBOL("fsid");
+    static Persistent<String> flag_sym    = NODE_PSYMBOL("flag");
+    static Persistent<String> namemax_sym = NODE_PSYMBOL("namemax");
+
     //entry symbols
     static Persistent<String> ino_sym           = NODE_PSYMBOL("inode");
     static Persistent<String> generation_sym    = NODE_PSYMBOL("generation");
@@ -26,13 +39,21 @@ namespace NodeFuse {
     static Persistent<String> attr_timeout_sym  = NODE_PSYMBOL("attr_timeout");
     static Persistent<String> entry_timeout_sym = NODE_PSYMBOL("entry_timeout");
 
+    //lock symbols
+    static Persistent<String> type_sym          = NODE_PSYMBOL("type");
+    static Persistent<String> whence_sym        = NODE_PSYMBOL("whence");
+    static Persistent<String> start_sym         = NODE_PSYMBOL("start");
+    static Persistent<String> len_sym           = NODE_PSYMBOL("len");
+    //static Persistent<String> pid_sym           = NODE_PSYMBOL("pid");
+
+
     void InitializeFuse(Handle<Object> target) {
         HandleScope scope;
 
         Fuse::Initialize(target);
+        FileSystem::Initialize();
         Reply::Initialize();
         FileInfo::Initialize();
-        //FileFlags::Initialize();
 
         target->Set(String::NewSymbol("version"),
                     String::New(NODE_FUSE_VERSION));
@@ -53,7 +74,7 @@ namespace NodeFuse {
         entry->attr_timeout = obj->Get(attr_timeout_sym)->NumberValue();
         entry->entry_timeout = obj->Get(entry_timeout_sym)->NumberValue();
 
-        struct stat statbuf;
+        //struct stat statbuf;
         ret = ObjectToStat(obj->Get(attr_sym), &entry->attr);
 
         return ret;
@@ -79,6 +100,46 @@ namespace NodeFuse {
         statbuf->st_atime = NODE_V8_UNIXTIME(obj->Get(atime_sym));
         statbuf->st_mtime = NODE_V8_UNIXTIME(obj->Get(mtime_sym));
         statbuf->st_ctime = NODE_V8_UNIXTIME(obj->Get(ctime_sym));
+
+        return 0;
+    }
+
+    int ObjectToStatVfs(Handle<Value> value, struct statvfs* statbuf) {
+        HandleScope scope;
+
+        memset(statbuf, 0, sizeof(statbuf));
+
+        Local<Object> obj = value->ToObject();
+
+        statbuf->f_bsize = obj->Get(bsize_sym)->NumberValue();
+        statbuf->f_frsize = obj->Get(blocks_sym)->NumberValue();
+
+        statbuf->f_blocks = obj->Get(blocks_sym)->IntegerValue();
+        statbuf->f_bfree = obj->Get(bfree_sym)->IntegerValue();
+        statbuf->f_bavail = obj->Get(bavail_sym)->IntegerValue();
+        statbuf->f_files = obj->Get(files_sym)->IntegerValue();
+        statbuf->f_ffree = obj->Get(ffree_sym)->IntegerValue();
+        statbuf->f_favail = obj->Get(favail_sym)->NumberValue();
+
+        statbuf->f_fsid = obj->Get(fsid_sym)->NumberValue();
+        statbuf->f_flag = obj->Get(flag_sym)->NumberValue();
+        statbuf->f_namemax = obj->Get(namemax_sym)->NumberValue();
+
+        return 0;
+    }
+
+    int ObjectToFlock(Handle<Value> value, struct flock* lock) {
+        HandleScope scope;
+
+        memset(lock, 0, sizeof(lock));
+
+        Local<Object> obj = value->ToObject();
+
+        lock->l_type = obj->Get(type_sym)->IntegerValue();
+        lock->l_whence = obj->Get(whence_sym)->IntegerValue();
+        lock->l_start = obj->Get(start_sym)->IntegerValue();
+        lock->l_len = obj->Get(len_sym)->IntegerValue();
+        lock->l_pid = obj->Get(pid_sym)->IntegerValue();
 
         return 0;
     }
@@ -114,28 +175,6 @@ namespace NodeFuse {
         return scope.Close(attrs);
     }
 
-    /*Handle<Value> FileInfoToObject(struct fuse_file_info* fi) {
-        HandleScope scope;
-        Local<Object> info = Object::New();
-
-        info->Set(flags_sym, Integer::New(fi->flags));
-        info->Set(writepage_sym, Integer::New(fi->writepage));
-        info->Set(direct_io_sym, Integer::NewFromUnsigned(fi->direct_io));
-        info->Set(keep_cache_sym, Integer::NewFromUnsigned(fi->keep_cache));
-        info->Set(flush_sym, Integer::NewFromUnsigned(fi->flush));
-        //info->Set(nonseekable_sym, Integer::NewFromUnsigned(fi->nonseekable));
-        info->Set(file_handle_sym, Number::New(fi->fh));
-        info->Set(lock_owner_sym, Number::New(fi->lock_owner));
-
-        //TODO set accessors for info.fh
-        return scope.Close(info);
-    }*/
-
-    Handle<Value> FuseEntryParamToObject(const struct fuse_entry_param* entry) {
-        HandleScope scope;
-
-    }
-
     Handle<Value> RequestContextToObject(const struct fuse_ctx* ctx) {
         HandleScope scope;
         Local<Object> context = Object::New();
@@ -145,6 +184,21 @@ namespace NodeFuse {
         context->Set(pid_sym, Integer::New(ctx->pid));
 
         return scope.Close(context);
+    }
+
+    Handle<Value> FlockToObject(const struct flock *lock) {
+        HandleScope scope;
+        Local<Object> rv = Object::New();
+
+        //Specifies the type of the lock; one of F_RDLCK, F_WRLCK, or F_UNLCK.
+        rv->Set(type_sym, Integer::New(lock->l_type)); //TODO convert to object with accessors
+        //This corresponds to the whence argument to fseek or lseek, and specifies what the offset is relative to. Its value can be one of SEEK_SET, SEEK_CUR, or SEEK_END.
+        rv->Set(whence_sym, Integer::New(lock->l_whence)); //TODO convert to object with accessors
+        rv->Set(start_sym, Integer::New(lock->l_start));
+        rv->Set(len_sym, Integer::New(lock->l_len));
+        rv->Set(pid_sym, Integer::New(lock->l_pid));
+
+        return scope.Close(rv);
     }
 
     NODE_MODULE(fuse, InitializeFuse)

@@ -4,7 +4,7 @@
 namespace NodeFuse {
     Persistent<FunctionTemplate> Fuse::constructor_template;
 
-    static Persistent<String> mountpoint_sym;
+    //static Persistent<String> mountpoint_sym;
     static Persistent<String> filesystem_sym;
     static Persistent<String> options_sym;
 
@@ -15,27 +15,38 @@ namespace NodeFuse {
 
         NODE_SET_PROTOTYPE_METHOD(t, "mount",
                                       Fuse::Mount);
-        NODE_SET_PROTOTYPE_METHOD(t, "unmount",
-                                      Fuse::Unmount);
+        //NODE_SET_PROTOTYPE_METHOD(t, "unmount",
+        //                              Fuse::Unmount);
 
         constructor_template = Persistent<FunctionTemplate>::New(t);
         constructor_template->SetClassName(String::NewSymbol("Fuse"));
 
+        target->Set(String::NewSymbol("fuse_version"), Integer::New(fuse_version()));
         target->Set(String::NewSymbol("Fuse"), constructor_template->GetFunction());
 
-        mountpoint_sym        = NODE_PSYMBOL("mountpoint");
+        //mountpoint_sym        = NODE_PSYMBOL("mountpoint");
         filesystem_sym        = NODE_PSYMBOL("filesystem");
         options_sym           = NODE_PSYMBOL("options");
     }
 
-    Fuse::Fuse() : ObjectWrap() {
-    }
-
+    Fuse::Fuse() : ObjectWrap() {}
     Fuse::~Fuse() {
-        /*fuse_opt_free_args(fargs);
-        fuse_remove_signal_handlers(session);
-        fuse_unmount(mountpoint, channel);
-        free(mountpoint);*/
+        if (fargs != NULL) {
+            fuse_opt_free_args(fargs);
+        }
+
+        if (session != NULL) {
+            fuse_remove_signal_handlers(session);
+        }
+
+        if (channel != NULL) {
+            fuse_unmount(mountpoint, channel);
+            fuse_session_remove_chan(channel);
+        }
+
+        if (mountpoint != NULL) {
+            free(mountpoint);
+        }
     }
 
     Handle<Value> Fuse::New(const Arguments& args) {
@@ -64,19 +75,19 @@ namespace NodeFuse {
         }
 
         Local<Object> argsObj = args[0]->ToObject();
-        THROW_IF_MISSING_PROPERTY(argsObj, mountpoint_sym, "mountpoint");
+        //THROW_IF_MISSING_PROPERTY(argsObj, mountpoint_sym, "mountpoint");
         THROW_IF_MISSING_PROPERTY(argsObj, filesystem_sym, "filesystem");
         THROW_IF_MISSING_PROPERTY(argsObj, options_sym, "options");
 
-        Local<Value> vmountpoint = argsObj->Get(mountpoint_sym);
+        //Local<Value> vmountpoint = argsObj->Get(mountpoint_sym);
         Local<Value> vfilesystem = argsObj->Get(filesystem_sym);
         Local<Value> voptions = argsObj->Get(options_sym);
 
-        if (!vmountpoint->IsString()) {
+        /*if (!vmountpoint->IsString()) {
             return ThrowException(Exception::TypeError(
                 String::New("Wrong type for property 'mountpoint', a String is expected")));
 
-        }
+        }*/
 
         if (!vfilesystem->IsFunction()) {
             return ThrowException(Exception::TypeError(
@@ -90,6 +101,12 @@ namespace NodeFuse {
 
         Local<Array> options = Local<Array>::Cast(voptions);
         int argc = options->Length();
+
+        //If no mountpoint is provided, show usage.
+        if (argc < 3) {
+            options->Set(Integer::New(2), String::New("--help"));
+            argc++;
+        }
 
         Local<Object> currentInstance = args.This();
         Fuse *fuse = ObjectWrap::Unwrap<Fuse>(currentInstance);
@@ -106,17 +123,20 @@ namespace NodeFuse {
             }
         }
 
-        String::Utf8Value mountpoint(vmountpoint->ToString());
-        fuse->mountpoint = *mountpoint;
+        //String::Utf8Value mountpoint(vmountpoint->ToString());
+        //fuse->mountpoint = *mountpoint;
 
-        int ret = fuse_parse_cmdline(fuse->fargs, NULL,
+        int ret = fuse_parse_cmdline(fuse->fargs, &fuse->mountpoint,
                                         &fuse->multithreaded, &fuse->foreground);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error parsing fuse options: ", strerror(errno));
             return Null();
         }
 
-        //fuse_opt_free_args(fuse->fargs);
+        if (!fuse->mountpoint) {
+            FUSEJS_THROW_EXCEPTION("Mount point argument was not found", "");
+            return Null();
+        }
 
         fuse->channel = fuse_mount((const char*) fuse->mountpoint, fuse->fargs);
         if (fuse->channel == NULL) {
@@ -142,7 +162,8 @@ namespace NodeFuse {
 
         if (fuse->session == NULL) {
             fuse_unmount(fuse->mountpoint, fuse->channel);
-            FUSEJS_THROW_EXCEPTION("Error creating fuse session: ", strerror(errno));
+            fuse_opt_free_args(fuse->fargs);
+            //FUSEJS_THROW_EXCEPTION("Error creating fuse session: ", strerror(errno));
             return Null();
         }
 
@@ -150,17 +171,23 @@ namespace NodeFuse {
         if (ret == -1) {
             fuse_session_destroy(fuse->session);
             fuse_unmount(fuse->mountpoint, fuse->channel);
+            fuse_opt_free_args(fuse->fargs);
             FUSEJS_THROW_EXCEPTION("Error setting fuse signal handlers: ", strerror(errno));
             return Null();
         }
 
         fuse_session_add_chan(fuse->session, fuse->channel);
 
-        ret = fuse_session_loop(fuse->session);
+        ret = fuse_session_loop(fuse->session); //blocks here
+
+        //Continues executing if user unmounts the fs
+        fuse_remove_signal_handlers(fuse->session);
+        fuse_unmount(fuse->mountpoint, fuse->channel);
+        fuse_session_remove_chan(fuse->channel);
+        fuse_session_destroy(fuse->session);
+        fuse_opt_free_args(fuse->fargs);
+
         if (ret == -1) {
-            fuse_remove_signal_handlers(fuse->session);
-            fuse_session_destroy(fuse->session);
-            fuse_unmount(fuse->mountpoint, fuse->channel);
             FUSEJS_THROW_EXCEPTION("Error starting fuse session loop: ", strerror(errno));
             return Null();
         }
@@ -168,7 +195,7 @@ namespace NodeFuse {
         return currentInstance;
     }
 
-    Handle<Value> Fuse::Unmount(const Arguments& args) {
+    /*Handle<Value> Fuse::Unmount(const Arguments& args) {
         HandleScope scope;
 
         Local<Object> currentInstance = args.This();
@@ -180,6 +207,6 @@ namespace NodeFuse {
         fuse_unmount(fuse->mountpoint, fuse->channel);
 
         return currentInstance;
-    }
+    }*/
 } //namespace NodeFuse
 

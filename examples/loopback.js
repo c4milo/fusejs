@@ -6,11 +6,11 @@ var PosixError = require('../fuse').PosixError;
 
 var util = require('util');
 
-var Loopback = function(options) {
-    //this.fuse = fuse;
+var Loopback = function(fuse, options) {
+    this.fuse = fuse;
     this.options = options;
 
-    console.log(options);
+    //console.log(options);
     FileSystem.call(this);
 };
 
@@ -30,7 +30,7 @@ util.inherits(Loopback, FileSystem);
     this.lookup = function(context, parent, name, reply) {
         console.log('Lookup!');
         console.log(context);
-        console.log(name);
+        console.log('Name -> ' + name);
         var entry = {
             inode: 1234,
             generation: 2,
@@ -143,84 +143,152 @@ util.inherits(Loopback, FileSystem);
 
     this.open = function(context, inode, fileInfo, reply) {
         console.log('Open was called!');
+        //reply.err(0);
+        reply.open(fileInfo);
+    };
+
+    this.read = function(context, inode, size, offset, fileInfo, reply) {
+        console.log('Read was called!');
+        reply.buffer(new Buffer('hellow world'));
+        //reply.err(0);
+    };
+
+    this.write = function(context, inode, buffer, offset, fileInfo, reply) {
+        console.log('Write was called!');
+        console.log('Writing ' + buffer);
+        reply.write(buffer.length);
+        //reply.err(0);
+    };
+
+    this.flush = function(context, inode, fileInfo, reply) {
+        console.log('Flush was called!');
+        //console.log(fileInfo);
         reply.err(0);
-        //reply.open();
     };
 
-    this.read = function() {
-
+    this.release = function(context, inode, fileInfo, reply) {
+        console.log('Release was called!');
+        reply.err(0);
     };
 
-    this.write = function() {
-
+    //if datasync is true then only user data is flushed, not metadata
+    this.fsync = function(context, inode, datasync, fileInfo, reply) {
+        console.log('Fsync was called!');
+        console.log('datasync -> ' + datasync);
+        reply.err(0);
     };
 
-    this.flush = function() {
-
+    this.opendir = function(context, inode, fileInfo, reply) {
+        console.log('Opendir was called!');
+        //reply.err(0);
+        reply.open(fileInfo);
     };
 
-    this.release = function() {
+    this.readdir = function(context, inode, size, offset, fileInfo, reply) {
+        console.log('Readdir was called!');
+        console.log('Readdir Size ---> ' + size);
+        var entries = ['.', '..', 'dir1', 'dir2'];
+        for (var i = 0, len = entries.length; i < len; i++) {
+          var attrs = {};
+          attrs.inode = i;
+          reply.addDirEntry(entries[i], size, attrs, offset + i);
+        }
 
+        //signals end of entries, this is required or
+        //it will block the user
+        reply.buffer(new Buffer(''));
     };
 
-    this.fsync = function() {
-
+    this.releasedir = function(context, inode, fileInfo, reply) {
+        console.log('Releasedir was called!');
+        console.log(fileInfo);
+        reply.err(0);
     };
 
-    this.opendir = function() {
-
+    //if datasync is true then only directory contents is flushed, not metadata
+    this.fsyncdir = function(context, inode, datasync, fileInfo, reply) {
+        console.log('FsyncDir was called!');
+        console.log('datasync -> ' + datasync);
+        reply.err(0);
     };
 
-    this.readdir = function() {
+    this.statfs = function(context, inode, reply) {
+        console.log('Statfs was called!');
 
+        var statvfs = {
+            bsize: 1024, /* file system block size */
+            frsize: 0, /* fragment size */
+            blocks: 0, /* size of fs in f_frsize units */
+            bfree: 0, /* # free blocks */
+            bavail: 0, /* # free blocks for unprivileged users */
+            files: 5, /* # inodes */
+            ffree: 2, /* # free inodes */
+            favail: 2, /* # free inodes for unprivileged users */
+            fsid: 4294967295, /* file system ID */
+            flag: 0, /* mount flags */
+            namemax: 1.7976931348623157e+308 /* maximum filename length */
+        };
+
+        reply.statfs(statvfs);
     };
 
-    this.releasedir = function() {
-
+    this.setxattr = function(context, inode, name, value, size, flags, position, reply) {
+        console.log('SetXAttr was called!');
+        console.log('Attr name -> ' + name);
+        reply.err(0);
     };
 
-    this.fsyncdir = function() {
-
+    this.getxattr = function(context, inode, name, size, position, reply) {
+        console.log('GetXAttr was called!');
+        console.log('Extended attribute name -> ' + name);
+        reply.err(0);
+        //reply.xattr(1024); //needed buffer size
     };
 
-    this.statfs = function() {
-
+    this.listxattr = function(context, inode, size, reply) {
+        console.log('ListXAttr was called!');
+        console.log(size);
+        reply.err(0);
+        //reply.buffer(new Buffer('list,of,extended,attributes'));
+        //reply.xattr(1024);
     };
 
-    this.setxattr = function() {
-
+    this.removexattr = function(context, inode, name, reply) {
+        console.log('RemoveXAttr was called!');
+        console.log(name);
+        reply.err(0);
     };
 
-    this.getxattr = function() {
-
+    this.access = function(context, inode, mask, reply) {
+        console.log('Access was called!');
+        reply.err(0);
     };
 
-    this.listxattr = function() {
-
+    this.create = function(context, parent, name, mode, fileInfo, reply) {
+        console.log('Create was called!');
+        console.log('Create -> ' + name);
+        //reply.create({});
+        reply.err(0);
     };
 
-    this.removexattr = function() {
-
+    this.getlk = function(context, inode, fileInfo, lock, reply) {
+        console.log('GetLock was called!');
+        console.log('Lock -> ' + lock);
+        //reply.lock(lock);
+        reply.err(0);
     };
 
-    this.access = function() {
-
+    this.setlk = function(context, inode, fileInfo, lock, sleep, reply) {
+        console.log('SetLock was called!!');
+        console.log('Lock -> ' + lock);
+        console.log('sleep -> ' + sleep);
+        reply.err(0);
     };
 
-    this.create = function() {
-
-    };
-
-    this.getlk = function() {
-
-    };
-
-    this.setlk = function() {
-
-    };
-
-    this.bmap = function() {
-
+    this.bmap = function(context, inode, blocksize, index, reply) {
+        console.log('BMap was called!');
+        //reply.err(0);
+        reply.bmap(12344);
     };
 
     this.ioctl = function() {

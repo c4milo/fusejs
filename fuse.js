@@ -255,6 +255,26 @@ var FileSystem = function() {
 
     };
 
+    /**
+     * Read data
+     *
+     * Read should send exactly the number of bytes requested
+     * except on EOF or error, otherwise the rest of the
+     * data will be substituted with zeroes. An exception to
+     * this is when the file has been opened in 'direct_io' mode,
+     * in which case the return value of the read system call
+     * will reflect the return value of this operation.
+     * fileInfo->fh will contain the value set by the open method,
+     * or will be undefined if the open method didn't set any value.
+     *
+     * @param {Object} context Context info of the calling process.
+     * @param {Number} inode The inode number.
+     * @param {}
+     * @param {}
+     * @param {}
+     *
+     * Valid replies: reply.buffer() or fuse.err()
+     **/
     this.read = function() {
 
     };
@@ -483,9 +503,12 @@ var PosixError = {
     EHWPOISON           : 133/* Memory page has hardware error */
 };
 
+var fuse = new bindings.Fuse();
+fuse.fuse_version = bindings.fuse_version;
 
 module.exports = {
-    fuse: new bindings.Fuse(),
+    fuse: fuse,
     FileSystem: FileSystem,
     PosixError: PosixError
 };
+
