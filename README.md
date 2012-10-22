@@ -1,6 +1,33 @@
 ## FuseJS - Low level bindings for Fuse
-Fusejs are a set of NodeJS bindings for [Fuse](http://fuse.sourceforge.net/) low level API. It allows you to write filesystems, in userspace, using Javascript and NodeJS. Even though most of the Fuse functions are already binded, this module has not been used in production. Use it at your own risk. 
+Fusejs are a set of NodeJS bindings for [Fuse](http://fuse.sourceforge.net/) low level API. 
+It allows you to write filesystems, in userspace, using Javascript and NodeJS. 
+Even though most of the Fuse functions are already binded, this module has not 
+been used in production. Use it at your own risk. 
 
+## How it works
+Fuse low level API is inherently asynchronous, therefore, there is no need for libuv thread pool. FuseJS workflow looks like:
+
+```                          
+          node example/hello.js /tmp/hello_fs -ofsname=hellofs -orw -d
+                                         ↕ 
+                                Google V8 / FuseJS
+Flow starts here!                        ↕
+	ls -lah /tmp/hello_fs             libfuse
+         	  ↕                          ↕
+       		glibc                      glibc
+Userspace     ↕                          ↕
+---------------------------------------------         
+Kernel        ↕                          ↕	
+			  ↕                          ↕
+             VFS ↔ ↔ ↔ ↔ ↔ ↔ ↔ ↔ ↔ ↔ ↔  FUSE
+             
+             							...
+                                        Ext4
+                                        NFS
+                                        ZFS
+```
+
+## Fuse operations supported
 The following Fuse low level operations are fully supported:
 
 * **init:** Initializes filesystem. Called before any other filesystem method
@@ -41,29 +68,6 @@ The following Fuse low level operations are fully supported:
 * **ioctl (not supported yet):** Forever ioctl
 * **poll (not suppported yet):** Polls for IO readiness
 
-## How it works
-Fuse low level API is inherently asynchronous, therefore, there is no need for libuv thread pool. FuseJS workflow looks like:
-
-```                          
-          node example/hello.js /tmp/hello_fs -ofsname=hellofs -orw -d
-                                         ↕ 
-                                Google V8 / FuseJS
-Flow starts here!                        ↕
-	ls -lah /tmp/hello_fs             libfuse
-         	  ↕                          ↕
-       		glibc                      glibc
-Userspace     ↕                          ↕
----------------------------------------------         
-Kernel        ↕                          ↕	
-			  ↕                          ↕
-             VFS ↔ ↔ ↔ ↔ ↔ ↔ ↔ ↔ ↔ ↔ ↔  FUSE
-             
-             							...
-                                        Ext4
-                                        NFS
-                                        ZFS
-```
-
 ## Installation
 ### OSX
 In order to use FuseJS you need to install any of the Fuse implementations for OSX. OSXFuse is the one that has been used throughout the FuseJS development. Go to http://osxfuse.github.com/ and follow the instructions to get it installed. Additionally, FuseJS toolchain uses `pkg-config`, you need to have it installed in your system as well, in order to compile FuseJS. It usually should come by default in your operating system, if not, then use your package manager to install it.
@@ -78,9 +82,6 @@ It has not been tested in Linux yet.
 
 * sudo apt-get install libfuse-dev
 * ```npm install fusejs```
-
-
-
 
 ## API Documentation
 All the API Documentation can be found at:
