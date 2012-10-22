@@ -88,14 +88,14 @@ All the API Documentation can be found at:
 
 * https://github.com/c4milo/fusejs/blob/master/fuse.js. 
 
-You can also take a look at the examples in:
+You can also take a look at the examples in: (TODO!)
 
 * https://github.com/c4milo/fusejs/tree/master/examples
 
 
 ## TODO
 * Fix signal handling, specially SIGINT. Whenever the filesystem is mounted and the nodejs process receives SIGINT, FUSE signal handlers don't seem to be getting called.
-* More filesystem examples
+* Filesystem examples
 * **Tests >_>**
 
 ## License
