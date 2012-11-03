@@ -1,4 +1,5 @@
 // Copyright 2012, Camilo Aguilar. Cloudescape, LLC.
+#include <stdlib.h>
 #include "bindings.h"
 
 namespace NodeFuse {
