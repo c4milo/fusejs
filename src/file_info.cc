@@ -1,4 +1,7 @@
 // Copyright 2012, Camilo Aguilar. Cloudescape, LLC.
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include "file_info.h"
 
 namespace NodeFuse {
@@ -22,11 +25,19 @@ namespace NodeFuse {
     static Persistent<String> creat_sym     = NODE_PSYMBOL("creat");
     static Persistent<String> trunc_sym     = NODE_PSYMBOL("trunc");
     static Persistent<String> excl_sym      = NODE_PSYMBOL("excl");
+#ifdef O_SHLOCK
     static Persistent<String> shlock_sym    = NODE_PSYMBOL("shlock");
+#endif
+#ifdef O_EXLOCK
     static Persistent<String> exlock_sym    = NODE_PSYMBOL("exlock");
+#endif
     static Persistent<String> nofollow_sym  = NODE_PSYMBOL("nofollow");
+#ifdef O_SYMLINK
     static Persistent<String> symlink_sym   = NODE_PSYMBOL("symlink");
+#endif
+#ifdef O_EVTONLY
     static Persistent<String> evtonly_sym   = NODE_PSYMBOL("evtonly");
+#endif
 
 
     void FileInfo::Initialize() {
@@ -65,11 +76,19 @@ namespace NodeFuse {
         flagsObj->Set(creat_sym, False());
         flagsObj->Set(trunc_sym, False());
         flagsObj->Set(excl_sym, False());
+#ifdef O_SHLOCK
         flagsObj->Set(shlock_sym, False());
+#endif
+#ifdef O_EXLOCK
         flagsObj->Set(exlock_sym, False());
+#endif
         flagsObj->Set(nofollow_sym, False());
+#ifdef O_SYMLINK
         flagsObj->Set(symlink_sym, False());
+#endif
+#ifdef O_EVTONLY
         flagsObj->Set(evtonly_sym, False());
+#endif
         /*
            O_RDONLY        open for reading only
            O_WRONLY        open for writing only
@@ -119,25 +138,33 @@ namespace NodeFuse {
             flagsObj->Set(excl_sym, True());
         }
 
+#ifdef O_SHLOCK
         if (flags & O_SHLOCK) {
             flagsObj->Set(shlock_sym, True());
         }
+#endif
 
+#ifdef O_EXLOCK
         if (flags & O_EXLOCK) {
             flagsObj->Set(exlock_sym, True());
         }
+#endif
 
         if (flags & O_NOFOLLOW) {
             flagsObj->Set(nofollow_sym, True());
         }
 
+#ifdef O_SYMLINK
         if (flags & O_SYMLINK) {
             flagsObj->Set(symlink_sym, True());
         }
+#endif
 
+#ifdef O_EVTONLY
         if (flags & O_EVTONLY) {
             flagsObj->Set(evtonly_sym, True());
         }
+#endif
 
         return scope.Close(flagsObj);
     }
