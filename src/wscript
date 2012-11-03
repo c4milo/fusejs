@@ -12,11 +12,11 @@ def configure(conf):
   conf.find_program('node', var='NODE', mandatory=True)
 
   if sys.platform == 'darwin':
-    conf.env.CPPFLAGS = ['-D_DARWIN_USE_64_BIT_INODE']
+    conf.env.CPPFLAGS = ['-D__APPLE__', '-D_DARWIN_USE_64_BIT_INODE']
     os.putenv('PKG_CONFIG_PATH', '/usr/local/lib/pkgconfig')
 
   conf.check_cfg(package='fuse', args='--cflags --libs', atleast_version='2.7')
-  conf.env.CPPFLAGS = ['-D_FILE_OFFSET_BITS=64', '-D__APPLE__', '-DFUSE_USE_VERSION=27']
+  conf.env.CPPFLAGS += ['-D_FILE_OFFSET_BITS=64', '-DFUSE_USE_VERSION=27']
 
 def build(bld):
   obj = bld.new_task_gen("cxx", "shlib", "node_addon")
