@@ -1,4 +1,8 @@
 ## FuseJS - Low level bindings for Fuse
+<a class="FlattrButton" style="display:none;" href="https://github.com/c4milo/fusejs"></a>
+<noscript><a href="http://flattr.com/thing/1104361/" target="_blank">
+<img src="http://api.flattr.com/button/flattr-badge-large.png" alt="Flattr this" title="Flattr this" border="0" /></a></noscript>
+
 Fusejs are a set of NodeJS bindings for [Fuse](http://fuse.sourceforge.net/) low level API. 
 It allows you to write filesystems, in userspace, using Javascript and NodeJS. 
 Even though most of the Fuse functions are already binded, this module has not 
