@@ -1,4 +1,5 @@
 ## FuseJS - Low level bindings for Fuse
+[![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/c4milo/fusejs?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 <a class="FlattrButton" style="display:none;" href="https://github.com/c4milo/fusejs"></a>
 <noscript><a href="http://flattr.com/thing/1104361/" target="_blank">
 <img src="http://api.flattr.com/button/flattr-badge-large.png" alt="Flattr this" title="Flattr this" border="0" /></a></noscript>
