@@ -201,6 +201,6 @@ namespace NodeFuse {
         return scope.Close(rv);
     }
 
-    NODE_MODULE(fuse, InitializeFuse)
+    NODE_MODULE(fusejs, InitializeFuse)
 } //namespace NodeFuse
 

@@ -1,4 +1,4 @@
-var bindings = require('./bindings');
+var bindings = require('./build/Release/fusejs.node');
 
 var FileSystem = function() {
 

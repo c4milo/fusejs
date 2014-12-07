@@ -1,5 +1,5 @@
 {   "name" : "fusejs",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "author": "Camilo Aguilar - http://github.com/c4milo",
     "email": "camilo.aguilar@gmail.com",
     "description" : "Low level Fuse bindings for NodeJS.",
@@ -14,7 +14,7 @@
         "should": "0.6.0"
     },
     "scripts": {
-       "install": "make"
+       "install": "node-gyp rebuild"
     },
     "main" : "./fuse"
 }

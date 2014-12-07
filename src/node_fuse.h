@@ -1,13 +1,14 @@
 // Copyright 2012, Camilo Aguilar. Cloudescape, LLC.
 #ifndef SRC_NODE_FUSE_H_
 #define SRC_NODE_FUSE_H_
+#define FUSE_USE_VERSION 26
 
 #include <node.h>
 #include <fuse_lowlevel.h>
 #include <errno.h>
 #include <string.h>
 
-#define NODE_FUSE_VERSION "0.0.1"
+#define NODE_FUSE_VERSION "0.0.2"
 
 using namespace v8;
 using namespace node;
