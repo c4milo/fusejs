@@ -1,7 +1,6 @@
 // Copyright 2012, Camilo Aguilar. Cloudescape, LLC.
 #ifndef SRC_NODE_FUSE_H_
 #define SRC_NODE_FUSE_H_
-#define FUSE_USE_VERSION 26
 
 #include <node.h>
 #include <fuse_lowlevel.h>

@@ -32,6 +32,8 @@ namespace NodeFuse {
             fuse_req_t request;
             size_t dentry_acc_size;
             size_t dentry_cur_length;
+            size_t dentry_offset;
+            size_t dentry_size;
             char* dentry_buffer;
             static Persistent<FunctionTemplate> constructor_template;
     };

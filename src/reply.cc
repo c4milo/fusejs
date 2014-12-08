@@ -3,6 +3,7 @@
 #include "reply.h"
 #include "file_info.h"
 #include "node_buffer.h"
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
 
 namespace NodeFuse {
     Persistent<FunctionTemplate> Reply::constructor_template;
@@ -31,6 +32,8 @@ namespace NodeFuse {
     Reply::Reply() : ObjectWrap() {
         dentry_acc_size = 0;
         dentry_cur_length = 0;
+        dentry_size = 0;
+        dentry_offset = 0;
         dentry_buffer = NULL;
     }
 
@@ -222,19 +225,28 @@ namespace NodeFuse {
         int argslen = args.Length();
         if (argslen == 0) {
             return ThrowException(Exception::TypeError(
-            String::New("You must specify arguments to invoke this function")));
+            String::New("You must specify 2 arguments to invoke this function")));
         }
 
         if (!Buffer::HasInstance(args[0])) {
             return ThrowException(Exception::TypeError(
             String::New("You must specify a Buffer object as first argument")));
         }
-
-        Local<Object> buffer = args[0]->ToObject();
-        const char* data = Buffer::Data(buffer);
+        // if (!args[1]->IsNumber()) {
+        //     return ThrowException(Exception::TypeError(
+        //         String::New("You must specify the offset of the buffer")));
+        // }
 
         int ret = -1;
-        ret = fuse_reply_buf(reply->request, data, Buffer::Length(buffer));
+        off_t offset = args[1]->IntegerValue();
+
+        if (reply->dentry_buffer == NULL){
+            Local<Object> buffer = args[0]->ToObject();
+            const char* data = Buffer::Data(buffer);
+            ret = fuse_reply_buf(reply->request, data, Buffer::Length(buffer));
+        }else{
+            ret = fuse_reply_buf(reply->request, reply->dentry_buffer + reply->dentry_offset, MIN(reply->dentry_acc_size - offset, reply->dentry_size) );
+        }
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
             return Null();
@@ -448,7 +460,6 @@ namespace NodeFuse {
 
     Handle<Value> Reply::AddDirEntry(const Arguments& args) {
         HandleScope scope;
-
         Local<Object> replyObj = args.This();
         Reply* reply = ObjectWrap::Unwrap<Reply>(replyObj);
 
@@ -456,7 +467,7 @@ namespace NodeFuse {
 
         if (argslen == 0 || argslen < 4) {
             return ThrowException(Exception::TypeError(
-            String::New("You must specify five arguments to invoke this function")));
+            String::New("You must specify four arguments to invoke this function")));
         }
 
         if (!args[0]->IsString()) {
@@ -481,9 +492,12 @@ namespace NodeFuse {
 
         String::Utf8Value name(args[0]->ToString());
         size_t requestedSize = args[1]->IntegerValue();
+        off_t offset = args[3]->IntegerValue();
 
         if (reply->dentry_buffer == NULL) {
            reply->dentry_buffer = (char *) malloc(requestedSize * sizeof(char));
+           reply->dentry_size = requestedSize * sizeof(char);
+           reply-> dentry_offset = offset;
         }
 
         char* buffer = reply->dentry_buffer;
@@ -491,23 +505,23 @@ namespace NodeFuse {
         struct stat statbuff;
         ObjectToStat(args[2]->ToObject(), &statbuff);
 
-        off_t offset = args[3]->IntegerValue();
 
         size_t acc_size = reply->dentry_acc_size;
 
-        size_t len = fuse_add_direntry(reply->request, (char*) (buffer + acc_size),
+        size_t len = fuse_add_direntry(reply-> request, NULL, 0, *name, NULL, 0);
+        size_t len2 = fuse_add_direntry(reply->request, (char*) (buffer + acc_size),
                                        requestedSize - acc_size,
-                                       (const char*) *name, &statbuff, offset);
-        /*
-        fprintf(stderr, "Current length! -> %d\n", (int)reply->dentry_cur_length);
+                                       (const char*) *name, &statbuff, acc_size + len);
+        
+        // fprintf(stderr, "Current length! -> %d\n", (int)reply->dentry_cur_length);
 
-        fprintf(stderr, "Entry name -> %s\n", (const char*) *name);
-        fprintf(stderr, "Space needed for the entry -> %d\n", (int) len);
-        fprintf(stderr, "Requested size -> %d\n", (int) requestedSize);
-        fprintf(stderr, "Remaning buffer -> %d\n", (int)(requestedSize - acc_size));
-        */
+        // fprintf(stderr, "Entry name -> %s\n", (const char*) *name);
+        // fprintf(stderr, "Space needed for the entry -> %d\n", (int) len);
+        // fprintf(stderr, "Requested size -> %d\n", (int) requestedSize);
+        // fprintf(stderr, "Remaning buffer -> %d\n", (int)(requestedSize - acc_size));
+        // fprintf(stderr, "Offset -> %lld\n", offset );        
 
-        if (len > (requestedSize - acc_size)) {
+        if (len2 > (requestedSize - acc_size)) {
             int ret = fuse_reply_buf(reply->request, NULL, 0);
 
             if (ret == -1) {
@@ -517,7 +531,7 @@ namespace NodeFuse {
             return Undefined();
         }
 
-        reply->dentry_acc_size += len;
+        reply->dentry_acc_size += len2;
         reply->dentry_cur_length++;
 
         return scope.Close(Integer::New(len));

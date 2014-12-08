@@ -66,7 +66,7 @@ namespace NodeFuse {
         HandleScope scope;
         int ret = -1;
 
-        memset(entry, 0, sizeof(entry));
+        memset(entry, 0, sizeof(struct fuse_entry_param));
 
         Local<Object> obj = value->ToObject();
         entry->ino = obj->Get(ino_sym)->IntegerValue();
@@ -83,10 +83,9 @@ namespace NodeFuse {
     int ObjectToStat(Handle<Value> value, struct stat* statbuf) {
         HandleScope scope;
 
-        memset(statbuf, 0, sizeof(statbuf));
+        memset(statbuf, 0, sizeof(struct stat));
 
         Local<Object> obj = value->ToObject();
-
         statbuf->st_dev = obj->Get(dev_sym)->IntegerValue();
         statbuf->st_ino = obj->Get(ino_sym)->IntegerValue();
         statbuf->st_mode = obj->Get(mode_sym)->IntegerValue();
@@ -107,7 +106,7 @@ namespace NodeFuse {
     int ObjectToStatVfs(Handle<Value> value, struct statvfs* statbuf) {
         HandleScope scope;
 
-        memset(statbuf, 0, sizeof(statbuf));
+        memset(statbuf, 0, sizeof(struct statvfs));
 
         Local<Object> obj = value->ToObject();
 
@@ -131,7 +130,7 @@ namespace NodeFuse {
     int ObjectToFlock(Handle<Value> value, struct flock* lock) {
         HandleScope scope;
 
-        memset(lock, 0, sizeof(lock));
+        memset(lock, 0, sizeof(struct flock));
 
         Local<Object> obj = value->ToObject();
 
