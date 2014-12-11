@@ -245,7 +245,13 @@ namespace NodeFuse {
             const char* data = Buffer::Data(buffer);
             ret = fuse_reply_buf(reply->request, data, Buffer::Length(buffer));
         }else{
-            ret = fuse_reply_buf(reply->request, reply->dentry_buffer + reply->dentry_offset, MIN(reply->dentry_acc_size - offset, reply->dentry_size) );
+
+            if (reply->dentry_offset < reply->dentry_acc_size){
+                ret = fuse_reply_buf(reply->request, reply->dentry_buffer + reply->dentry_offset, MIN(reply->dentry_acc_size - reply->dentry_offset,offset) );
+            }else{
+                ret = fuse_reply_buf(reply->request, NULL, 0 );
+            }
+
         }
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
@@ -493,12 +499,7 @@ namespace NodeFuse {
         String::Utf8Value name(args[0]->ToString());
         size_t requestedSize = args[1]->IntegerValue();
         off_t offset = args[3]->IntegerValue();
-
-        if (reply->dentry_buffer == NULL) {
-           reply->dentry_buffer = (char *) malloc(requestedSize * sizeof(char));
-           reply->dentry_size = requestedSize * sizeof(char);
-           reply-> dentry_offset = offset;
-        }
+        reply-> dentry_offset = offset;
 
         char* buffer = reply->dentry_buffer;
 
@@ -508,7 +509,13 @@ namespace NodeFuse {
 
         size_t acc_size = reply->dentry_acc_size;
 
-        size_t len = fuse_add_direntry(reply-> request, NULL, 0, *name, NULL, 0);
+        size_t len = fuse_add_direntry(reply-> request, NULL, 0, *name, &statbuff, 0);
+        buffer = (char * )realloc(buffer, acc_size + len);
+        while(!buffer){
+            printf("failed to allocate buffer for direntry, retrying\n");
+            buffer = (char * )realloc(buffer, acc_size + len);
+        }         
+        reply->dentry_buffer = buffer;
         size_t len2 = fuse_add_direntry(reply->request, (char*) (buffer + acc_size),
                                        requestedSize - acc_size,
                                        (const char*) *name, &statbuff, acc_size + len);
@@ -516,25 +523,16 @@ namespace NodeFuse {
         // fprintf(stderr, "Current length! -> %d\n", (int)reply->dentry_cur_length);
 
         // fprintf(stderr, "Entry name -> %s\n", (const char*) *name);
-        // fprintf(stderr, "Space needed for the entry -> %d\n", (int) len);
+        // fprintf(stderr, "Space needed for the entry -> %d or %d \n", (int) len, (int)len2);
         // fprintf(stderr, "Requested size -> %d\n", (int) requestedSize);
         // fprintf(stderr, "Remaning buffer -> %d\n", (int)(requestedSize - acc_size));
-        // fprintf(stderr, "Offset -> %lld\n", offset );        
+        // fprintf(stderr, "Offset -> %lld\n\n", offset );        
 
-        if (len2 > (requestedSize - acc_size)) {
-            int ret = fuse_reply_buf(reply->request, NULL, 0);
-
-            if (ret == -1) {
-                fuse_reply_err(reply->request, EIO);
-            }
-
-            return Undefined();
-        }
-
-        reply->dentry_acc_size += len2;
+        reply->dentry_acc_size += len;
         reply->dentry_cur_length++;
 
-        return scope.Close(Integer::New(len));
+        return scope.Close(Integer::New(len2));
+        }
     }
 
-} //ends namespace NodeFuse
+//} //ends namespace NodeFuse
