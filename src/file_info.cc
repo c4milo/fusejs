@@ -183,7 +183,8 @@ namespace NodeFuse {
         FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
 
         if (!value->IsBoolean()) {
-            FUSEJS_THROW_EXCEPTION("Invalid value type: ", "a Boolean was expected");
+            // TODO: Check to see if this case will cause errors
+            // FUSEJS_THROW_EXCEPTION("Invalid value type: ", "a Boolean was expected");
         }
 
         fileInfo->fi->direct_io = value->IsTrue() ? 1 : 0;
@@ -198,7 +199,8 @@ namespace NodeFuse {
         FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
 
         if (!value->IsBoolean()) {
-            FUSEJS_THROW_EXCEPTION("Invalid value type: ", "a Boolean was expected");
+            // TODO: Check to see if this case will cause errors
+            // FUSEJS_THROW_EXCEPTION("Invalid value type: ", "a Boolean was expected");
         }
 
         fileInfo->fi->keep_cache = value->IsTrue() ? 1 : 0;
@@ -222,7 +224,8 @@ namespace NodeFuse {
         FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
 
         if (!value->IsBoolean()) {
-            FUSEJS_THROW_EXCEPTION("Invalid value type: ", "a Boolean was expected");
+            // TODO: Check to see if this case will cause errors
+            // FUSEJS_THROW_EXCEPTION("Invalid value type: ", "a Boolean was expected");
         }
 #if FUSE_USE_VERSION > 27
         fileInfo->fi->nonseekable = value->IsTrue() ? 1 : 0;
@@ -233,7 +236,8 @@ namespace NodeFuse {
         FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
 
         if (!value->IsNumber()) {
-            FUSEJS_THROW_EXCEPTION("Invalid value type: ", "a Number was expected");
+            // TODO: Check to see if this case will cause errors
+            // FUSEJS_THROW_EXCEPTION("Invalid value type: ", "a Number was expected");
         }
 
         fileInfo->fi->fh = value->IntegerValue();
