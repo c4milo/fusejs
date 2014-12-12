@@ -106,18 +106,18 @@ namespace NodeFuse {
         */
 
         int flags = fileInfo->fi->flags;
-        if (flags & O_RDONLY) {
-            flagsObj->Set(rdonly_sym, True());
-        }
 
-        if (flags & O_WRONLY) {
-            flagsObj->Set(wronly_sym, True());
+        switch( flags & 3){
+            case 0:
+                flagsObj->Set(rdonly_sym, True());
+                break;
+            case 1:
+                flagsObj->Set(wronly_sym, True());
+                break;
+            case 2:
+                flagsObj->Set(rdwr_sym, True());
+                break;
         }
-
-        if (flags & O_RDWR) {
-            flagsObj->Set(rdwr_sym, True());
-        }
-
         if (flags & O_NONBLOCK) {
             flagsObj->Set(nonblock_sym, True());
         }
