@@ -236,8 +236,9 @@ namespace NodeFuse {
         FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
 
         if (!value->IsNumber()) {
-            // TODO: Check to see if this case will cause errors
-            // FUSEJS_THROW_EXCEPTION("Invalid value type: ", "a Number was expected");
+            v8::Local<v8::Value> exception = v8::Exception::Error(                      
+            v8::String::Concat(v8::String::New("Invalid value type:"), v8::String::New("a Number was expected")));        
+            v8::ThrowException(exception);         
         }
 
         fileInfo->fi->fh = value->IntegerValue();

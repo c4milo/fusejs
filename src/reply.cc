@@ -52,14 +52,15 @@ namespace NodeFuse {
         int argslen = args.Length();
 
         if (argslen == 0) {
-            return ThrowException(Exception::TypeError(
-            String::New("You must specify arguments to invoke this function")));
+            ThrowException(Exception::TypeError(
+                String::New("You must specify arguments to invoke this function")));
         }
 
         Local<Value> arg = args[0];
         if (!arg->IsObject()) {
-            return ThrowException(Exception::TypeError(
-            String::New("You must specify an object as first argument")));
+            ThrowException(Exception::TypeError(
+                String::New("You must specify an object as first argument")));
+            return scope.Close( Null() ) ;
         }
 
         int ret = -1;
@@ -68,16 +69,16 @@ namespace NodeFuse {
         ret = ObjectToFuseEntryParam(arg, &entry);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Unrecognized fuse entry structure: ", "Unable to reply the operation");
-            return Null();
+            return scope.Close( Null() ) ;
         }
 
         ret = fuse_reply_entry(reply->request, &entry);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
-            return Null();
+            return scope.Close( Null() ) ;
         }
 
-        return Undefined();
+        return scope.Close( Undefined() ) ;
     }
 
     Handle<Value> Reply::Attributes(const Arguments& args) {
@@ -89,14 +90,16 @@ namespace NodeFuse {
         int argslen = args.Length();
 
         if (argslen == 0) {
-            return ThrowException(Exception::TypeError(
-            String::New("You must specify arguments to invoke this function")));
+            ThrowException(Exception::TypeError(
+                String::New("You must specify arguments to invoke this function")));
+            return scope.Close( Undefined() );
         }
 
         Local<Value> arg = args[0];
         if (!arg->IsObject()) {
-            return ThrowException(Exception::TypeError(
-            String::New("You must specify an object as first argument")));
+            ThrowException(Exception::TypeError(
+                String::New("You must specify an object as first argument")));
+            return scope.Close( Undefined() );
         }
 
         int ret = -1;
@@ -105,14 +108,14 @@ namespace NodeFuse {
         ret = ObjectToStat(arg, &statbuff);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Unrecognized stat object: ", "Unable to reply the operation");
-            return Null();
+            return scope.Close(  Null());
         }
 
         double timeout = 0;
         if (argslen == 2) {
             if (!args[1]->IsNumber()) {
                 FUSEJS_THROW_EXCEPTION("Invalid timeout, ", "it should be the number of seconds in which the attributes are considered valid.");
-                return Null();
+                return scope.Close(  Null());
             }
 
             timeout = args[1]->NumberValue();
@@ -121,10 +124,10 @@ namespace NodeFuse {
         ret = fuse_reply_attr(reply->request, &statbuff, timeout);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
-            return Null();
+            return scope.Close(  Null());
         }
 
-        return Undefined();
+        return scope.Close(  Undefined());
     }
 
     Handle<Value> Reply::ReadLink(const Arguments& args) {
@@ -136,14 +139,16 @@ namespace NodeFuse {
         int argslen = args.Length();
 
         if (argslen == 0) {
-            return ThrowException(Exception::TypeError(
-            String::New("You must specify arguments to invoke this function")));
+            ThrowException(Exception::TypeError(
+                String::New("You must specify arguments to invoke this function")));
+            return scope.Close(Undefined());
         }
 
         Local<Value> arg = args[0];
         if (!arg->IsString()) {
-            return ThrowException(Exception::TypeError(
-            String::New("You must specify a string as first argument")));
+            ThrowException(Exception::TypeError(
+                String::New("You must specify a string as first argument")));
+            return scope.Close(Undefined());
         }
 
         String::Utf8Value link(arg->ToString());
@@ -152,10 +157,10 @@ namespace NodeFuse {
         ret = fuse_reply_readlink(reply->request, (const char*) *link);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
-            return Null();
+            return scope.Close( Null() );
         }
 
-        return Undefined();
+        return scope.Close( Undefined() );
     }
 
     Handle<Value> Reply::Error(const Arguments& args) {
@@ -166,24 +171,26 @@ namespace NodeFuse {
 
         int argslen = args.Length();
         if (argslen == 0) {
-            return ThrowException(Exception::TypeError(
-            String::New("You must specify arguments to invoke this function")));
+            ThrowException(Exception::TypeError(
+                String::New("You must specify arguments to invoke this function")));
+            return scope.Close(Undefined());
         }
 
         Local<Value> arg = args[0];
         if (!arg->IsInt32()) {
-            return ThrowException(Exception::TypeError(
-            String::New("You must specify a number as first argument")));
+            ThrowException(Exception::TypeError(
+                String::New("You must specify a number as first argument")));
+            return scope.Close(Undefined());
         }
 
         int ret = -1;
         ret = fuse_reply_err(reply->request, arg->Int32Value());
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
-            return Null();
+            return scope.Close(Null());
         }
 
-        return Undefined();
+        return scope.Close(Undefined());
     }
 
     Handle<Value> Reply::Open(const Arguments& args) {
@@ -194,14 +201,16 @@ namespace NodeFuse {
 
         int argslen = args.Length();
         if (argslen == 0) {
-            return ThrowException(Exception::TypeError(
-            String::New("You must specify arguments to invoke this function")));
+            ThrowException(Exception::TypeError(
+                String::New("You must specify arguments to invoke this function")));
+            return scope.Close(Undefined());
         }
 
         Local<Object> fiobj = args[0]->ToObject();
         if (!FileInfo::HasInstance(fiobj)) {
-            return ThrowException(Exception::TypeError(
-            String::New("You must specify a FileInfo object as first argument")));
+            ThrowException(Exception::TypeError(
+                String::New("You must specify a FileInfo object as first argument")));
+            return scope.Close(Undefined());
         }
 
         FileInfo* fileInfo = ObjectWrap::Unwrap<FileInfo>(fiobj);
@@ -210,10 +219,10 @@ namespace NodeFuse {
         ret = fuse_reply_open(reply->request, fileInfo->fi);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
-            return Null();
+            return scope.Close(Null());
         }
 
-        return Undefined();
+        return scope.Close(Undefined());
     }
 
     Handle<Value> Reply::Buffer(const Arguments& args) {
@@ -224,30 +233,41 @@ namespace NodeFuse {
 
         int argslen = args.Length();
         if (argslen == 0) {
-            return ThrowException(Exception::TypeError(
-            String::New("You must specify 2 arguments to invoke this function")));
+            ThrowException(Exception::TypeError(
+                String::New("You must specify 2 arguments to invoke this function")));
+            return scope.Close( Undefined());
         }
 
         if (!Buffer::HasInstance(args[0])) {
-            return ThrowException(Exception::TypeError(
-            String::New("You must specify a Buffer object as first argument")));
+            ThrowException(Exception::TypeError(
+                String::New("You must specify a Buffer object as first argument")));
+            return scope.Close( Undefined());
+
         }
-        // if (!args[1]->IsNumber()) {
-        //     return ThrowException(Exception::TypeError(
-        //         String::New("You must specify the offset of the buffer")));
-        // }
+        if (!args[1]->IsNumber()) {
+            ThrowException(Exception::TypeError(
+                String::New("You must specify the size of the buffer")));
+            return scope.Close( Undefined());
+
+        }
 
         int ret = -1;
-        off_t offset = args[1]->IntegerValue();
+        size_t size = args[1]->IntegerValue();
 
         if (reply->dentry_buffer == NULL){
+            printf("req after read %llu\n", reply->request ); 
             Local<Object> buffer = args[0]->ToObject();
             const char* data = Buffer::Data(buffer);
-            ret = fuse_reply_buf(reply->request, data, Buffer::Length(buffer));
+            // const char *str = "hello world";
+            const char* persistent_data = (char*) malloc(size);
+            memcpy( (void *) persistent_data, data, size);
+            // printf("buffer length %d - %d\n",Buffer::Length(buffer), size);
+            // ret = fuse_reply_buf(reply->request, persistent_data, size);
+            ret = fuse_reply_buf( reply->request, persistent_data, size);
         }else{
 
             if (reply->dentry_offset < reply->dentry_acc_size){
-                ret = fuse_reply_buf(reply->request, reply->dentry_buffer + reply->dentry_offset, MIN(reply->dentry_acc_size - reply->dentry_offset,offset) );
+                ret = fuse_reply_buf(reply->request, reply->dentry_buffer + reply->dentry_offset, MIN(reply->dentry_acc_size - reply->dentry_offset,size) );
             }else{
                 ret = fuse_reply_buf(reply->request, NULL, 0 );
             }
@@ -255,10 +275,10 @@ namespace NodeFuse {
         }
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
-            return Null();
         }
+        printf("end of the reply buffer");
 
-        return Undefined();
+        return scope.Close(Undefined() );
     }
 
     Handle<Value> Reply::Write(const Arguments& args) {
@@ -269,24 +289,26 @@ namespace NodeFuse {
 
         int argslen = args.Length();
         if (argslen == 0) {
-            return ThrowException(Exception::TypeError(
-            String::New("You must specify arguments to invoke this function")));
+            ThrowException(Exception::TypeError(
+                String::New("You must specify arguments to invoke this function")));
+            return scope.Close(Undefined());
         }
 
         Local<Value> arg = args[0];
         if (!arg->IsNumber()) {
-            return ThrowException(Exception::TypeError(
-            String::New("You must specify the number of bytes written as first argument")));
+            ThrowException(Exception::TypeError(
+                String::New("You must specify the number of bytes written as first argument")));
+            return scope.Close(Undefined());
         }
 
         int ret = -1;
         ret = fuse_reply_write(reply->request, arg->IntegerValue());
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
-            return Null();
+            return scope.Close(Null());
         }
 
-        return Undefined();
+        return scope.Close(Undefined());
     }
 
     Handle<Value> Reply::StatFs(const Arguments& args) {
@@ -301,29 +323,31 @@ namespace NodeFuse {
         int argslen = args.Length();
 
         if (argslen == 0) {
-            return ThrowException(Exception::TypeError(
-            String::New("You must specify arguments to invoke this function")));
+            ThrowException(Exception::TypeError(
+                String::New("You must specify arguments to invoke this function")));
+            return scope.Close(Undefined());
         }
 
         Local<Value> arg = args[0];
         if (!arg->IsObject()) {
-            return ThrowException(Exception::TypeError(
-            String::New("You must specify a object as first argument")));
+            ThrowException(Exception::TypeError(
+                String::New("You must specify a object as first argument")));
+            return scope.Close(Null());
         }
 
         ret = ObjectToStatVfs(arg, &buf);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Unrecognized statvfs object: ", "Unable to reply the operation");
-            return Null();
+            return scope.Close(Null());
         }
 
         ret = fuse_reply_statfs(reply->request, &buf);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
-            return Null();
+            return scope.Close(Null());
         }
 
-        return Undefined();
+        return scope.Close(Undefined());
     }
 
     Handle<Value> Reply::Create(const Arguments& args) {
@@ -335,14 +359,16 @@ namespace NodeFuse {
         int argslen = args.Length();
 
         if (argslen == 0 || argslen < 2) {
-            return ThrowException(Exception::TypeError(
-            String::New("You must specify at least two arguments to invoke this function")));
+            ThrowException(Exception::TypeError(
+                String::New("You must specify at least two arguments to invoke this function")));
+            return scope.Close(Undefined());
         }
 
         Local<Value> params = args[0];
         if (!params->IsObject()) {
-            return ThrowException(Exception::TypeError(
-            String::New("You must specify an object as first argument")));
+            ThrowException(Exception::TypeError(
+                String::New("You must specify an object as first argument")));
+            return scope.Close(Undefined());
         }
 
         int ret = -1;
@@ -351,13 +377,14 @@ namespace NodeFuse {
         ret = ObjectToFuseEntryParam(params, &entry);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Unrecognized fuse entry structure: ", "Unable to reply the operation");
-            return Null();
+            return scope.Close( Null() );
         }
 
         Local<Object> fiobj = args[1]->ToObject();
         if (!FileInfo::HasInstance(fiobj)) {
-            return ThrowException(Exception::TypeError(
-            String::New("You must specify a FileInfo object as second argument")));
+            ThrowException(Exception::TypeError(
+                String::New("You must specify a FileInfo object as second argument")));
+            return scope.Close( Null());
         }
 
         FileInfo* fileInfo = ObjectWrap::Unwrap<FileInfo>(fiobj);
@@ -365,10 +392,10 @@ namespace NodeFuse {
         ret = fuse_reply_create(reply->request, &entry, fileInfo->fi);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
-            return Null();
+            return scope.Close(  Null() );
         }
 
-        return Undefined();
+        return scope.Close(  Undefined() );
     }
 
     Handle<Value> Reply::XAttributes(const Arguments& args) {
@@ -379,24 +406,26 @@ namespace NodeFuse {
 
         int argslen = args.Length();
         if (argslen == 0) {
-            return ThrowException(Exception::TypeError(
-            String::New("You must specify arguments to invoke this function")));
+            ThrowException(Exception::TypeError(
+                String::New("You must specify arguments to invoke this function")));
+            return scope.Close(Undefined());
         }
 
         Local<Value> arg = args[0];
         if (!arg->IsInt32()) {
-            return ThrowException(Exception::TypeError(
-            String::New("You must specify a number as first argument")));
+            ThrowException(Exception::TypeError(
+                String::New("You must specify a number as first argument")));
+            return scope.Close(Undefined());
         }
 
         int ret = -1;
         ret = fuse_reply_xattr(reply->request, arg->Int32Value());
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
-            return Null();
+            return scope.Close( Null() );
         }
 
-        return Undefined();
+        return scope.Close( Undefined() );
     }
 
     Handle<Value> Reply::Lock(const Arguments& args) {
@@ -408,14 +437,16 @@ namespace NodeFuse {
         int argslen = args.Length();
 
         if (argslen == 0) {
-            return ThrowException(Exception::TypeError(
-            String::New("You must specify arguments to invoke this function")));
+            ThrowException(Exception::TypeError(
+                String::New("You must specify arguments to invoke this function")));
+            return scope.Close(Undefined());
         }
 
         Local<Value> arg = args[0];
         if (!arg->IsObject()) {
-            return ThrowException(Exception::TypeError(
-            String::New("You must specify a Lock object as first argument")));
+            ThrowException(Exception::TypeError(
+                String::New("You must specify a Lock object as first argument")));
+            return scope.Close(Undefined());
         }
 
         int ret = -1;
@@ -424,16 +455,16 @@ namespace NodeFuse {
 
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Unrecognized lock object: ", "Unable to reply the operation");
-            return Null();
+            return scope.Close(Null());
         }
 
         ret = fuse_reply_lock(reply->request, &lock);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
-            return Null();
+            return scope.Close( Null() );
         }
 
-        return Undefined();
+        return scope.Close( Undefined());
     }
 
     Handle<Value> Reply::BMap(const Arguments& args) {
@@ -444,24 +475,26 @@ namespace NodeFuse {
 
         int argslen = args.Length();
         if (argslen == 0) {
-            return ThrowException(Exception::TypeError(
-            String::New("You must specify arguments to invoke this function")));
+            ThrowException(Exception::TypeError(
+                String::New("You must specify arguments to invoke this function")));
+            return scope.Close(Undefined());
         }
 
         Local<Value> arg = args[0];
         if (!arg->IsNumber()) {
-            return ThrowException(Exception::TypeError(
-            String::New("You must specify a number as first argument")));
+            ThrowException(Exception::TypeError(
+                String::New("You must specify a number as first argument")));
+            return scope.Close(Undefined());
         }
 
         int ret = -1;
         ret = fuse_reply_bmap(reply->request, arg->IntegerValue());
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
-            return Null();
+            return scope.Close(  Null() );
         }
 
-        return Undefined();
+        return scope.Close(  Undefined() );
     }
 
     Handle<Value> Reply::AddDirEntry(const Arguments& args) {
@@ -472,28 +505,33 @@ namespace NodeFuse {
         int argslen = args.Length();
 
         if (argslen == 0 || argslen < 4) {
-            return ThrowException(Exception::TypeError(
-            String::New("You must specify four arguments to invoke this function")));
+            ThrowException(Exception::TypeError(
+                String::New("You must specify four arguments to invoke this function")));
+            return scope.Close(Undefined());
         }
 
         if (!args[0]->IsString()) {
-            return ThrowException(Exception::TypeError(
+            ThrowException(Exception::TypeError(
                 String::New("You must specify an entry name String as first argument")));
+            return scope.Close(Undefined());
         }
 
         if (!args[1]->IsNumber()) {
-            return ThrowException(Exception::TypeError(
+            ThrowException(Exception::TypeError(
                 String::New("You must specify the requested size number as second argument")));
+            return scope.Close(Undefined());
         }
 
         if (!args[2]->IsObject()) {
-            return ThrowException(Exception::TypeError(
+            ThrowException(Exception::TypeError(
                 String::New("You must specify stat Object as third argument")));
+            return scope.Close(Undefined());
         }
 
         if (!args[3]->IsNumber()) {
-            return ThrowException(Exception::TypeError(
+            ThrowException(Exception::TypeError(
                 String::New("You must specify a offset number as fourth argument")));
+            return scope.Close(Undefined());
         }
 
         String::Utf8Value name(args[0]->ToString());
@@ -517,8 +555,8 @@ namespace NodeFuse {
         }         
         reply->dentry_buffer = buffer;
         size_t len2 = fuse_add_direntry(reply->request, (char*) (buffer + acc_size),
-                                       requestedSize - acc_size,
-                                       (const char*) *name, &statbuff, acc_size + len);
+         requestedSize - acc_size,
+         (const char*) *name, &statbuff, acc_size + len);
         
         // fprintf(stderr, "Current length! -> %d\n", (int)reply->dentry_cur_length);
 
@@ -532,7 +570,5 @@ namespace NodeFuse {
         reply->dentry_cur_length++;
 
         return scope.Close(Integer::New(len2));
-        }
     }
-
-//} //ends namespace NodeFuse
+} //ends namespace NodeFuse

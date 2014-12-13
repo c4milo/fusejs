@@ -63,37 +63,37 @@ namespace NodeFuse {
     static Persistent<String> conn_info_want_sym            = NODE_PSYMBOL("want");
 
     void FileSystem::Initialize() {
-        fuse_ops.init       = FileSystem::Init;
-        fuse_ops.destroy    = FileSystem::Destroy;
+        // fuse_ops.init       = FileSystem::Init;
+        // fuse_ops.destroy    = FileSystem::Destroy;
         fuse_ops.lookup     = FileSystem::Lookup;
-        fuse_ops.forget     = FileSystem::Forget;
+        // fuse_ops.forget     = FileSystem::Forget;
         fuse_ops.getattr    = FileSystem::GetAttr;
-        fuse_ops.setattr    = FileSystem::SetAttr;
+        // fuse_ops.setattr    = FileSystem::SetAttr;
         // fuse_ops.readlink   = FileSystem::ReadLink;
         // fuse_ops.mknod      = FileSystem::MkNod;
-        fuse_ops.mkdir      = FileSystem::MkDir;
-        fuse_ops.unlink     = FileSystem::Unlink;
-        fuse_ops.rmdir      = FileSystem::RmDir;
+        // fuse_ops.mkdir      = FileSystem::MkDir;
+        // fuse_ops.unlink     = FileSystem::Unlink;
+        // fuse_ops.rmdir      = FileSystem::RmDir;
         // fuse_ops.symlink    = FileSystem::SymLink;
-        fuse_ops.rename     = FileSystem::Rename;
-        fuse_ops.link       = FileSystem::Link;
+        // fuse_ops.rename     = FileSystem::Rename;
+        // fuse_ops.link       = FileSystem::Link;
         fuse_ops.open       = FileSystem::Open;
         fuse_ops.read       = FileSystem::Read;
-        fuse_ops.write      = FileSystem::Write;
-        fuse_ops.flush      = FileSystem::Flush;
-        fuse_ops.release    = FileSystem::Release;
+        // fuse_ops.write      = FileSystem::Write;
+        // fuse_ops.flush      = FileSystem::Flush;
+        // fuse_ops.release    = FileSystem::Release;
         // fuse_ops.fsync      = FileSystem::FSync;
-        fuse_ops.opendir    = FileSystem::OpenDir;
+        // fuse_ops.opendir    = FileSystem::OpenDir;
         fuse_ops.readdir    = FileSystem::ReadDir;
         // fuse_ops.releasedir = FileSystem::ReleaseDir;
         // fuse_ops.fsyncdir   = FileSystem::FSyncDir;
-        fuse_ops.statfs     = FileSystem::StatFs;
+        // fuse_ops.statfs     = FileSystem::StatFs;
         // fuse_ops.setxattr   = FileSystem::SetXAttr;
         // fuse_ops.getxattr   = FileSystem::GetXAttr;
         // fuse_ops.listxattr  = FileSystem::ListXAttr;
         // fuse_ops.removexattr= FileSystem::RemoveXAttr;
-        fuse_ops.access     = FileSystem::Access;
-        fuse_ops.create     = FileSystem::Create;
+        // fuse_ops.access     = FileSystem::Access;
+        // fuse_ops.create     = FileSystem::Create;
         // fuse_ops.getlk      = FileSystem::GetLock;
         // fuse_ops.setlk      = FileSystem::SetLock;
         // fuse_ops.bmap       = FileSystem::BMap;
@@ -555,6 +555,7 @@ namespace NodeFuse {
                           off_t off,
                           struct fuse_file_info* fi) {
         HandleScope scope;
+        printf("req before read %llu\n", req );        
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
         Local<Value> vread = fuse->fsobj->Get(read_sym);

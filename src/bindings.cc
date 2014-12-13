@@ -57,7 +57,7 @@ namespace NodeFuse {
         Local<Object> obj = args.This();
         fuse->Wrap(obj);
 
-        return obj;
+        return scope.Close( obj );
     }
 
     Handle<Value> Fuse::Mount(const Arguments& args) {
@@ -66,13 +66,15 @@ namespace NodeFuse {
         int argslen = args.Length();
 
         if (argslen == 0) {
-            return ThrowException(Exception::TypeError(
+            ThrowException(Exception::TypeError(
             String::New("You must specify arguments to invoke this function")));
+            return scope.Close(Undefined());
         }
 
         if (!args[0]->IsObject()) {
-            return ThrowException(Exception::TypeError(
+            ThrowException(Exception::TypeError(
             String::New("You must specify an Object as first argument")));
+            return scope.Close(Undefined());
         }
 
         Local<Object> argsObj = args[0]->ToObject();
@@ -85,19 +87,22 @@ namespace NodeFuse {
         Local<Value> voptions = argsObj->Get(options_sym);
 
         /*if (!vmountpoint->IsString()) {
-            return ThrowException(Exception::TypeError(
+            ThrowException(Exception::TypeError)(
                 String::New("Wrong type for property 'mountpoint', a String is expected")));
+                            return scope.Close(Undefined());
 
         }*/
 
         if (!vfilesystem->IsFunction()) {
-            return ThrowException(Exception::TypeError(
+            ThrowException(Exception::TypeError(
                 String::New("Wrong type for property 'filesystem', a Function is expected")));
+            return scope.Close(Undefined());
         }
 
         if (!voptions->IsArray()) {
-            return ThrowException(Exception::TypeError(
+            ThrowException(Exception::TypeError(
                 String::New("Wrong type for property 'options', an Array is expected")));
+            return scope.Close(Undefined());
         }
 
         Local<Array> options = Local<Array>::Cast(voptions);
@@ -117,10 +122,10 @@ namespace NodeFuse {
 
         for (int i = 1; i < argc; i++) {
             String::Utf8Value option(options->Get(Integer::New(i))->ToString());
-
+            printf("%d - %s\n",i,(const char *)*option);
             if (fuse_opt_add_arg(fuse->fargs, (const char *) *option) == -1) {
                 FUSEJS_THROW_EXCEPTION("Unable to allocate memory, fuse_opt_add_arg failed: ", strerror(errno));
-                return Null();
+                return scope.Close(Null());
             }
         }
 
@@ -131,18 +136,18 @@ namespace NodeFuse {
                                         &fuse->multithreaded, &fuse->foreground);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error parsing fuse options: ", strerror(errno));
-            return Null();
+            return scope.Close(Null());
         }
 
         if (!fuse->mountpoint) {
             FUSEJS_THROW_EXCEPTION("Mount point argument was not found", "");
-            return Null();
+            return scope.Close(Null());
         }
 
         fuse->channel = fuse_mount((const char*) fuse->mountpoint, fuse->fargs);
         if (fuse->channel == NULL) {
             FUSEJS_THROW_EXCEPTION("Unable to mount filesystem: ", strerror(errno));
-            return Null();
+            return scope.Close(Null());
         }
 
         Local<Value> argv[2] = {
@@ -165,7 +170,7 @@ namespace NodeFuse {
             fuse_unmount(fuse->mountpoint, fuse->channel);
             fuse_opt_free_args(fuse->fargs);
             //FUSEJS_THROW_EXCEPTION("Error creating fuse session: ", strerror(errno));
-            return Null();
+            return scope.Close(Null());
         }
 
         ret = fuse_set_signal_handlers(fuse->session);
@@ -174,7 +179,7 @@ namespace NodeFuse {
             fuse_unmount(fuse->mountpoint, fuse->channel);
             fuse_opt_free_args(fuse->fargs);
             FUSEJS_THROW_EXCEPTION("Error setting fuse signal handlers: ", strerror(errno));
-            return Null();
+            return scope.Close(Null());
         }
 
         fuse_session_add_chan(fuse->session, fuse->channel);
@@ -190,10 +195,10 @@ namespace NodeFuse {
 
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error starting fuse session loop: ", strerror(errno));
-            return Null();
+            return scope.Close(Null());
         }
 
-        return currentInstance;
+        return scope.Close(currentInstance);
     }
 
     /*Handle<Value> Fuse::Unmount(const Arguments& args) {

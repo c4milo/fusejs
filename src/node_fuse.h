@@ -16,7 +16,6 @@ using namespace node;
     if (!obj->Has(symbol)) {                                                        \
         v8::ThrowException(v8::Exception::TypeError(                                \
         v8::String::New("You must have set the property " #name " in the object")));\
-        return scope.Close(Null());                                             \
     }                                                                               \
 
 #define FUSEJS_THROW_EXCEPTION(err, fuse_err)                                       \
