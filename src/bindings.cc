@@ -109,8 +109,8 @@ namespace NodeFuse {
         int argc = options->Length();
 
         //If no mountpoint is provided, show usage.
-        if (argc < 3) {
-            options->Set(Integer::New(2), String::New("--help"));
+        if (argc < 1) {
+            options->Set(Integer::New(0), String::New("--help"));
             argc++;
         }
 
@@ -120,7 +120,7 @@ namespace NodeFuse {
         struct fuse_args fargs = FUSE_ARGS_INIT(0, NULL);
         fuse->fargs = &fargs;
 
-        for (int i = 1; i < argc; i++) {
+        for (int i = 0; i < argc; i++) {
             String::Utf8Value option(options->Get(Integer::New(i))->ToString());
             printf("%d - %s\n",i,(const char *)*option);
             if (fuse_opt_add_arg(fuse->fargs, (const char *) *option) == -1) {

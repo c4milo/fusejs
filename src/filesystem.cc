@@ -555,7 +555,6 @@ namespace NodeFuse {
                           off_t off,
                           struct fuse_file_info* fi) {
         HandleScope scope;
-        printf("req before read %llu\n", req );        
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
         Local<Value> vread = fuse->fsobj->Get(read_sym);

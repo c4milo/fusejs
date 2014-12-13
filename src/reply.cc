@@ -276,7 +276,6 @@ namespace NodeFuse {
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
         }
-        printf("end of the reply buffer");
 
         return scope.Close(Undefined() );
     }
