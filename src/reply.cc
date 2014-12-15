@@ -60,7 +60,7 @@ namespace NodeFuse {
         if (!arg->IsObject()) {
             ThrowException(Exception::TypeError(
                 String::New("You must specify an object as first argument")));
-            return scope.Close( Null() ) ;
+            return scope.Close(  Undefined() ) ;
         }
 
         int ret = -1;
@@ -69,13 +69,13 @@ namespace NodeFuse {
         ret = ObjectToFuseEntryParam(arg, &entry);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Unrecognized fuse entry structure: ", "Unable to reply the operation");
-            return scope.Close( Null() ) ;
+            return scope.Close(  Undefined() ) ;
         }
 
         ret = fuse_reply_entry(reply->request, &entry);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
-            return scope.Close( Null() ) ;
+            return scope.Close(  Undefined() ) ;
         }
 
         return scope.Close( Undefined() ) ;
@@ -108,14 +108,14 @@ namespace NodeFuse {
         ret = ObjectToStat(arg, &statbuff);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Unrecognized stat object: ", "Unable to reply the operation");
-            return scope.Close(  Null());
+            return scope.Close(   Undefined());
         }
 
         double timeout = 0;
         if (argslen == 2) {
             if (!args[1]->IsNumber()) {
                 FUSEJS_THROW_EXCEPTION("Invalid timeout, ", "it should be the number of seconds in which the attributes are considered valid.");
-                return scope.Close(  Null());
+                return scope.Close(   Undefined());
             }
 
             timeout = args[1]->NumberValue();
@@ -124,7 +124,7 @@ namespace NodeFuse {
         ret = fuse_reply_attr(reply->request, &statbuff, timeout);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
-            return scope.Close(  Null());
+            return scope.Close(   Undefined());
         }
 
         return scope.Close(  Undefined());
@@ -157,7 +157,7 @@ namespace NodeFuse {
         ret = fuse_reply_readlink(reply->request, (const char*) *link);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
-            return scope.Close( Null() );
+            return scope.Close(  Undefined() );
         }
 
         return scope.Close( Undefined() );
@@ -187,7 +187,7 @@ namespace NodeFuse {
         ret = fuse_reply_err(reply->request, arg->Int32Value());
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
-            return scope.Close(Null());
+            return scope.Close( Undefined());
         }
 
         return scope.Close(Undefined());
@@ -219,7 +219,7 @@ namespace NodeFuse {
         ret = fuse_reply_open(reply->request, fileInfo->fi);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
-            return scope.Close(Null());
+            return scope.Close( Undefined());
         }
 
         return scope.Close(Undefined());
@@ -298,7 +298,7 @@ namespace NodeFuse {
         ret = fuse_reply_write(reply->request, arg->IntegerValue());
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
-            return scope.Close(Null());
+            return scope.Close( Undefined());
         }
 
         return scope.Close(Undefined());
@@ -325,19 +325,19 @@ namespace NodeFuse {
         if (!arg->IsObject()) {
             ThrowException(Exception::TypeError(
                 String::New("You must specify a object as first argument")));
-            return scope.Close(Null());
+            return scope.Close( Undefined());
         }
 
         ret = ObjectToStatVfs(arg, &buf);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Unrecognized statvfs object: ", "Unable to reply the operation");
-            return scope.Close(Null());
+            return scope.Close( Undefined());
         }
 
         ret = fuse_reply_statfs(reply->request, &buf);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
-            return scope.Close(Null());
+            return scope.Close( Undefined());
         }
 
         return scope.Close(Undefined());
@@ -370,14 +370,14 @@ namespace NodeFuse {
         ret = ObjectToFuseEntryParam(params, &entry);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Unrecognized fuse entry structure: ", "Unable to reply the operation");
-            return scope.Close( Null() );
+            return scope.Close(  Undefined() );
         }
 
         Local<Object> fiobj = args[1]->ToObject();
         if (!FileInfo::HasInstance(fiobj)) {
             ThrowException(Exception::TypeError(
                 String::New("You must specify a FileInfo object as second argument")));
-            return scope.Close( Null());
+            return scope.Close(  Undefined());
         }
 
         FileInfo* fileInfo = ObjectWrap::Unwrap<FileInfo>(fiobj);
@@ -385,7 +385,7 @@ namespace NodeFuse {
         ret = fuse_reply_create(reply->request, &entry, fileInfo->fi);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
-            return scope.Close(  Null() );
+            return scope.Close(   Undefined() );
         }
 
         return scope.Close(  Undefined() );
@@ -415,7 +415,7 @@ namespace NodeFuse {
         ret = fuse_reply_xattr(reply->request, arg->Int32Value());
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
-            return scope.Close( Null() );
+            return scope.Close(  Undefined() );
         }
 
         return scope.Close( Undefined() );
@@ -448,13 +448,13 @@ namespace NodeFuse {
 
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Unrecognized lock object: ", "Unable to reply the operation");
-            return scope.Close(Null());
+            return scope.Close( Undefined());
         }
 
         ret = fuse_reply_lock(reply->request, &lock);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
-            return scope.Close( Null() );
+            return scope.Close(  Undefined() );
         }
 
         return scope.Close( Undefined());
@@ -484,7 +484,7 @@ namespace NodeFuse {
         ret = fuse_reply_bmap(reply->request, arg->IntegerValue());
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
-            return scope.Close(  Null() );
+            return scope.Close(   Undefined() );
         }
 
         return scope.Close(  Undefined() );

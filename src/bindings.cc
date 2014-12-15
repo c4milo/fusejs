@@ -174,7 +174,7 @@ namespace NodeFuse {
             String::Utf8Value option(options->Get(Integer::New(i))->ToString());
             if (fuse_opt_add_arg(fuse->fargs, (const char *) *option) == -1) {
                 FUSEJS_THROW_EXCEPTION("Unable to allocate memory, fuse_opt_add_arg failed: ", strerror(errno));
-                return scope.Close(Null());
+                return scope.Close( Undefined());
             }
         }
 
@@ -185,18 +185,18 @@ namespace NodeFuse {
                                         &fuse->multithreaded, &fuse->foreground);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error parsing fuse options: ", strerror(errno));
-            return scope.Close(Null());
+            return scope.Close( Undefined());
         }
 
         if (!fuse->mountpoint) {
             FUSEJS_THROW_EXCEPTION("Mount point argument was not found", "");
-            return scope.Close(Null());
+            return scope.Close( Undefined());
         }
 
         fuse->channel = fuse_mount((const char*) fuse->mountpoint, fuse->fargs);
         if (fuse->channel == NULL) {
             FUSEJS_THROW_EXCEPTION("Unable to mount filesystem: ", strerror(errno));
-            return scope.Close(Null());
+            return scope.Close( Undefined());
         }
 
         Local<Value> argv[2] = {
