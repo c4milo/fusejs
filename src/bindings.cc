@@ -1,7 +1,8 @@
 // Copyright 2012, Camilo Aguilar. Cloudescape, LLC.
 #include <stdlib.h>
-#include "bindings.h"
 
+#include "bindings.h"
+uv_async_t uv_async_handle;
 namespace NodeFuse {
     Persistent<FunctionTemplate> Fuse::constructor_template;
 
@@ -60,6 +61,55 @@ namespace NodeFuse {
         return scope.Close( obj );
     }
 
+    void Fuse::RemoteMount(void *_args_) {
+        Fuse *fuse  = (Fuse *) _args_; 
+        int ret;
+        // fuse->channel = fuse_mount((const char*) fuse->mountpoint, fuse->fargs);
+        // if (fuse->channel == NULL) {
+        //     FUSEJS_THROW_EXCEPTION("Unable to mount filesystem: ", strerror(errno));
+        //     return;
+        // }
+
+        struct fuse_lowlevel_ops *operations = FileSystem::GetOperations();
+
+        fuse->session = fuse_lowlevel_new(fuse->fargs, operations,
+                                            sizeof(*operations), fuse);
+
+        if (fuse->session == NULL) {
+            fuse_unmount(fuse->mountpoint, fuse->channel);
+            fuse_opt_free_args(fuse->fargs);
+            //FUSEJS_THROW_EXCEPTION("Error creating fuse session: ", strerror(errno));
+            return;
+        }
+
+        ret = fuse_set_signal_handlers(fuse->session);
+        if (ret == -1) {
+            fuse_session_destroy(fuse->session);
+            fuse_unmount(fuse->mountpoint, fuse->channel);
+            fuse_opt_free_args(fuse->fargs);
+            FUSEJS_THROW_EXCEPTION("Error setting fuse signal handlers: ", strerror(errno));
+            return;
+        }
+
+        fuse_session_add_chan(fuse->session, fuse->channel);
+
+        ret = fuse_session_loop(fuse->session); //blocks here
+
+        //Continues executing if user unmounts the fs
+        fuse_remove_signal_handlers(fuse->session);
+        fuse_unmount(fuse->mountpoint, fuse->channel);
+        fuse_session_remove_chan(fuse->channel);
+        fuse_session_destroy(fuse->session);
+        // fuse_opt_free_args(fuse->fargs);
+
+        if (ret == -1) {
+            FUSEJS_THROW_EXCEPTION("Error starting fuse session loop: ", strerror(errno));
+            return;
+        }
+
+        return;
+    }
+    
     Handle<Value> Fuse::Mount(const Arguments& args) {
         HandleScope scope;
 
@@ -110,7 +160,7 @@ namespace NodeFuse {
 
         //If no mountpoint is provided, show usage.
         if (argc < 1) {
-            options->Set(Integer::New(0), String::New("--help"));
+            options->Set(Integer::New(1), String::New("--help"));
             argc++;
         }
 
@@ -122,7 +172,6 @@ namespace NodeFuse {
 
         for (int i = 0; i < argc; i++) {
             String::Utf8Value option(options->Get(Integer::New(i))->ToString());
-            printf("%d - %s\n",i,(const char *)*option);
             if (fuse_opt_add_arg(fuse->fargs, (const char *) *option) == -1) {
                 FUSEJS_THROW_EXCEPTION("Unable to allocate memory, fuse_opt_add_arg failed: ", strerror(errno));
                 return scope.Close(Null());
@@ -161,45 +210,15 @@ namespace NodeFuse {
         assert(fuse->fsobj->IsObject());
         assert(fuse->fsobj->Get(String::NewSymbol("init"))->IsFunction());
 
-        struct fuse_lowlevel_ops *operations = FileSystem::GetOperations();
+        uv_async_init(uv_default_loop(), &uv_async_handle, (uv_async_cb) FileSystem::DispatchOp);
+        uv_thread_t fuse_thread;
+        uv_thread_create(&fuse_thread, Fuse::RemoteMount, (void *) fuse);
 
-        fuse->session = fuse_lowlevel_new(fuse->fargs, operations,
-                                            sizeof(*operations), fuse);
 
-        if (fuse->session == NULL) {
-            fuse_unmount(fuse->mountpoint, fuse->channel);
-            fuse_opt_free_args(fuse->fargs);
-            //FUSEJS_THROW_EXCEPTION("Error creating fuse session: ", strerror(errno));
-            return scope.Close(Null());
-        }
-
-        ret = fuse_set_signal_handlers(fuse->session);
-        if (ret == -1) {
-            fuse_session_destroy(fuse->session);
-            fuse_unmount(fuse->mountpoint, fuse->channel);
-            fuse_opt_free_args(fuse->fargs);
-            FUSEJS_THROW_EXCEPTION("Error setting fuse signal handlers: ", strerror(errno));
-            return scope.Close(Null());
-        }
-
-        fuse_session_add_chan(fuse->session, fuse->channel);
-
-        ret = fuse_session_loop(fuse->session); //blocks here
-
-        //Continues executing if user unmounts the fs
-        fuse_remove_signal_handlers(fuse->session);
-        fuse_unmount(fuse->mountpoint, fuse->channel);
-        fuse_session_remove_chan(fuse->channel);
-        fuse_session_destroy(fuse->session);
-        fuse_opt_free_args(fuse->fargs);
-
-        if (ret == -1) {
-            FUSEJS_THROW_EXCEPTION("Error starting fuse session loop: ", strerror(errno));
-            return scope.Close(Null());
-        }
-
-        return scope.Close(currentInstance);
+        return scope.Close(Undefined());
     }
+
+
 
     /*Handle<Value> Fuse::Unmount(const Arguments& args) {
         HandleScope scope;

@@ -22,7 +22,6 @@ using namespace node;
         v8::Local<v8::Value> exception = v8::Exception::Error(                      \
         v8::String::Concat(v8::String::New(err), v8::String::New(fuse_err)));        \
         v8::ThrowException(exception);                                              \
-        return scope.Close(Null());                                             \
 
 namespace NodeFuse {
     int ObjectToFuseEntryParam(Handle<Value> value, struct fuse_entry_param* entry);

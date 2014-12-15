@@ -16,6 +16,7 @@ namespace NodeFuse {
         protected:
             static Handle<Value> New(const Arguments& args);
             static Handle<Value> Mount(const Arguments& args);
+            static void RemoteMount(void* args);
             //static Handle<Value> Unmount(const Arguments& args);
 
         private:

@@ -255,15 +255,9 @@ namespace NodeFuse {
         size_t size = args[1]->IntegerValue();
 
         if (reply->dentry_buffer == NULL){
-            printf("req after read %llu\n", reply->request ); 
             Local<Object> buffer = args[0]->ToObject();
             const char* data = Buffer::Data(buffer);
-            // const char *str = "hello world";
-            const char* persistent_data = (char*) malloc(size);
-            memcpy( (void *) persistent_data, data, size);
-            // printf("buffer length %d - %d\n",Buffer::Length(buffer), size);
-            // ret = fuse_reply_buf(reply->request, persistent_data, size);
-            ret = fuse_reply_buf( reply->request, persistent_data, size);
+            ret = fuse_reply_buf( reply->request, data, size);
         }else{
 
             if (reply->dentry_offset < reply->dentry_acc_size){

@@ -5,6 +5,8 @@
 #include "node_buffer.h"
 
 namespace NodeFuse {
+    ck_ring_t *ck_ring;
+    ck_ring_buffer_t ck_ring_buffer[_RING_SIZE_];
 
     static struct fuse_lowlevel_ops fuse_ops = {};
 
@@ -61,13 +63,105 @@ namespace NodeFuse {
     static Persistent<String> conn_info_capable_sym         = NODE_PSYMBOL("capable");
     //Capability flags, that the filesystem wants to enable
     static Persistent<String> conn_info_want_sym            = NODE_PSYMBOL("want");
+    
+    void FileSystem::DispatchOp(uv_async_t* handle, int status)
+    {
+        struct fuse_cmd *op = NULL; //(struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+
+        while (ck_ring_dequeue_spmc(ck_ring, ck_ring_buffer, (void*) &op) == true){
+            switch(op->op){
+                case _FUSE_OPS_LOOKUP_:
+                    RemoteLookup(op->req, op->ino, op->name);
+                    break;
+                case _FUSE_OPS_GETATTR_:
+                    RemoteGetAttr(op->req, op->ino, op->s.fi);
+                    break;
+                case _FUSE_OPS_OPEN_:
+                    RemoteOpen(op->req, op->ino, op->s.fi);
+                    break;
+                case _FUSE_OPS_READ_:
+                    RemoteRead(op->req, op->ino, op->size, op->off, (op->s).fi);
+                    break;
+                case _FUSE_OPS_READDIR_:
+                    RemoteReadDir(op->req, op->ino, op->size, op->off, (op->s).fi);
+                    break;
+                case _FUSE_OPS_INIT_:
+                    break;
+                case _FUSE_OPS_DESTROY_:
+                    break;
+                case _FUSE_OPS_FORGET_:
+                    break;
+                case _FUSE_OPS_SETATTR_:
+                    break;
+                case _FUSE_OPS_READLINK_:
+                    break;
+                case _FUSE_OPS_MKNOD_:
+                    break;
+                case _FUSE_OPS_MKDIR_:
+                    break;
+                case _FUSE_OPS_UNLINK_:
+                    break;
+                case _FUSE_OPS_RMDIR_:
+                    break;
+                case _FUSE_OPS_SYMLINK_:
+                    break;
+                case _FUSE_OPS_RENAME_:
+                    break;
+                case _FUSE_OPS_LINK_:
+                    break;
+                case _FUSE_OPS_WRITE_:
+                    break;
+                case _FUSE_OPS_FLUSH_:
+                    break;
+                case _FUSE_OPS_RELEASE_:
+                    break;
+                case _FUSE_OPS_FSYNC_:
+                    break;
+                case _FUSE_OPS_OPENDIR_:
+                    break;
+                case _FUSE_OPS_RELEASEDIR_:
+                    break;
+                case _FUSE_OPS_FSYNCDIR_:
+                    break;
+                case _FUSE_OPS_STATFS_:
+                    break;
+                case _FUSE_OPS_SETXATTR_:
+                    break;
+                case _FUSE_OPS_GETXATTR_:
+                    break;
+                case _FUSE_OPS_LISTXATTR_:
+                    break;
+                case _FUSE_OPS_REMOVEXATTR_:
+                    break;
+                case _FUSE_OPS_ACCESS_:
+                    break;
+                case _FUSE_OPS_CREATE_:
+                    break;
+                case _FUSE_OPS_GETLK_:
+                    break;
+                case _FUSE_OPS_SETLK_:
+                    break;
+                case _FUSE_OPS_BMAP_:
+                    break;
+            }
+            free(op);
+        }
+    }
+
 
     void FileSystem::Initialize() {
+
+        ck_ring = (ck_ring_t *) malloc(sizeof(ck_ring_t));
+        ck_ring_init(ck_ring, _RING_SIZE_);
+
+        fuse_ops.lookup     = FileSystem::Lookup;
+        fuse_ops.getattr    = FileSystem::GetAttr;
+        fuse_ops.open       = FileSystem::Open;
+        fuse_ops.read       = FileSystem::Read;
+        fuse_ops.readdir    = FileSystem::ReadDir;
         // fuse_ops.init       = FileSystem::Init;
         // fuse_ops.destroy    = FileSystem::Destroy;
-        fuse_ops.lookup     = FileSystem::Lookup;
         // fuse_ops.forget     = FileSystem::Forget;
-        fuse_ops.getattr    = FileSystem::GetAttr;
         // fuse_ops.setattr    = FileSystem::SetAttr;
         // fuse_ops.readlink   = FileSystem::ReadLink;
         // fuse_ops.mknod      = FileSystem::MkNod;
@@ -77,14 +171,11 @@ namespace NodeFuse {
         // fuse_ops.symlink    = FileSystem::SymLink;
         // fuse_ops.rename     = FileSystem::Rename;
         // fuse_ops.link       = FileSystem::Link;
-        fuse_ops.open       = FileSystem::Open;
-        fuse_ops.read       = FileSystem::Read;
         // fuse_ops.write      = FileSystem::Write;
         // fuse_ops.flush      = FileSystem::Flush;
         // fuse_ops.release    = FileSystem::Release;
         // fuse_ops.fsync      = FileSystem::FSync;
         // fuse_ops.opendir    = FileSystem::OpenDir;
-        fuse_ops.readdir    = FileSystem::ReadDir;
         // fuse_ops.releasedir = FileSystem::ReleaseDir;
         // fuse_ops.fsyncdir   = FileSystem::FSyncDir;
         // fuse_ops.statfs     = FileSystem::StatFs;
@@ -151,6 +242,23 @@ namespace NodeFuse {
     void FileSystem::Lookup(fuse_req_t req,
                             fuse_ino_t parent,
                             const char* name) {
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_LOOKUP_;
+        op->req = req;
+        op->ino = parent;
+        op->name = name;
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue lookup at inode %d - with child %s\n", (int) parent,name);
+            return;
+        }
+        uv_async_send(&uv_async_handle);
+
+
+    }
+
+    void FileSystem::RemoteLookup(fuse_req_t req,
+                            fuse_ino_t parent,
+                            const char* name) {
         HandleScope scope;
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
@@ -204,6 +312,23 @@ namespace NodeFuse {
     }
 
     void FileSystem::GetAttr(fuse_req_t req,
+                             fuse_ino_t ino,
+                             struct fuse_file_info* fi) {
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_GETATTR_;
+        op->req = req;
+        op->ino = ino;
+        (op->s).fi = fi;
+
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue getattr at inode %d\n", (int) ino);
+            return;
+        }
+
+        uv_async_send(&uv_async_handle);
+
+    }
+    void FileSystem::RemoteGetAttr(fuse_req_t req,
                              fuse_ino_t ino,
                              struct fuse_file_info* fi) {
         HandleScope scope;
@@ -518,6 +643,22 @@ namespace NodeFuse {
     void FileSystem::Open(fuse_req_t req,
                           fuse_ino_t ino,
                           struct fuse_file_info* fi) {
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_OPEN_;
+        op->req = req;
+        op->ino = ino;
+        op->s.fi = fi;
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue open at inode %d\n", (int) ino);
+            return;
+        }
+        uv_async_send(&uv_async_handle);
+
+    }
+    void FileSystem::RemoteOpen(fuse_req_t req,
+                          fuse_ino_t ino,
+                          struct fuse_file_info* fi) {
+
         HandleScope scope;
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
@@ -554,6 +695,27 @@ namespace NodeFuse {
                           size_t size_,
                           off_t off,
                           struct fuse_file_info* fi) {
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_READ_;
+        op->req = req;
+        op->ino = ino;
+        op->off = off;
+        op->size = size_;
+        op->s.fi = fi;
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue read at inode %d\n", (int) ino);
+            return;
+        }
+        uv_async_send(&uv_async_handle);
+
+
+    }
+    void FileSystem::RemoteRead(fuse_req_t req,
+                          fuse_ino_t ino,
+                          size_t size_,
+                          off_t off,
+                          struct fuse_file_info* fi) {
+
         HandleScope scope;
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
@@ -621,7 +783,6 @@ namespace NodeFuse {
                                 infoObj, replyObj};
 
         TryCatch try_catch;
-        //fprintf(stderr, "AAHHHHHHHHHHHHHHHH %d\n", ino);
         write->Call(fuse->fsobj, 6, argv);
 
         if (try_catch.HasCaught()) {
@@ -773,6 +934,26 @@ namespace NodeFuse {
                              size_t size_,
                              off_t off,
                              struct fuse_file_info* fi) {
+
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_READDIR_;
+        op->req = req;
+        op->ino = ino;
+        op->size = size_;
+        op->off = off;
+        op->s.fi = fi;
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue readdir at inode %d\n", (uint8_t) ino);
+            return;
+        }
+        uv_async_send(&uv_async_handle);
+    }
+    void FileSystem::RemoteReadDir(fuse_req_t req,
+                             fuse_ino_t ino,
+                             size_t size_,
+                             off_t off,
+                             struct fuse_file_info* fi) {
+
         HandleScope scope;
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
@@ -1267,6 +1448,7 @@ namespace NodeFuse {
 
 
     }
+
 
     struct fuse_lowlevel_ops* FileSystem::GetOperations() {
         return &fuse_ops;
