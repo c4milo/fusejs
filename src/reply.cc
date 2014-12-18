@@ -542,10 +542,6 @@ namespace NodeFuse {
 
         size_t len = fuse_add_direntry(reply-> request, NULL, 0, *name, &statbuff, 0);
         buffer = (char * )realloc(buffer, acc_size + len);
-        while(!buffer){
-            printf("failed to allocate buffer for direntry, retrying\n");
-            buffer = (char * )realloc(buffer, acc_size + len);
-        }         
         reply->dentry_buffer = buffer;
         size_t len2 = fuse_add_direntry(reply->request, (char*) (buffer + acc_size),
          requestedSize - acc_size,
