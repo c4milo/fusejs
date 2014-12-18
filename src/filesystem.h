@@ -49,10 +49,14 @@ namespace NodeFuse {
       fuse_ino_t ino;
       size_t size;
       off_t off;
+      dev_t dev;
+      mode_t mode;
       const char* name;
+      int to_set;
       union{
         struct fuse_file_info *fi;
       } s;
+      struct stat* attr;
       void *userdata;
     };
     class FileSystem {

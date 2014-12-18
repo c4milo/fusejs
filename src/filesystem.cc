@@ -92,10 +92,12 @@ namespace NodeFuse {
                 case _FUSE_OPS_FORGET_:
                     break;
                 case _FUSE_OPS_SETATTR_:
+                    RemoteSetAttr(op->req, op->ino, op->attr, op->to_set, op->s.fi);
                     break;
                 case _FUSE_OPS_READLINK_:
                     break;
                 case _FUSE_OPS_MKNOD_:
+                    RemoteMkNod(op->req, op->ino, op->name, op->mode, op-> dev);
                     break;
                 case _FUSE_OPS_MKDIR_:
                     break;
@@ -110,6 +112,7 @@ namespace NodeFuse {
                 case _FUSE_OPS_LINK_:
                     break;
                 case _FUSE_OPS_WRITE_:
+                    RemoteWrite(op->req, op->ino, op->name, op->size, op->off, op->s.fi);
                     break;
                 case _FUSE_OPS_FLUSH_:
                     break;
@@ -136,6 +139,7 @@ namespace NodeFuse {
                 case _FUSE_OPS_ACCESS_:
                     break;
                 case _FUSE_OPS_CREATE_:
+                    RemoteCreate(op->req, op->ino, op->name, op->mode, op->s.fi);
                     break;
                 case _FUSE_OPS_GETLK_:
                     break;
@@ -159,19 +163,20 @@ namespace NodeFuse {
         fuse_ops.open       = FileSystem::Open;
         fuse_ops.read       = FileSystem::Read;
         fuse_ops.readdir    = FileSystem::ReadDir;
+        fuse_ops.write      = FileSystem::Write;
+        // fuse_ops.create     = FileSystem::Create;
+        fuse_ops.setattr    = FileSystem::SetAttr;
         // fuse_ops.init       = FileSystem::Init;
         // fuse_ops.destroy    = FileSystem::Destroy;
         // fuse_ops.forget     = FileSystem::Forget;
-        // fuse_ops.setattr    = FileSystem::SetAttr;
         // fuse_ops.readlink   = FileSystem::ReadLink;
-        // fuse_ops.mknod      = FileSystem::MkNod;
+        fuse_ops.mknod      = FileSystem::MkNod;
         // fuse_ops.mkdir      = FileSystem::MkDir;
         // fuse_ops.unlink     = FileSystem::Unlink;
         // fuse_ops.rmdir      = FileSystem::RmDir;
         // fuse_ops.symlink    = FileSystem::SymLink;
         // fuse_ops.rename     = FileSystem::Rename;
         // fuse_ops.link       = FileSystem::Link;
-        // fuse_ops.write      = FileSystem::Write;
         // fuse_ops.flush      = FileSystem::Flush;
         // fuse_ops.release    = FileSystem::Release;
         // fuse_ops.fsync      = FileSystem::FSync;
@@ -184,7 +189,6 @@ namespace NodeFuse {
         // fuse_ops.listxattr  = FileSystem::ListXAttr;
         // fuse_ops.removexattr= FileSystem::RemoveXAttr;
         // fuse_ops.access     = FileSystem::Access;
-        // fuse_ops.create     = FileSystem::Create;
         // fuse_ops.getlk      = FileSystem::GetLock;
         // fuse_ops.setlk      = FileSystem::SetLock;
         // fuse_ops.bmap       = FileSystem::BMap;
@@ -361,6 +365,29 @@ namespace NodeFuse {
                              struct stat* attr,
                              int to_set,
                              struct fuse_file_info* fi) {
+
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_SETATTR_;
+        op->req = req;
+        op->ino = ino;
+        op->attr = attr;
+        op->to_set = to_set;
+        (op->s).fi = fi;
+
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue setattr at inode %d\n", (int) ino);
+            return;
+        }
+
+        uv_async_send(&uv_async_handle);
+
+    }
+    void FileSystem::RemoteSetAttr(fuse_req_t req,
+                             fuse_ino_t ino,
+                             struct stat* attr,
+                             int to_set,
+                             struct fuse_file_info* fi) {
+
         HandleScope scope;
         Fuse *fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
@@ -419,6 +446,28 @@ namespace NodeFuse {
                            const char* name,
                            mode_t mode,
                            dev_t rdev) {
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_MKNOD_;
+        op->req = req;
+        op->name = name;
+        op->mode = mode;
+        op->dev = rdev;
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue mknod with parent %d and child %s\n", (int) parent, name);
+            return;
+        }
+
+        uv_async_send(&uv_async_handle);
+
+
+
+    }
+    void FileSystem::RemoteMkNod(fuse_req_t req,
+                           fuse_ino_t parent,
+                           const char* name,
+                           mode_t mode,
+                           dev_t rdev) {
+
         HandleScope scope;
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
@@ -756,6 +805,28 @@ namespace NodeFuse {
                            size_t size,
                            off_t off,
                            struct fuse_file_info* fi) {
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_WRITE_;
+        op->req = req;
+        op->ino = ino;
+        op->off = off;
+        op->size = size;
+        op->name = buf;
+        op->s.fi = fi;
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue write at inode %d\n", (int) ino);
+            return;
+        }
+        uv_async_send(&uv_async_handle);
+
+
+    }
+    void FileSystem::RemoteWrite(fuse_req_t req,
+                           fuse_ino_t ino,
+                           const char *buf,
+                           size_t size,
+                           off_t off,
+                           struct fuse_file_info* fi){
         HandleScope scope;
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
@@ -1286,6 +1357,26 @@ namespace NodeFuse {
                             const char* name,
                             mode_t mode,
                             struct fuse_file_info* fi) {
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_CREATE_;
+        op->req = req;
+        op->ino = parent;
+        op->name = name;
+        op->mode = mode;
+        op->s.fi = fi;
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue write at inode %d\n", (int) parent);
+            return;
+        }
+        uv_async_send(&uv_async_handle);
+
+    }
+    void FileSystem::RemoteCreate(fuse_req_t req,
+                            fuse_ino_t parent,
+                            const char* name,
+                            mode_t mode,
+                            struct fuse_file_info* fi) {
+
         HandleScope scope;
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
