@@ -100,8 +100,10 @@ namespace NodeFuse {
                     RemoteMkNod(op->req, op->ino, op->name, op->mode, op-> dev);
                     break;
                 case _FUSE_OPS_MKDIR_:
+                    RemoteMkDir(op->req, op->ino, op->name,op->mode);
                     break;
                 case _FUSE_OPS_UNLINK_:
+                    RemoteUnlink(op->req, op->ino, op->name);
                     break;
                 case _FUSE_OPS_RMDIR_:
                     break;
@@ -171,8 +173,8 @@ namespace NodeFuse {
         // fuse_ops.forget     = FileSystem::Forget;
         // fuse_ops.readlink   = FileSystem::ReadLink;
         fuse_ops.mknod      = FileSystem::MkNod;
-        // fuse_ops.mkdir      = FileSystem::MkDir;
-        // fuse_ops.unlink     = FileSystem::Unlink;
+        fuse_ops.mkdir      = FileSystem::MkDir;
+        fuse_ops.unlink     = FileSystem::Unlink;
         // fuse_ops.rmdir      = FileSystem::RmDir;
         // fuse_ops.symlink    = FileSystem::SymLink;
         // fuse_ops.rename     = FileSystem::Rename;
@@ -503,6 +505,26 @@ namespace NodeFuse {
                            fuse_ino_t parent,
                            const char* name,
                            mode_t mode) {
+
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_MKDIR_;
+        op->req = req;
+        op->ino = parent;
+        op->name = name;
+        op->mode = mode;
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue mkdir with parent %d and name %s\n", (int) parent, name);
+            return;
+        }
+
+        uv_async_send(&uv_async_handle);
+
+    }
+    void FileSystem::RemoteMkDir(fuse_req_t req,
+                           fuse_ino_t parent,
+                           const char* name,
+                           mode_t mode) {
+
         HandleScope scope;
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
@@ -535,6 +557,24 @@ namespace NodeFuse {
     void FileSystem::Unlink(fuse_req_t req,
                             fuse_ino_t parent,
                             const char* name) {
+
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_UNLINK_;
+        op->req = req;
+        op->ino = parent;
+        op->name = name;
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to unlink %s from parent %d \n",  name, (int) parent);
+            return;
+        }
+
+        uv_async_send(&uv_async_handle);
+
+    }
+    void FileSystem::RemoteUnlink(fuse_req_t req,
+                            fuse_ino_t parent,
+                            const char* name) {
+
         HandleScope scope;
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
