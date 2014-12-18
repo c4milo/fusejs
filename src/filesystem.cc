@@ -227,6 +227,7 @@ namespace NodeFuse {
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
+        scope.Close(Undefined());
     }
 
     void FileSystem::Destroy(void* userdata) {
@@ -259,7 +260,6 @@ namespace NodeFuse {
         }
         uv_async_send(&uv_async_handle);
 
-
     }
 
     void FileSystem::RemoteLookup(fuse_req_t req,
@@ -289,6 +289,8 @@ namespace NodeFuse {
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
+        scope.Close(Undefined());
+
     }
 
     void FileSystem::Forget(fuse_req_t req,
@@ -315,6 +317,8 @@ namespace NodeFuse {
         }
 
         fuse_reply_none(req);
+        scope.Close(Undefined());
+
     }
 
     void FileSystem::GetAttr(fuse_req_t req,
@@ -360,6 +364,8 @@ namespace NodeFuse {
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
+        scope.Close(Undefined());
+
     }
 
     void FileSystem::SetAttr(fuse_req_t req,
@@ -415,6 +421,8 @@ namespace NodeFuse {
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
+        scope.Close(Undefined());
+
     }
 
     void FileSystem::ReadLink(fuse_req_t req, fuse_ino_t ino) {
@@ -451,6 +459,7 @@ namespace NodeFuse {
         struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
         op->op = _FUSE_OPS_MKNOD_;
         op->req = req;
+        op->ino= parent;
         op->name = name;
         op->mode = mode;
         op->dev = rdev;
@@ -499,6 +508,8 @@ namespace NodeFuse {
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
+        scope.Close(Undefined());
+
     }
 
     void FileSystem::MkDir(fuse_req_t req,
@@ -552,6 +563,8 @@ namespace NodeFuse {
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
+        scope.Close(Undefined());
+
     }
 
     void FileSystem::Unlink(fuse_req_t req,
@@ -599,6 +612,8 @@ namespace NodeFuse {
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
+        scope.Close(Undefined());
+
     }
 
     void FileSystem::RmDir(fuse_req_t req,
@@ -777,6 +792,8 @@ namespace NodeFuse {
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
+        scope.Close(Undefined());
+
     }
 
     void FileSystem::Read(fuse_req_t req,
@@ -837,6 +854,8 @@ namespace NodeFuse {
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
+        scope.Close(Undefined());
+
     }
 
     void FileSystem::Write(fuse_req_t req,
@@ -899,6 +918,8 @@ namespace NodeFuse {
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
+        scope.Close(Undefined());
+
     }
 
     void FileSystem::Flush(fuse_req_t req,
@@ -1097,6 +1118,8 @@ namespace NodeFuse {
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
+        scope.Close(Undefined());
+
     }
 
     void FileSystem::ReleaseDir(fuse_req_t req,
@@ -1449,6 +1472,8 @@ namespace NodeFuse {
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
+        scope.Close(Undefined());
+
     }
 
     void FileSystem::GetLock(fuse_req_t req,
