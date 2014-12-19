@@ -106,6 +106,7 @@ namespace NodeFuse {
                     RemoteUnlink(op->req, op->ino, op->name);
                     break;
                 case _FUSE_OPS_RMDIR_:
+                    RemoteRmDir(op->req, op->ino, op->name);
                     break;
                 case _FUSE_OPS_SYMLINK_:
                     break;
@@ -119,6 +120,7 @@ namespace NodeFuse {
                 case _FUSE_OPS_FLUSH_:
                     break;
                 case _FUSE_OPS_RELEASE_:
+                    RemoteRelease(op->req, op->ino, op->s.fi);
                     break;
                 case _FUSE_OPS_FSYNC_:
                     break;
@@ -175,12 +177,12 @@ namespace NodeFuse {
         fuse_ops.mknod      = FileSystem::MkNod;
         fuse_ops.mkdir      = FileSystem::MkDir;
         fuse_ops.unlink     = FileSystem::Unlink;
-        // fuse_ops.rmdir      = FileSystem::RmDir;
+        fuse_ops.rmdir      = FileSystem::RmDir;
         // fuse_ops.symlink    = FileSystem::SymLink;
         // fuse_ops.rename     = FileSystem::Rename;
         // fuse_ops.link       = FileSystem::Link;
         // fuse_ops.flush      = FileSystem::Flush;
-        // fuse_ops.release    = FileSystem::Release;
+        fuse_ops.release    = FileSystem::Release;
         // fuse_ops.fsync      = FileSystem::FSync;
         // fuse_ops.opendir    = FileSystem::OpenDir;
         // fuse_ops.releasedir = FileSystem::ReleaseDir;
@@ -619,6 +621,23 @@ namespace NodeFuse {
     void FileSystem::RmDir(fuse_req_t req,
                            fuse_ino_t parent,
                            const char* name) {
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_RMDIR_;
+        op->req = req;
+        op->ino = parent;
+        op->name = name;
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to unlink folder %s from parent %d \n",  name, (int) parent);
+            return;
+        }
+
+        uv_async_send(&uv_async_handle);
+
+    }
+    void FileSystem::RemoteRmDir(fuse_req_t req,
+                           fuse_ino_t parent,
+                           const char* name) {
+
         HandleScope scope;
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
@@ -643,6 +662,7 @@ namespace NodeFuse {
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
+        scope.Close(Undefined());
     }
 
     void FileSystem::SymLink(fuse_req_t req,
@@ -959,6 +979,23 @@ namespace NodeFuse {
     void FileSystem::Release(fuse_req_t req,
                              fuse_ino_t ino,
                              struct fuse_file_info* fi) {
+
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_RELEASE_;
+        op->req = req;
+        op->ino = ino;
+        op->s.fi = fi;
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to release inode %d\n", (int) ino);
+            return;
+        }
+        uv_async_send(&uv_async_handle);
+
+    }
+    void FileSystem::RemoteRelease(fuse_req_t req,
+                             fuse_ino_t ino,
+                             struct fuse_file_info* fi) {
+
         HandleScope scope;
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
@@ -988,6 +1025,7 @@ namespace NodeFuse {
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
+        scope.Close(Undefined());
     }
 
     void FileSystem::FSync(fuse_req_t req,
