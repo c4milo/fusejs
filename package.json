@@ -1,12 +1,12 @@
 {   "name" : "fusejs",
     "version": "0.0.2",
-    "author": "Camilo Aguilar - http://github.com/c4milo",
-    "email": "camilo.aguilar@gmail.com",
+    "author": "Eric Yen - http://github.com/thejinx0r",
+    "email": "eric@ericyen.com",
     "description" : "Low level Fuse bindings for NodeJS.",
     "repositories": [
        {
             "type": "git",
-            "url": "http://github.com/c4milo/fusejs.git"
+            "url": "http://github.com/thejinx0r/fusejs.git"
        }
     ],
     "devDependencies": {

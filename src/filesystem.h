@@ -2,6 +2,7 @@
 #define _SRC_FILESYSTEM_H_
 #include "node_fuse.h"
 #include "ck_ring.h"
+#include <stdlib.h>
 #include <stdint.h>
 #define _FUSE_OPS_LOOKUP_      0
 #define _FUSE_OPS_GETATTR_     1
