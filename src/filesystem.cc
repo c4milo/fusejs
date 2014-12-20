@@ -960,7 +960,7 @@ namespace NodeFuse {
     }
     void FileSystem::RemoteWrite(fuse_req_t req,
                            fuse_ino_t ino,
-                           const char *buf,
+                           const char *buf_,
                            size_t size,
                            off_t off,
                            struct fuse_file_info* fi){
@@ -975,6 +975,7 @@ namespace NodeFuse {
         Local<Number> inode = NanNew<Number>(ino);
         Local<Integer> offset = NanNew<Integer>(off);
 
+        const char * buf = strdup(buf_);
         Local<Object> buffer = NanBufferUse((char*) buf, size);
 
         FileInfo* info = new FileInfo();

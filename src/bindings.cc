@@ -111,7 +111,7 @@ namespace NodeFuse {
     }
     
     NAN_METHOD(Fuse::Mount) {
-        NanScope();
+        NanEscapableScope();
 
         int argslen = args.Length();
 
@@ -158,10 +158,10 @@ namespace NodeFuse {
         }
 
         Local<Object> currentInstance = args.This();
-        Fuse *fuse = ObjectWrap::Unwrap<Fuse>(currentInstance);
-
+        Fuse *fuse  = ObjectWrap::Unwrap<Fuse>(currentInstance);
         struct fuse_args fargs = FUSE_ARGS_INIT(0, NULL);
-        fuse->fargs = &fargs;
+        fuse->fargs = (struct fuse_args *)malloc(sizeof(fargs));
+        memcpy( fuse->fargs, &fargs, sizeof(fargs) );   
 
         for (int i = 0; i < argc; i++) {
             String::Utf8Value option(options->Get(NanNew<Integer>(i))->ToString());
@@ -208,7 +208,7 @@ namespace NodeFuse {
         uv_thread_create(&fuse_thread, Fuse::RemoteMount, (void *) fuse);
 
 
-        NanReturnUndefined();
+        NanReturnThis();
     }
 
 
