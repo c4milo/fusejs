@@ -133,6 +133,7 @@ namespace NodeFuse {
                 case _FUSE_OPS_FSYNCDIR_:
                     break;
                 case _FUSE_OPS_STATFS_:
+                    RemoteStatFs(op->req, op->ino);
                     break;
                 case _FUSE_OPS_SETXATTR_:
                     break;
@@ -189,7 +190,7 @@ namespace NodeFuse {
         // fuse_ops.opendir    = FileSystem::OpenDir;
         // fuse_ops.releasedir = FileSystem::ReleaseDir;
         // fuse_ops.fsyncdir   = FileSystem::FSyncDir;
-        // fuse_ops.statfs     = FileSystem::StatFs;
+        fuse_ops.statfs     = FileSystem::StatFs;
         // fuse_ops.setxattr   = FileSystem::SetXAttr;
         // fuse_ops.getxattr   = FileSystem::GetXAttr;
         // fuse_ops.listxattr  = FileSystem::ListXAttr;
@@ -1298,6 +1299,19 @@ namespace NodeFuse {
     }
 
     void FileSystem::StatFs(fuse_req_t req, fuse_ino_t ino) {
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_STATFS_;
+        op->req = req;
+        op->ino = ino;
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to statfs inode %d\n", (int) ino);
+            return;
+        }
+        uv_async_send(&uv_async_handle);
+
+    }
+    void FileSystem::RemoteStatFs(fuse_req_t req, fuse_ino_t ino) {
+
         NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = NanNew(fuse->fsobj);
