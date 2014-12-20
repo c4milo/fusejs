@@ -856,7 +856,8 @@ namespace NodeFuse {
         Local<Number> inode = NanNew<Number>(ino);
 
         FileInfo* info = new FileInfo();
-        info->fi = &fi;
+        info->fi = (struct fuse_file_info* ) malloc(sizeof(struct fuse_file_info));
+        memcpy( info->fi, &fi, sizeof(struct fuse_file_info));
         Local<Object> infoObj = NanNew(info->constructor_template)->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
@@ -920,7 +921,8 @@ namespace NodeFuse {
         Local<Integer> offset = NanNew<Integer>(off);
 
         FileInfo* info = new FileInfo();
-        info->fi = &fi;
+        info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
+        memcpy( (void*) info->fi , &fi, sizeof(struct fuse_file_info));
         Local<Object> infoObj = NanNew(info->constructor_template)->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
@@ -990,7 +992,8 @@ namespace NodeFuse {
 
         FileInfo* info = new FileInfo();
         
-        info->fi = &fi;
+        info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
+        memcpy( (void*) info->fi , &fi, sizeof(struct fuse_file_info));
         Local<Object> infoObj = NanNew(info->constructor_template)->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
@@ -1082,7 +1085,8 @@ namespace NodeFuse {
         Local<Number> inode = NanNew<Number>(ino);
 
         FileInfo* info = new FileInfo();
-        info->fi = &fi;
+        info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
+        memcpy( (void*) info->fi , &fi, sizeof(struct fuse_file_info));
         Local<Object> infoObj = NanNew(info->constructor_template)->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
@@ -1217,7 +1221,8 @@ namespace NodeFuse {
         Local<Integer> offset = NanNew<Integer>(off);
 
         FileInfo* info = new FileInfo();
-        info->fi = &fi;
+        info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
+        memcpy( (void*) info->fi , &fi, sizeof(struct fuse_file_info));
         Local<Object> infoObj = NanNew(info->constructor_template)->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
@@ -1595,7 +1600,8 @@ namespace NodeFuse {
         Local<Integer> mode_ = NanNew<Integer>(mode);
 
         FileInfo* info = new FileInfo();
-        info->fi = &fi;
+        info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
+        memcpy( (void*) info->fi , &fi, sizeof(struct fuse_file_info));
         Local<Object> infoObj = NanNew(info->constructor_template)->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
