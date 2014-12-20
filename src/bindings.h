@@ -14,8 +14,8 @@ namespace NodeFuse {
             virtual ~Fuse();
 
         protected:
-            static Handle<Value> New(const Arguments& args);
-            static Handle<Value> Mount(const Arguments& args);
+            static NAN_METHOD( New );
+            static NAN_METHOD( Mount );
             static void RemoteMount(void* args);
             //static Handle<Value> Unmount(const Arguments& args);
 

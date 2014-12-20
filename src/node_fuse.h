@@ -3,26 +3,24 @@
 #define SRC_NODE_FUSE_H_
 
 #include <node.h>
+#include <node_buffer.h>
 #include <fuse_lowlevel.h>
 #include <errno.h>
 #include <string.h>
 #include <nan.h>
 
-#define NODE_FUSE_VERSION "0.0.2"
+#define NODE_FUSE_VERSION "0.1.0"
 
 using namespace v8;
 using namespace node;
 
 #define THROW_IF_MISSING_PROPERTY(obj, symbol, name)                                \
-    if (!obj->Has(symbol)) {                                                        \
-        v8::ThrowException(v8::Exception::TypeError(                                \
-        v8::String::New("You must have set the property " #name " in the object")));\
+    if (!obj->Has(NanNew(symbol)) ) {                                                        \
+        NanThrowError("You must have set the property " #name " in the object");    \
     }                                                                               \
 
 #define FUSEJS_THROW_EXCEPTION(err, fuse_err)                                       \
-        v8::Local<v8::Value> exception = v8::Exception::Error(                      \
-        v8::String::Concat(v8::String::New(err), v8::String::New(fuse_err)));        \
-        v8::ThrowException(exception);                                              \
+        NanThrowError( v8::String::Concat(NanNew<String>(err), NanNew<String>(fuse_err)));        \
 
 namespace NodeFuse {
     int ObjectToFuseEntryParam(Handle<Value> value, struct fuse_entry_param* entry);

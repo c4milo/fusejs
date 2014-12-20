@@ -7,87 +7,108 @@
 namespace NodeFuse {
     Persistent<FunctionTemplate> FileInfo::constructor_template;
 
-    static Persistent<String> flags_sym         = NODE_PSYMBOL("flags");
-    static Persistent<String> writepage_sym     = NODE_PSYMBOL("writepage");
-    static Persistent<String> direct_io_sym     = NODE_PSYMBOL("direct_io");
-    static Persistent<String> keep_cache_sym    = NODE_PSYMBOL("keep_cache");
-    static Persistent<String> flush_sym         = NODE_PSYMBOL("flush");
-    static Persistent<String> nonseekable_sym   = NODE_PSYMBOL("nonseekable");
-    static Persistent<String> file_handle_sym   = NODE_PSYMBOL("fh");
-    static Persistent<String> lock_owner_sym    = NODE_PSYMBOL("lock_owner");
+    static Persistent<String> flags_sym;
+    static Persistent<String> writepage_sym;
+    static Persistent<String> direct_io_sym;
+    static Persistent<String> keep_cache_sym;
+    static Persistent<String> flush_sym;
+    static Persistent<String> nonseekable_sym;
+    static Persistent<String> file_handle_sym;
+    static Persistent<String> lock_owner_sym;
 
     //Open flags
-    static Persistent<String> rdonly_sym    = NODE_PSYMBOL("rdonly");
-    static Persistent<String> wronly_sym    = NODE_PSYMBOL("wronly");
-    static Persistent<String> rdwr_sym      = NODE_PSYMBOL("rdwr");
-    static Persistent<String> nonblock_sym  = NODE_PSYMBOL("nonblock");
-    static Persistent<String> append_sym    = NODE_PSYMBOL("append");
-    static Persistent<String> creat_sym     = NODE_PSYMBOL("creat");
-    static Persistent<String> trunc_sym     = NODE_PSYMBOL("trunc");
-    static Persistent<String> excl_sym      = NODE_PSYMBOL("excl");
+    static Persistent<String> rdonly_sym;
+    static Persistent<String> wronly_sym;
+    static Persistent<String> rdwr_sym;
+    static Persistent<String> nonblock_sym;
+    static Persistent<String> append_sym;
+    static Persistent<String> creat_sym;
+    static Persistent<String> trunc_sym;
+    static Persistent<String> excl_sym;
 #ifdef O_SHLOCK
-    static Persistent<String> shlock_sym    = NODE_PSYMBOL("shlock");
+    static Persistent<String> shlock_sym;
 #endif
 #ifdef O_EXLOCK
-    static Persistent<String> exlock_sym    = NODE_PSYMBOL("exlock");
+    static Persistent<String> exlock_sym;
 #endif
-    static Persistent<String> nofollow_sym  = NODE_PSYMBOL("nofollow");
+    static Persistent<String> nofollow_sym;
 #ifdef O_SYMLINK
-    static Persistent<String> symlink_sym   = NODE_PSYMBOL("symlink");
+    static Persistent<String> symlink_sym;
 #endif
 #ifdef O_EVTONLY
-    static Persistent<String> evtonly_sym   = NODE_PSYMBOL("evtonly");
+    static Persistent<String> evtonly_sym;
 #endif
 
 
     void FileInfo::Initialize() {
-        Local<FunctionTemplate> t = FunctionTemplate::New();
+        NanAssignPersistent( flags_sym         , NanNew("flags"));
+        NanAssignPersistent( writepage_sym     , NanNew("writepage"));
+        NanAssignPersistent( direct_io_sym     , NanNew("direct_io"));
+        NanAssignPersistent( keep_cache_sym    , NanNew("keep_cache"));
+        NanAssignPersistent( flush_sym         , NanNew("flush"));
+        NanAssignPersistent( nonseekable_sym   , NanNew("nonseekable"));
+        NanAssignPersistent( file_handle_sym   , NanNew("fh"));
+        NanAssignPersistent( lock_owner_sym    , NanNew("lock_owner"));
+        NanAssignPersistent( rdonly_sym    , NanNew("rdonly"));
+        NanAssignPersistent( wronly_sym    , NanNew("wronly"));
+        NanAssignPersistent( rdwr_sym      , NanNew("rdwr"));
+        NanAssignPersistent( nonblock_sym  , NanNew("nonblock"));
+        NanAssignPersistent( append_sym    , NanNew("append"));
+        NanAssignPersistent( creat_sym     , NanNew("creat"));
+        NanAssignPersistent( trunc_sym     , NanNew("trunc"));
+        NanAssignPersistent( excl_sym      , NanNew("excl"));
+        NanAssignPersistent( shlock_sym    , NanNew("shlock"));
+        NanAssignPersistent( exlock_sym    , NanNew("exlock"));
+        NanAssignPersistent( nofollow_sym  , NanNew("nofollow"));
+        NanAssignPersistent( symlink_sym   , NanNew("symlink"));
+        NanAssignPersistent( evtonly_sym   , NanNew("evtonly"));
+        Local<FunctionTemplate> t = NanNew<FunctionTemplate>();
         Local<ObjectTemplate> object_tmpl = t->InstanceTemplate();
 
         object_tmpl->SetInternalFieldCount(1);
 
-        object_tmpl->SetAccessor(flags_sym, FileInfo::GetFlags);
-        object_tmpl->SetAccessor(writepage_sym, FileInfo::GetWritePage);
-        object_tmpl->SetAccessor(direct_io_sym, FileInfo::GetDirectIO, FileInfo::SetDirectIO);
-        object_tmpl->SetAccessor(keep_cache_sym, FileInfo::GetKeepCache, FileInfo::SetKeepCache);
-        object_tmpl->SetAccessor(flush_sym, FileInfo::GetFlush);
-        object_tmpl->SetAccessor(nonseekable_sym, FileInfo::GetNonSeekable, FileInfo::SetNonSeekable);
-        object_tmpl->SetAccessor(file_handle_sym, FileInfo::GetFileHandle, FileInfo::SetFileHandle);
-        object_tmpl->SetAccessor(lock_owner_sym, FileInfo::GetLockOwner);
+        object_tmpl->SetAccessor(NanNew(flags_sym), FileInfo::GetFlags);
+        object_tmpl->SetAccessor(NanNew(writepage_sym), FileInfo::GetWritePage);
+        object_tmpl->SetAccessor(NanNew(direct_io_sym), FileInfo::GetDirectIO, FileInfo::SetDirectIO);
+        object_tmpl->SetAccessor(NanNew(keep_cache_sym), FileInfo::GetKeepCache, FileInfo::SetKeepCache);
+        object_tmpl->SetAccessor(NanNew(flush_sym), FileInfo::GetFlush);
+        object_tmpl->SetAccessor(NanNew(nonseekable_sym), FileInfo::GetNonSeekable, FileInfo::SetNonSeekable);
+        object_tmpl->SetAccessor(NanNew(file_handle_sym), FileInfo::GetFileHandle, FileInfo::SetFileHandle);
+        object_tmpl->SetAccessor(NanNew(lock_owner_sym), FileInfo::GetLockOwner);
 
-        constructor_template = Persistent<FunctionTemplate>::New(t);
-        constructor_template->SetClassName(String::NewSymbol("FileInfo"));
+        NanAssignPersistent(constructor_template, t);
+        // constructor_template->SetClassName(NanNew<String>("FileInfo"));
     }
 
     FileInfo::FileInfo() : ObjectWrap() {}
     FileInfo::~FileInfo() {}
 
-    Handle<Value> FileInfo::GetFlags(Local<String> property, const AccessorInfo& info) {
-        HandleScope scope;
-        FileInfo* fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
-        Local<Object> flagsObj = Object::New();
+    NAN_GETTER(FileInfo::GetFlags){
+        NanScope();
+        FileInfo* fileInfo = ObjectWrap::Unwrap<FileInfo>(args.This());
+        Local<Object> flagsObj = NanNew<Object>();
 
         //Initializes object
-        flagsObj->Set(rdonly_sym, False());
-        flagsObj->Set(wronly_sym, False());
-        flagsObj->Set(rdwr_sym, False());
-        flagsObj->Set(nonblock_sym, False());
-        flagsObj->Set(append_sym, False());
-        flagsObj->Set(creat_sym, False());
-        flagsObj->Set(trunc_sym, False());
-        flagsObj->Set(excl_sym, False());
+        flagsObj->Set(NanNew(rdonly_sym), NanFalse());
+        flagsObj->Set(NanNew(wronly_sym), NanFalse());
+        flagsObj->Set(NanNew(rdwr_sym), NanFalse());
+        flagsObj->Set(NanNew(nonblock_sym), NanFalse());
+        flagsObj->Set(NanNew(append_sym), NanFalse());
+        flagsObj->Set(NanNew(creat_sym), NanFalse());
+        flagsObj->Set(NanNew(trunc_sym), NanFalse());
+        flagsObj->Set(NanNew(excl_sym), NanFalse());
 #ifdef O_SHLOCK
-        flagsObj->Set(shlock_sym, False());
+        flagsObj->Set(NanNew(shlock_sym), NanFalse());
 #endif
 #ifdef O_EXLOCK
-        flagsObj->Set(exlock_sym, False());
+        flagsObj->Set(NanNew(exlock_sym), NanFalse());
 #endif
-        flagsObj->Set(nofollow_sym, False());
+        flagsObj->Set(NanNew(nofollow_sym), NanFalse());
 #ifdef O_SYMLINK
-        flagsObj->Set(symlink_sym, False());
+        flagsObj->Set(NanNew(symlink_sym), NanFalse());
 #endif
 #ifdef O_EVTONLY
-        flagsObj->Set(evtonly_sym, False());
+        flagsObj->Set(NanNew(evtonly_sym), NanFalse());
 #endif
         /*
            O_RDONLY        open for reading only
@@ -109,78 +130,80 @@ namespace NodeFuse {
 
         switch( flags & 3){
             case 0:
-                flagsObj->Set(rdonly_sym, True());
+                flagsObj->Set(NanNew(rdonly_sym), NanTrue());
                 break;
             case 1:
-                flagsObj->Set(wronly_sym, True());
+                flagsObj->Set(NanNew(wronly_sym), NanTrue());
                 break;
             case 2:
-                flagsObj->Set(rdwr_sym, True());
+                flagsObj->Set(NanNew(rdwr_sym), NanTrue());
                 break;
         }
         if (flags & O_NONBLOCK) {
-            flagsObj->Set(nonblock_sym, True());
+            flagsObj->Set(NanNew(nonblock_sym), NanTrue());
         }
 
         if (flags & O_APPEND) {
-            flagsObj->Set(append_sym, True());
+            flagsObj->Set(NanNew(append_sym), NanTrue());
         }
 
         if (flags & O_CREAT) {
-            flagsObj->Set(creat_sym, True());
+            flagsObj->Set(NanNew(creat_sym), NanTrue());
         }
 
         if (flags & O_TRUNC) {
-            flagsObj->Set(trunc_sym, True());
+            flagsObj->Set(NanNew(trunc_sym), NanTrue());
         }
 
         if (flags & O_EXCL) {
-            flagsObj->Set(excl_sym, True());
+            flagsObj->Set(NanNew(excl_sym), NanTrue());
         }
 
 #ifdef O_SHLOCK
         if (flags & O_SHLOCK) {
-            flagsObj->Set(shlock_sym, True());
+            flagsObj->Set(NanNew(shlock_sym), NanTrue());
         }
 #endif
 
 #ifdef O_EXLOCK
         if (flags & O_EXLOCK) {
-            flagsObj->Set(exlock_sym, True());
+            flagsObj->Set(NanNew(exlock_sym), NanTrue());
         }
 #endif
 
         if (flags & O_NOFOLLOW) {
-            flagsObj->Set(nofollow_sym, True());
+            flagsObj->Set(NanNew(nofollow_sym), NanTrue());
         }
 
 #ifdef O_SYMLINK
         if (flags & O_SYMLINK) {
-            flagsObj->Set(symlink_sym, True());
+            flagsObj->Set(NanNew(symlink_sym), NanTrue());
         }
 #endif
 
 #ifdef O_EVTONLY
         if (flags & O_EVTONLY) {
-            flagsObj->Set(evtonly_sym, True());
+            flagsObj->Set(NanNew(evtonly_sym), NanTrue());
         }
 #endif
 
-        return scope.Close(flagsObj);
+        NanReturnValue(flagsObj);
     }
 
-    Handle<Value> FileInfo::GetWritePage(Local<String> property, const AccessorInfo& info) {
-        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
-        return fileInfo->fi->writepage ? True() : False();
+    NAN_GETTER(FileInfo::GetWritePage){
+        NanScope();
+        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(args.This());
+        NanReturnValue(fileInfo->fi->writepage ? NanTrue() : NanFalse());
     }
 
-    Handle<Value> FileInfo::GetDirectIO(Local<String> property, const AccessorInfo& info) {
-        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
-        return fileInfo->fi->direct_io ? True() : False();
+    NAN_GETTER(FileInfo::GetDirectIO){//(Local<String> property, const AccessorInfo& info) {
+        NanScope();
+        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(args.This());
+        NanReturnValue(fileInfo->fi->direct_io ? NanTrue() : NanFalse());
     }
 
-    void FileInfo::SetDirectIO(Local<String> property, Local<Value> value, const AccessorInfo& info) {
-        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
+    NAN_SETTER(FileInfo::SetDirectIO){
+        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(args.This());
 
         if (!value->IsBoolean()) {
             // TODO: Check to see if this case will cause errors
@@ -190,13 +213,14 @@ namespace NodeFuse {
         fileInfo->fi->direct_io = value->IsTrue() ? 1 : 0;
     }
 
-    Handle<Value> FileInfo::GetKeepCache(Local<String> property, const AccessorInfo& info) {
-        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
-        return fileInfo->fi->keep_cache ? True() : False();
+    NAN_GETTER(FileInfo::GetKeepCache){
+        NanScope();
+        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(args.This());
+        NanReturnValue(fileInfo->fi->keep_cache ? NanTrue() : NanFalse());
     }
 
-    void FileInfo::SetKeepCache(Local<String> property, Local<Value> value, const AccessorInfo& info) {
-        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
+    NAN_SETTER(FileInfo::SetKeepCache){
+        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(args.This());
 
         if (!value->IsBoolean()) {
             // TODO: Check to see if this case will cause errors
@@ -206,55 +230,54 @@ namespace NodeFuse {
         fileInfo->fi->keep_cache = value->IsTrue() ? 1 : 0;
     }
 
-    Handle<Value> FileInfo::GetFlush(Local<String> property, const AccessorInfo& info) {
-        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
-        return fileInfo->fi->flush ? True() : False();
+    NAN_GETTER(FileInfo::GetFlush){
+        NanScope();
+        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(args.This());
+        NanReturnValue( fileInfo->fi->flush ? NanTrue() : NanFalse());
     }
 
-    Handle<Value> FileInfo::GetNonSeekable(Local<String> property, const AccessorInfo& info) {
-        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
+    NAN_GETTER(FileInfo::GetNonSeekable){
+        NanScope();     
 #if FUSE_USE_VERSION > 27
-        return fileInfo->fi->nonseekable ? True() : False();
+        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(args.This());
+        NanReturnValue(fileInfo->fi->nonseekable ? NanTrue() : NanFalse());
 #else
-        return False();
+        NanReturnValue(NanFalse());
 #endif
     }
 
-    void FileInfo::SetNonSeekable(Local<String> property, Local<Value> value, const AccessorInfo& info) {
-        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
+    NAN_SETTER( FileInfo::SetNonSeekable){
+        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(args.This());
 
         if (!value->IsBoolean()) {
-            // TODO: Check to see if this case will cause errors
-            // FUSEJS_THROW_EXCEPTION("Invalid value type: ", "a Boolean was expected");
+            FUSEJS_THROW_EXCEPTION("Invalid value type: ", "a Boolean was expected");
         }
 #if FUSE_USE_VERSION > 27
         fileInfo->fi->nonseekable = value->IsTrue() ? 1 : 0;
 #endif
     }
 
-    void FileInfo::SetFileHandle(Local<String> property, Local<Value> value, const AccessorInfo& info) {
-        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
+    NAN_SETTER(FileInfo::SetFileHandle){
+        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(args.This());
 
         if (!value->IsNumber()) {
-            v8::Local<v8::Value> exception = v8::Exception::Error(                      
-            v8::String::Concat(v8::String::New("Invalid value type:"), v8::String::New("a Number was expected")));        
-            v8::ThrowException(exception);         
+            NanThrowTypeError("Invalid value type: a Number was expected");        
         }
 
         fileInfo->fi->fh = value->IntegerValue();
     }
 
-    Handle<Value> FileInfo::GetFileHandle(Local<String> property, const AccessorInfo& info) {
-        HandleScope scope;
-        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
+    NAN_GETTER(FileInfo::GetFileHandle){
+        NanScope();
+        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(args.This());
 
-        return scope.Close(Integer::New(fileInfo->fi->fh));
+        NanReturnValue(NanNew<Integer>(fileInfo->fi->fh));
     }
 
-    Handle<Value> FileInfo::GetLockOwner(Local<String> property, const AccessorInfo& info) {
-        HandleScope scope;
-        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
+    NAN_GETTER(FileInfo::GetLockOwner){
+        NanScope();
+        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(args.This());
 
-        return scope.Close(Integer::New(fileInfo->fi->lock_owner));
+        NanReturnValue(NanNew<Integer>(fileInfo->fi->lock_owner));
     }
 } //ends namespace NodeFuse

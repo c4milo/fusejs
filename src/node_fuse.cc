@@ -5,199 +5,230 @@
 
 namespace NodeFuse {
     //stat struct symbols
-    static Persistent<String> uid_sym       = NODE_PSYMBOL("uid");
-    static Persistent<String> gid_sym       = NODE_PSYMBOL("gid");
-    static Persistent<String> pid_sym       = NODE_PSYMBOL("pid");
-    static Persistent<String> dev_sym       = NODE_PSYMBOL("dev");
-    static Persistent<String> mode_sym      = NODE_PSYMBOL("mode");
-    static Persistent<String> nlink_sym     = NODE_PSYMBOL("nlink");
-    static Persistent<String> rdev_sym      = NODE_PSYMBOL("rdev");
-    static Persistent<String> size_sym      = NODE_PSYMBOL("size");
-    static Persistent<String> blksize_sym   = NODE_PSYMBOL("blksize");
-    static Persistent<String> blocks_sym    = NODE_PSYMBOL("blocks");
-    static Persistent<String> atime_sym     = NODE_PSYMBOL("atime");
-    static Persistent<String> mtime_sym     = NODE_PSYMBOL("mtime");
-    static Persistent<String> ctime_sym     = NODE_PSYMBOL("ctime");
+    static Persistent<String> uid_sym;
+    static Persistent<String> gid_sym;
+    static Persistent<String> pid_sym;
+    static Persistent<String> dev_sym;
+    static Persistent<String> mode_sym;
+    static Persistent<String> nlink_sym;
+    static Persistent<String> rdev_sym;
+    static Persistent<String> size_sym;
+    static Persistent<String> blksize_sym;
+    static Persistent<String> blocks_sym;
+    static Persistent<String> atime_sym;
+    static Persistent<String> mtime_sym;
+    static Persistent<String> ctime_sym;
 
     //statvfs struct symbols
-    static Persistent<String> bsize_sym   = NODE_PSYMBOL("bsize");
-    static Persistent<String> frsize_sym  = NODE_PSYMBOL("frsize");
-    //static Persistent<String> blocks_sym  = NODE_PSYMBOL("blocks");
-    static Persistent<String> bfree_sym   = NODE_PSYMBOL("bfree");
-    static Persistent<String> bavail_sym  = NODE_PSYMBOL("bavail");
-    static Persistent<String> files_sym   = NODE_PSYMBOL("files");
-    static Persistent<String> ffree_sym   = NODE_PSYMBOL("ffree");
-    static Persistent<String> favail_sym  = NODE_PSYMBOL("favail");
-    static Persistent<String> fsid_sym    = NODE_PSYMBOL("fsid");
-    static Persistent<String> flag_sym    = NODE_PSYMBOL("flag");
-    static Persistent<String> namemax_sym = NODE_PSYMBOL("namemax");
+    static Persistent<String> bsize_sym;
+    static Persistent<String> frsize_sym;
+    //static Persistent<String> blocks_sym;
+    static Persistent<String> bfree_sym;
+    static Persistent<String> bavail_sym;
+    static Persistent<String> files_sym;
+    static Persistent<String> ffree_sym;
+    static Persistent<String> favail_sym;
+    static Persistent<String> fsid_sym;
+    static Persistent<String> flag_sym;
+    static Persistent<String> namemax_sym;
 
     //entry symbols
-    static Persistent<String> ino_sym           = NODE_PSYMBOL("inode");
-    static Persistent<String> generation_sym    = NODE_PSYMBOL("generation");
-    static Persistent<String> attr_sym          = NODE_PSYMBOL("attr");
-    static Persistent<String> attr_timeout_sym  = NODE_PSYMBOL("attr_timeout");
-    static Persistent<String> entry_timeout_sym = NODE_PSYMBOL("entry_timeout");
+    static Persistent<String> ino_sym;
+    static Persistent<String> generation_sym;
+    static Persistent<String> attr_sym;
+    static Persistent<String> attr_timeout_sym;
+    static Persistent<String> entry_timeout_sym;
 
     //lock symbols
-    static Persistent<String> type_sym          = NODE_PSYMBOL("type");
-    static Persistent<String> whence_sym        = NODE_PSYMBOL("whence");
-    static Persistent<String> start_sym         = NODE_PSYMBOL("start");
-    static Persistent<String> len_sym           = NODE_PSYMBOL("len");
-    //static Persistent<String> pid_sym           = NODE_PSYMBOL("pid");
+    static Persistent<String> type_sym;
+    static Persistent<String> whence_sym;
+    static Persistent<String> start_sym;
+    static Persistent<String> len_sym;
+    //static Persistent<String> pid_sym;
 
 
     void InitializeFuse(Handle<Object> target) {
-        HandleScope scope;
+        NanScope();
 
         Fuse::Initialize(target);
         FileSystem::Initialize();
         Reply::Initialize();
         FileInfo::Initialize();
 
-        target->Set(String::NewSymbol("version"),
-                    String::New(NODE_FUSE_VERSION));
+        target->Set(NanNew<String>("version"),
+                    NanNew<String>(NODE_FUSE_VERSION));
 
-        target->Set(String::NewSymbol("fuse_version"),
-                    Integer::New(fuse_version()));
+        target->Set(NanNew<String>("fuse_version"),
+                    NanNew<Integer>(fuse_version()));
+        NanAssignPersistent( uid_sym, NanNew("uid"));
+        NanAssignPersistent( gid_sym, NanNew("gid"));
+        NanAssignPersistent( pid_sym, NanNew("pid"));
+        NanAssignPersistent( dev_sym, NanNew("dev"));
+        NanAssignPersistent( mode_sym, NanNew("mode"));
+        NanAssignPersistent( nlink_sym, NanNew("nlink"));
+        NanAssignPersistent( rdev_sym, NanNew("rdev"));
+        NanAssignPersistent( size_sym, NanNew("size"));
+        NanAssignPersistent( blksize_sym, NanNew("blksize"));
+        NanAssignPersistent( blocks_sym, NanNew("blocks"));
+        NanAssignPersistent( atime_sym, NanNew("atime"));
+        NanAssignPersistent( mtime_sym, NanNew("mtime"));
+        NanAssignPersistent( ctime_sym, NanNew("ctime"));
+        NanAssignPersistent( bsize_sym, NanNew("bsize"));
+        NanAssignPersistent( frsize_sym, NanNew("frsize"));
+        NanAssignPersistent( blocks_sym, NanNew("blocks"));
+        NanAssignPersistent( bfree_sym, NanNew("bfree"));
+        NanAssignPersistent( bavail_sym, NanNew("bavail"));
+        NanAssignPersistent( files_sym, NanNew("files"));
+        NanAssignPersistent( ffree_sym, NanNew("ffree"));
+        NanAssignPersistent( favail_sym, NanNew("favail"));
+        NanAssignPersistent( fsid_sym, NanNew("fsid"));
+        NanAssignPersistent( flag_sym, NanNew("flag"));
+        NanAssignPersistent( namemax_sym, NanNew("namemax"));
+        NanAssignPersistent( ino_sym, NanNew("inode"));
+        NanAssignPersistent( generation_sym, NanNew("generation"));
+        NanAssignPersistent( attr_sym, NanNew("attr"));
+        NanAssignPersistent( attr_timeout_sym, NanNew("attr_timeout"));
+        NanAssignPersistent( entry_timeout_sym, NanNew("entry_timeout"));
+        NanAssignPersistent( type_sym, NanNew("type"));
+        NanAssignPersistent( whence_sym, NanNew("whence"));
+        NanAssignPersistent( start_sym, NanNew("start"));
+        NanAssignPersistent( len_sym, NanNew("len"));
+        NanAssignPersistent( pid_sym, NanNew("pid"));
     }
 
     int ObjectToFuseEntryParam(Handle<Value> value, struct fuse_entry_param* entry) {
-        HandleScope scope;
+        NanScope();
         int ret = -1;
 
         memset(entry, 0, sizeof(struct fuse_entry_param));
 
         Local<Object> obj = value->ToObject();
-        entry->ino = obj->Get(ino_sym)->IntegerValue();
-        entry->generation = obj->Get(generation_sym)->IntegerValue();
-        entry->attr_timeout = obj->Get(attr_timeout_sym)->NumberValue();
-        entry->entry_timeout = obj->Get(entry_timeout_sym)->NumberValue();
+        entry->ino = obj->Get(NanNew(ino_sym))->IntegerValue();
+        entry->generation = obj->Get(NanNew(generation_sym))->IntegerValue();
+        entry->attr_timeout = obj->Get(NanNew(attr_timeout_sym))->NumberValue();
+        entry->entry_timeout = obj->Get(NanNew(entry_timeout_sym))->NumberValue();
 
         //struct stat statbuf;
-        ret = ObjectToStat(obj->Get(attr_sym), &entry->attr);
+        ret = ObjectToStat(obj->Get(NanNew(attr_sym)), &entry->attr);
 
         return ret;
     }
 
     int ObjectToStat(Handle<Value> value, struct stat* statbuf) {
-        HandleScope scope;
+        NanScope();
 
         memset(statbuf, 0, sizeof(struct stat));
 
         Local<Object> obj = value->ToObject();
-        statbuf->st_dev = obj->Get(dev_sym)->IntegerValue();
-        statbuf->st_ino = obj->Get(ino_sym)->IntegerValue();
-        statbuf->st_mode = obj->Get(mode_sym)->IntegerValue();
-        statbuf->st_nlink = obj->Get(nlink_sym)->IntegerValue();
-        statbuf->st_uid = obj->Get(uid_sym)->IntegerValue();
-        statbuf->st_gid = obj->Get(gid_sym)->IntegerValue();
-        statbuf->st_rdev = obj->Get(rdev_sym)->IntegerValue();
-        statbuf->st_size = obj->Get(size_sym)->NumberValue();
-        statbuf->st_blksize = obj->Get(blksize_sym)->IntegerValue();
-        statbuf->st_blocks = obj->Get(blocks_sym)->IntegerValue();
-        statbuf->st_atime = NODE_V8_UNIXTIME(obj->Get(atime_sym));
-        statbuf->st_mtime = NODE_V8_UNIXTIME(obj->Get(mtime_sym));
-        statbuf->st_ctime = NODE_V8_UNIXTIME(obj->Get(ctime_sym));
+        statbuf->st_dev = obj->Get(NanNew(dev_sym))->IntegerValue();
+        statbuf->st_ino = obj->Get(NanNew(ino_sym))->IntegerValue();
+        statbuf->st_mode = obj->Get(NanNew(mode_sym))->IntegerValue();
+        statbuf->st_nlink = obj->Get(NanNew(nlink_sym))->IntegerValue();
+        statbuf->st_uid = obj->Get(NanNew(uid_sym))->IntegerValue();
+        statbuf->st_gid = obj->Get(NanNew(gid_sym))->IntegerValue();
+        statbuf->st_rdev = obj->Get(NanNew(rdev_sym))->IntegerValue();
+        statbuf->st_size = obj->Get(NanNew(size_sym))->NumberValue();
+        statbuf->st_blksize = obj->Get(NanNew(blksize_sym))->IntegerValue();
+        statbuf->st_blocks = obj->Get(NanNew(blocks_sym))->IntegerValue();
+        statbuf->st_atime = NODE_V8_UNIXTIME(obj->Get(NanNew(atime_sym)));
+        statbuf->st_mtime = NODE_V8_UNIXTIME(obj->Get(NanNew(mtime_sym)));
+        statbuf->st_ctime = NODE_V8_UNIXTIME(obj->Get(NanNew(ctime_sym)));
 
         return 0;
     }
 
     int ObjectToStatVfs(Handle<Value> value, struct statvfs* statbuf) {
-        HandleScope scope;
+        NanScope();
 
         memset(statbuf, 0, sizeof(struct statvfs));
 
         Local<Object> obj = value->ToObject();
 
-        statbuf->f_bsize = obj->Get(bsize_sym)->NumberValue();
-        statbuf->f_frsize = obj->Get(blocks_sym)->NumberValue();
+        statbuf->f_bsize = obj->Get(NanNew(bsize_sym))->NumberValue();
+        statbuf->f_frsize = obj->Get(NanNew(blocks_sym))->NumberValue();
 
-        statbuf->f_blocks = obj->Get(blocks_sym)->IntegerValue();
-        statbuf->f_bfree = obj->Get(bfree_sym)->IntegerValue();
-        statbuf->f_bavail = obj->Get(bavail_sym)->IntegerValue();
-        statbuf->f_files = obj->Get(files_sym)->IntegerValue();
-        statbuf->f_ffree = obj->Get(ffree_sym)->IntegerValue();
-        statbuf->f_favail = obj->Get(favail_sym)->NumberValue();
+        statbuf->f_blocks = obj->Get(NanNew(blocks_sym))->IntegerValue();
+        statbuf->f_bfree = obj->Get(NanNew(bfree_sym))->IntegerValue();
+        statbuf->f_bavail = obj->Get(NanNew(bavail_sym))->IntegerValue();
+        statbuf->f_files = obj->Get(NanNew(files_sym))->IntegerValue();
+        statbuf->f_ffree = obj->Get(NanNew(ffree_sym))->IntegerValue();
+        statbuf->f_favail = obj->Get(NanNew(favail_sym))->NumberValue();
 
-        statbuf->f_fsid = obj->Get(fsid_sym)->NumberValue();
-        statbuf->f_flag = obj->Get(flag_sym)->NumberValue();
-        statbuf->f_namemax = obj->Get(namemax_sym)->NumberValue();
+        statbuf->f_fsid = obj->Get(NanNew(fsid_sym))->NumberValue();
+        statbuf->f_flag = obj->Get(NanNew(flag_sym))->NumberValue();
+        statbuf->f_namemax = obj->Get(NanNew(namemax_sym))->NumberValue();
 
         return 0;
     }
 
     int ObjectToFlock(Handle<Value> value, struct flock* lock) {
-        HandleScope scope;
+        NanScope();
 
         memset(lock, 0, sizeof(struct flock));
 
         Local<Object> obj = value->ToObject();
 
-        lock->l_type = obj->Get(type_sym)->IntegerValue();
-        lock->l_whence = obj->Get(whence_sym)->IntegerValue();
-        lock->l_start = obj->Get(start_sym)->IntegerValue();
-        lock->l_len = obj->Get(len_sym)->IntegerValue();
-        lock->l_pid = obj->Get(pid_sym)->IntegerValue();
+        lock->l_type = obj->Get(NanNew(type_sym))->IntegerValue();
+        lock->l_whence = obj->Get(NanNew(whence_sym))->IntegerValue();
+        lock->l_start = obj->Get(NanNew(start_sym))->IntegerValue();
+        lock->l_len = obj->Get(NanNew(len_sym))->IntegerValue();
+        lock->l_pid = obj->Get(NanNew(pid_sym))->IntegerValue();
 
         return 0;
     }
 
     Handle<Value> GetAttrsToBeSet(int to_set, struct stat* stat) {
-        HandleScope scope;
-        Local<Object> attrs = Object::New();
+        Local<Object> attrs = NanNew<Object>();
 
         if (to_set & FUSE_SET_ATTR_MODE) {
-            attrs->Set(mode_sym, Integer::New(stat->st_mode));
+            attrs->Set( NanNew(mode_sym), NanNew<Integer>(stat->st_mode));
         }
 
         if (to_set & FUSE_SET_ATTR_UID) {
-            attrs->Set(uid_sym, Integer::New(stat->st_uid));
+            attrs->Set( NanNew(uid_sym), NanNew<Integer>(stat->st_uid));
         }
 
         if (to_set & FUSE_SET_ATTR_GID) {
-            attrs->Set(gid_sym, Integer::New(stat->st_gid));
+            attrs->Set( NanNew(gid_sym), NanNew<Integer>(stat->st_gid));
         }
 
         if (to_set & FUSE_SET_ATTR_SIZE) {
-            attrs->Set(size_sym, Number::New(stat->st_size));
+            attrs->Set( NanNew(size_sym), NanNew<Number>(stat->st_size));
         }
 
         if (to_set & FUSE_SET_ATTR_ATIME) {
-            attrs->Set(atime_sym, NODE_UNIXTIME_V8(stat->st_atime));
+            attrs->Set( NanNew(atime_sym), NODE_UNIXTIME_V8(stat->st_atime));
         }
 
         if (to_set & FUSE_SET_ATTR_MTIME) {
-            attrs->Set(mtime_sym, NODE_UNIXTIME_V8(stat->st_mtime));
+            attrs->Set( NanNew(mtime_sym), NODE_UNIXTIME_V8(stat->st_mtime));
         }
 
-        return scope.Close(attrs);
+        return attrs;
     }
 
     Handle<Value> RequestContextToObject(const struct fuse_ctx* ctx) {
-        HandleScope scope;
-        Local<Object> context = Object::New();
+        Local<Object> context = NanNew<Object>();
 
-        context->Set(uid_sym, Integer::New(ctx->uid));
-        context->Set(gid_sym, Integer::New(ctx->gid));
-        context->Set(pid_sym, Integer::New(ctx->pid));
+        context->Set(NanNew(uid_sym), NanNew<Integer>(ctx->uid));
+        context->Set(NanNew(gid_sym), NanNew<Integer>(ctx->gid));
+        context->Set(NanNew(pid_sym), NanNew<Integer>(ctx->pid));
 
-        return scope.Close(context);
+        return context;
     }
 
     Handle<Value> FlockToObject(const struct flock *lock) {
-        HandleScope scope;
-        Local<Object> rv = Object::New();
+        Local<Object> rv = NanNew<Object>();
 
         //Specifies the type of the lock; one of F_RDLCK, F_WRLCK, or F_UNLCK.
-        rv->Set(type_sym, Integer::New(lock->l_type)); //TODO convert to object with accessors
+        rv->Set( NanNew(type_sym), NanNew<Integer>(lock->l_type)); //TODO convert to object with accessors
         //This corresponds to the whence argument to fseek or lseek, and specifies what the offset is relative to. Its value can be one of SEEK_SET, SEEK_CUR, or SEEK_END.
-        rv->Set(whence_sym, Integer::New(lock->l_whence)); //TODO convert to object with accessors
-        rv->Set(start_sym, Integer::New(lock->l_start));
-        rv->Set(len_sym, Integer::New(lock->l_len));
-        rv->Set(pid_sym, Integer::New(lock->l_pid));
+        rv->Set( NanNew(whence_sym), NanNew<Integer>(lock->l_whence)); //TODO convert to object with accessors
+        rv->Set( NanNew(start_sym), NanNew<Integer>(lock->l_start));
+        rv->Set( NanNew(len_sym), NanNew<Integer>(lock->l_len));
+        rv->Set( NanNew(pid_sym), NanNew<Integer>(lock->l_pid));
 
-        return scope.Close(rv);
+        return rv;
     }
 
     NODE_MODULE(fusejs, InitializeFuse)

@@ -14,19 +14,19 @@ namespace NodeFuse {
             virtual ~Reply();
 
         protected:
-            static Handle<Value> Entry(const Arguments& args);
-            static Handle<Value> Attributes(const Arguments& args);
-            static Handle<Value> ReadLink(const Arguments& args);
-            static Handle<Value> Error(const Arguments& args);
-            static Handle<Value> Open(const Arguments& args);
-            static Handle<Value> Buffer(const Arguments& args);
-            static Handle<Value> Write(const Arguments& args);
-            static Handle<Value> StatFs(const Arguments& args);
-            static Handle<Value> Create(const Arguments& args);
-            static Handle<Value> XAttributes(const Arguments& args);
-            static Handle<Value> Lock(const Arguments& args);
-            static Handle<Value> BMap(const Arguments& args);
-            static Handle<Value> AddDirEntry(const Arguments& args);
+            static NAN_METHOD(Entry);
+            static NAN_METHOD(Attributes);
+            static NAN_METHOD(ReadLink);
+            static NAN_METHOD(Error);
+            static NAN_METHOD(Open);
+            static NAN_METHOD(Buffer);
+            static NAN_METHOD(Write);
+            static NAN_METHOD(StatFs);
+            static NAN_METHOD(Create);
+            static NAN_METHOD(XAttributes);
+            static NAN_METHOD(Lock);
+            static NAN_METHOD(BMap);
+            static NAN_METHOD(AddDirEntry);
 
         private:
             fuse_req_t request;

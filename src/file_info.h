@@ -15,29 +15,28 @@ namespace NodeFuse {
                     return false;
                 }
                 v8::Local<v8::Object> object = value->ToObject();
-                return constructor_template->HasInstance(object);
+                return NanHasInstance(constructor_template, object);
             }
 
             FileInfo();
             virtual ~FileInfo();
-
-        protected:
-            static Handle<Value> GetFlags(Local<String> property, const AccessorInfo& info);
-            static Handle<Value> GetWritePage(Local<String> property, const AccessorInfo& info);
-            static Handle<Value> GetDirectIO(Local<String> property, const AccessorInfo& info);
-            static void SetDirectIO(Local<String> property, Local<Value> value, const AccessorInfo& info);
-            static Handle<Value> GetKeepCache(Local<String> property, const AccessorInfo& info);
-            static void SetKeepCache(Local<String> property, Local<Value> value, const AccessorInfo& info);
-            static Handle<Value> GetFlush(Local<String> property, const AccessorInfo& info);
-            static Handle<Value> GetNonSeekable(Local<String> property, const AccessorInfo& info);
-            static void SetNonSeekable(Local<String> property, Local<Value> value, const AccessorInfo& info);
-            static void SetFileHandle(Local<String> property, Local<Value> value, const AccessorInfo& info);
-            static Handle<Value> GetFileHandle(Local<String> property, const AccessorInfo& info);
-            static Handle<Value> GetLockOwner(Local<String> property, const AccessorInfo& info);
-
-        private:
             struct fuse_file_info *fi;
             static Persistent<FunctionTemplate> constructor_template;
+
+        protected:
+            static NAN_GETTER(GetFlags);
+            static NAN_GETTER(GetWritePage);
+            static NAN_GETTER(GetDirectIO);
+            static NAN_SETTER(SetDirectIO);
+            static NAN_GETTER(GetKeepCache);
+            static NAN_SETTER(SetKeepCache);
+            static NAN_GETTER(GetFlush);
+            static NAN_GETTER(GetNonSeekable);
+            static NAN_SETTER(SetNonSeekable);
+            static NAN_SETTER(SetFileHandle);
+            static NAN_GETTER(GetFileHandle);
+            static NAN_GETTER(GetLockOwner);
+
     };
 } //namespace NodeFuse
 

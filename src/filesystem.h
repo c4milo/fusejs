@@ -61,6 +61,8 @@ namespace NodeFuse {
       void *userdata;
     };
     class FileSystem {
+        private:
+          static Persistent<FunctionTemplate> constructor_template;
         public:
             FileSystem();
             virtual ~FileSystem();

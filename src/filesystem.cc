@@ -5,64 +5,66 @@
 #include "node_buffer.h"
 
 namespace NodeFuse {
+    Persistent<FunctionTemplate> FileSystem::constructor_template;
+
     ck_ring_t *ck_ring;
     ck_ring_buffer_t ck_ring_buffer[_RING_SIZE_];
 
     static struct fuse_lowlevel_ops fuse_ops = {};
 
     //Symbols for FUSE operations
-    static Persistent<String> init_sym        = NODE_PSYMBOL("init");
-    static Persistent<String> destroy_sym     = NODE_PSYMBOL("destroy");
-    static Persistent<String> lookup_sym      = NODE_PSYMBOL("lookup");
-    static Persistent<String> forget_sym      = NODE_PSYMBOL("forget");
-    static Persistent<String> getattr_sym     = NODE_PSYMBOL("getattr");
-    static Persistent<String> setattr_sym     = NODE_PSYMBOL("setattr");
-    static Persistent<String> readlink_sym    = NODE_PSYMBOL("readlink");
-    static Persistent<String> mknod_sym       = NODE_PSYMBOL("mknod");
-    static Persistent<String> mkdir_sym       = NODE_PSYMBOL("mkdir");
-    static Persistent<String> unlink_sym      = NODE_PSYMBOL("unlink");
-    static Persistent<String> rmdir_sym       = NODE_PSYMBOL("rmdir");
-    static Persistent<String> symlink_sym     = NODE_PSYMBOL("symlink");
-    static Persistent<String> rename_sym      = NODE_PSYMBOL("rename");
-    static Persistent<String> link_sym        = NODE_PSYMBOL("link");
-    static Persistent<String> open_sym        = NODE_PSYMBOL("open");
-    static Persistent<String> read_sym        = NODE_PSYMBOL("read");
-    static Persistent<String> write_sym       = NODE_PSYMBOL("write");
-    static Persistent<String> flush_sym       = NODE_PSYMBOL("flush");
-    static Persistent<String> release_sym     = NODE_PSYMBOL("release");
-    static Persistent<String> fsync_sym       = NODE_PSYMBOL("fsync");
-    static Persistent<String> opendir_sym     = NODE_PSYMBOL("opendir");
-    static Persistent<String> readdir_sym     = NODE_PSYMBOL("readdir");
-    static Persistent<String> releasedir_sym  = NODE_PSYMBOL("releasedir");
-    static Persistent<String> fsyncdir_sym    = NODE_PSYMBOL("fsyncdir");
-    static Persistent<String> statfs_sym      = NODE_PSYMBOL("statfs");
-    static Persistent<String> setxattr_sym    = NODE_PSYMBOL("setxattr");
-    static Persistent<String> getxattr_sym    = NODE_PSYMBOL("getxattr");
-    static Persistent<String> listxattr_sym   = NODE_PSYMBOL("listxattr");
-    static Persistent<String> removexattr_sym = NODE_PSYMBOL("removexattr");
-    static Persistent<String> access_sym      = NODE_PSYMBOL("access");
-    static Persistent<String> create_sym      = NODE_PSYMBOL("create");
-    static Persistent<String> getlk_sym       = NODE_PSYMBOL("getlk");
-    static Persistent<String> setlk_sym       = NODE_PSYMBOL("setlk");
-    static Persistent<String> bmap_sym        = NODE_PSYMBOL("bmap");
-    static Persistent<String> ioctl_sym       = NODE_PSYMBOL("ioctl");
-    static Persistent<String> poll_sym        = NODE_PSYMBOL("poll");
+    static Persistent<String> init_sym;
+    static Persistent<String> destroy_sym;
+    static Persistent<String> lookup_sym;
+    static Persistent<String> forget_sym;
+    static Persistent<String> getattr_sym;
+    static Persistent<String> setattr_sym;
+    static Persistent<String> readlink_sym;
+    static Persistent<String> mknod_sym;
+    static Persistent<String> mkdir_sym;
+    static Persistent<String> unlink_sym;
+    static Persistent<String> rmdir_sym;
+    static Persistent<String> symlink_sym;
+    static Persistent<String> rename_sym;
+    static Persistent<String> link_sym;
+    static Persistent<String> open_sym;
+    static Persistent<String> read_sym;
+    static Persistent<String> write_sym;
+    static Persistent<String> flush_sym;
+    static Persistent<String> release_sym;
+    static Persistent<String> fsync_sym;
+    static Persistent<String> opendir_sym;
+    static Persistent<String> readdir_sym;
+    static Persistent<String> releasedir_sym;
+    static Persistent<String> fsyncdir_sym;
+    static Persistent<String> statfs_sym;
+    static Persistent<String> setxattr_sym;
+    static Persistent<String> getxattr_sym;
+    static Persistent<String> listxattr_sym;
+    static Persistent<String> removexattr_sym;
+    static Persistent<String> access_sym;
+    static Persistent<String> create_sym;
+    static Persistent<String> getlk_sym;
+    static Persistent<String> setlk_sym;
+    static Persistent<String> bmap_sym;
+    static Persistent<String> ioctl_sym;
+    static Persistent<String> poll_sym;
 
     //fuse_conn_info symbols
     //Major version of the fuse protocol
-    static Persistent<String> conn_info_proto_major_sym     = NODE_PSYMBOL("proto_major");
+    static Persistent<String> conn_info_proto_major_sym;
     //Minor version of the fuse protocol
-    static Persistent<String> conn_info_proto_minor_sym     = NODE_PSYMBOL("proto_minor");
+    static Persistent<String> conn_info_proto_minor_sym;
     //Is asynchronous read supported
-    static Persistent<String> conn_info_async_read_sym      = NODE_PSYMBOL("async_read");
+    static Persistent<String> conn_info_async_read_sym;
     //Maximum size of the write buffer
-    static Persistent<String> conn_info_max_write_sym       = NODE_PSYMBOL("max_write");
+    static Persistent<String> conn_info_max_write_sym;
     //Maximum readahead
-    static Persistent<String> conn_info_max_readahead_sym   = NODE_PSYMBOL("max_readahead");
+    static Persistent<String> conn_info_max_readahead_sym;
     //Capability flags, that the kernel supports
-    static Persistent<String> conn_info_capable_sym         = NODE_PSYMBOL("capable");
+    static Persistent<String> conn_info_capable_sym;
     //Capability flags, that the filesystem wants to enable
-    static Persistent<String> conn_info_want_sym            = NODE_PSYMBOL("want");
+    static Persistent<String> conn_info_want_sym;
     
     void FileSystem::DispatchOp(uv_async_t* handle, int status)
     {
@@ -198,50 +200,93 @@ namespace NodeFuse {
         // fuse_ops.bmap       = FileSystem::BMap;
         //fuse_ops.ioctl      = FileSystem::IOCtl;
         //fuse_ops.poll       = FileSystem::Poll;
+
+        NanAssignPersistent(init_sym,        NanNew("init"));
+        NanAssignPersistent(destroy_sym,     NanNew("destroy"));
+        NanAssignPersistent(lookup_sym,      NanNew("lookup"));
+        NanAssignPersistent(forget_sym,      NanNew("forget"));
+        NanAssignPersistent(getattr_sym,     NanNew("getattr"));
+        NanAssignPersistent(setattr_sym,     NanNew("setattr"));
+        NanAssignPersistent(readlink_sym,    NanNew("readlink"));
+        NanAssignPersistent(mknod_sym,       NanNew("mknod"));
+        NanAssignPersistent(mkdir_sym,       NanNew("mkdir"));
+        NanAssignPersistent(unlink_sym,      NanNew("unlink"));
+        NanAssignPersistent(rmdir_sym,       NanNew("rmdir"));
+        NanAssignPersistent(symlink_sym,     NanNew("symlink"));
+        NanAssignPersistent(rename_sym,      NanNew("rename"));
+        NanAssignPersistent(link_sym,        NanNew("link"));
+        NanAssignPersistent(open_sym,        NanNew("open"));
+        NanAssignPersistent(read_sym,        NanNew("read"));
+        NanAssignPersistent(write_sym,       NanNew("write"));
+        NanAssignPersistent(flush_sym,       NanNew("flush"));
+        NanAssignPersistent(release_sym,     NanNew("release"));
+        NanAssignPersistent(fsync_sym,       NanNew("fsync"));
+        NanAssignPersistent(opendir_sym,     NanNew("opendir"));
+        NanAssignPersistent(readdir_sym,     NanNew("readdir"));
+        NanAssignPersistent(releasedir_sym,  NanNew("releasedir"));
+        NanAssignPersistent(fsyncdir_sym,    NanNew("fsyncdir"));
+        NanAssignPersistent(statfs_sym,      NanNew("statfs"));
+        NanAssignPersistent(setxattr_sym,    NanNew("setxattr"));
+        NanAssignPersistent(getxattr_sym,    NanNew("getxattr"));
+        NanAssignPersistent(listxattr_sym,   NanNew("listxattr"));
+        NanAssignPersistent(removexattr_sym, NanNew("removexattr"));
+        NanAssignPersistent(access_sym,      NanNew("access"));
+        NanAssignPersistent(create_sym,      NanNew("create"));
+        NanAssignPersistent(getlk_sym,       NanNew("getlk"));
+        NanAssignPersistent(setlk_sym,       NanNew("setlk"));
+        NanAssignPersistent(bmap_sym,        NanNew("bmap"));
+        NanAssignPersistent(ioctl_sym,       NanNew("ioctl"));
+        NanAssignPersistent(poll_sym,        NanNew("poll"));
+        NanAssignPersistent(conn_info_proto_major_sym,     NanNew("proto_major"));
+        NanAssignPersistent(conn_info_proto_minor_sym,     NanNew("proto_minor"));
+        NanAssignPersistent(conn_info_async_read_sym,      NanNew("async_read"));
+        NanAssignPersistent(conn_info_max_write_sym,       NanNew("max_write"));
+        NanAssignPersistent(conn_info_max_readahead_sym,   NanNew("max_readahead"));
+        NanAssignPersistent(conn_info_capable_sym,         NanNew("capable"));
+        NanAssignPersistent(conn_info_want_sym,            NanNew("want"));
     }
 
     void FileSystem::Init(void* userdata,
                           struct fuse_conn_info* conn) {
-        HandleScope scope;
+        NanScope();
         Fuse* fuse = static_cast<Fuse *>(userdata);
-
-        Local<Value> vinit = fuse->fsobj->Get(init_sym);
+        Local<Object> fsobj = NanNew(fuse->fsobj);
+        Local<Value> vinit = fsobj->Get(NanNew(init_sym));
         Local<Function> init = Local<Function>::Cast(vinit);
 
         //These properties will be read-only for now.
         //TODO set accessors for read/write properties
-        Local<Object> info = Object::New();
-        info->Set(conn_info_proto_major_sym, Integer::New(conn->proto_major));
-        info->Set(conn_info_proto_minor_sym, Integer::New(conn->proto_minor));
-        info->Set(conn_info_async_read_sym, Integer::New(conn->async_read));
-        info->Set(conn_info_max_write_sym, Number::New(conn->max_write));
-        info->Set(conn_info_max_readahead_sym, Number::New(conn->max_readahead));
+        Local<Object> info = NanNew<Object>();
+        info->Set(NanNew<String>(conn_info_proto_major_sym), NanNew<Integer>(conn->proto_major));
+        info->Set(NanNew<String>(conn_info_proto_minor_sym), NanNew<Integer>(conn->proto_minor));
+        info->Set(NanNew<String>(conn_info_async_read_sym), NanNew<Integer>(conn->async_read));
+        info->Set(NanNew<String>(conn_info_max_write_sym), NanNew<Number>(conn->max_write));
+        info->Set(NanNew<String>(conn_info_max_readahead_sym), NanNew<Number>(conn->max_readahead));
         //TODO macro to enable certain properties given the fuse version
-        //info->Set(conn_info_capable_sym, Integer::New(conn->capable));
-        //info->Set(conn_info_want_sym, Integer::New(conn->want));
+        //info->Set(conn_info_capable_sym, NanNew<Integer>(conn->capable));
+        //info->Set(conn_info_want_sym, NanNew<Integer>(conn->want));
 
         Local<Value> argv[1] = {info};
 
         TryCatch try_catch;
 
-        init->Call(fuse->fsobj, 1, argv);
+        init->Call(fsobj, 1, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
-        scope.Close(Undefined());
     }
 
     void FileSystem::Destroy(void* userdata) {
-        HandleScope scope;
+        NanScope();
         Fuse* fuse = static_cast<Fuse *>(userdata);
-
-        Local<Value> vdestroy = fuse->fsobj->Get(destroy_sym);
+        Local<Object> fsobj = NanNew(fuse->fsobj);
+        Local<Value> vdestroy = fsobj->Get(NanNew(destroy_sym));
         Local<Function> destroy = Local<Function>::Cast(vdestroy);
 
         TryCatch try_catch;
 
-        destroy->Call(fuse->fsobj, 0, NULL);
+        destroy->Call(fsobj, 0, NULL);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
@@ -267,59 +312,59 @@ namespace NodeFuse {
     void FileSystem::RemoteLookup(fuse_req_t req,
                             fuse_ino_t parent,
                             const char* name) {
-        HandleScope scope;
+        NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
-
-        Local<Value> vlookup = fuse->fsobj->Get(lookup_sym);
+        Local<Object> fsobj = NanNew(fuse->fsobj);
+        Local<Value> vlookup = fsobj->Get(NanNew(lookup_sym));
         Local<Function> lookup = Local<Function>::Cast(vlookup);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> parentInode = Number::New(parent);
-        Local<String> entryName = String::New(name);
+        Local<Number> parentInode = NanNew<Number>(parent);
+        Local<String> entryName = NanNew<String>(name);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = NanNew(reply->constructor_template)->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[4] = {context, parentInode,
                                 entryName, replyObj};
         TryCatch try_catch;
 
-        lookup->Call(fuse->fsobj, 4, argv);
+        lookup->Call(fsobj, 4, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
-        scope.Close(Undefined());
+        //scope.Close(Undefined());
 
     }
 
     void FileSystem::Forget(fuse_req_t req,
                             fuse_ino_t ino,
                             unsigned long nlookup) {
-        HandleScope scope;
+        NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
-
-        Local<Value> vforget = fuse->fsobj->Get(forget_sym);
+        Local<Object> fsobj = NanNew(fuse->fsobj);
+        Local<Value> vforget = fsobj->Get(NanNew(forget_sym));
         Local<Function> forget = Local<Function>::Cast(vforget);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
-        Local<Integer> nlookup_ = Integer::New(nlookup);
+        Local<Number> inode = NanNew<Number>(ino);
+        Local<Integer> nlookup_ = NanNew<Integer>(nlookup);
 
         Local<Value> argv[3] = {context, inode, nlookup_};
 
         TryCatch try_catch;
 
-        forget->Call(fuse->fsobj, 3, argv);
+        forget->Call(fsobj, 3, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
 
         fuse_reply_none(req);
-        scope.Close(Undefined());
+        //scope.Close(Undefined());
 
     }
 
@@ -343,30 +388,31 @@ namespace NodeFuse {
     void FileSystem::RemoteGetAttr(fuse_req_t req,
                              fuse_ino_t ino,
                              struct fuse_file_info* fi) {
-        HandleScope scope;
+        NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = NanNew(fuse->fsobj);
 
-        Local<Value> vgetattr = fuse->fsobj->Get(getattr_sym);
+        Local<Value> vgetattr = fsobj->Get(NanNew(getattr_sym));
         Local<Function> getattr = Local<Function>::Cast(vgetattr);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
+        Local<Number> inode = NanNew<Number>(ino);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = NanNew(reply->constructor_template)->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[3] = {context, inode, replyObj};
 
         TryCatch try_catch;
 
-        getattr->Call(fuse->fsobj, 3, argv);
+        getattr->Call(fsobj, 3, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
-        scope.Close(Undefined());
+        //scope.Close(Undefined());
 
     }
 
@@ -398,55 +444,57 @@ namespace NodeFuse {
                              int to_set,
                              struct fuse_file_info* fi) {
 
-        HandleScope scope;
+        NanScope();
         Fuse *fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = NanNew(fuse->fsobj);
 
-        Local<Value> vsetattr = fuse->fsobj->Get(setattr_sym);
+        Local<Value> vsetattr = fsobj->Get(NanNew(setattr_sym));
         Local<Function> setattr = Local<Function>::Cast(vsetattr);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
+        Local<Number> inode = NanNew<Number>(ino);
 
         Local<Object> attrs = GetAttrsToBeSet(to_set, attr)->ToObject();
 
         Reply *reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = NanNew(reply->constructor_template)->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[4] = {context, inode, attrs, replyObj};
 
         TryCatch try_catch;
 
-        setattr->Call(fuse->fsobj, 4, argv);
+        setattr->Call(fsobj, 4, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
-        scope.Close(Undefined());
+        //scope.Close(Undefined());
 
     }
 
     void FileSystem::ReadLink(fuse_req_t req, fuse_ino_t ino) {
-        HandleScope scope;
+        NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = NanNew(fuse->fsobj);
 
-        Local<Value> vreadlink = fuse->fsobj->Get(readlink_sym);
+        Local<Value> vreadlink = fsobj->Get(NanNew(readlink_sym));
         Local<Function> readlink = Local<Function>::Cast(vreadlink);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
+        Local<Number> inode = NanNew<Number>(ino);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = NanNew( reply->constructor_template)->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[3] = {context, inode, replyObj};
 
         TryCatch try_catch;
 
-        readlink->Call(fuse->fsobj, 3, argv);
+        readlink->Call(fsobj, 3, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
@@ -481,22 +529,23 @@ namespace NodeFuse {
                            mode_t mode,
                            dev_t rdev) {
 
-        HandleScope scope;
+        NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = NanNew(fuse->fsobj);
 
-        Local<Value> vmknod = fuse->fsobj->Get(mknod_sym);
+        Local<Value> vmknod = fsobj->Get(NanNew(mknod_sym));
         Local<Function> mknod = Local<Function>::Cast(vmknod);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> parentInode = Number::New(parent);
+        Local<Number> parentInode = NanNew<Number>(parent);
 
-        Local<String> name_ = String::New(name);
-        Local<Integer> mode_ = Integer::New(mode);
-        Local<Integer> rdev_ = Integer::New(rdev);
+        Local<String> name_ = NanNew<String>(name);
+        Local<Integer> mode_ = NanNew<Integer>(mode);
+        Local<Integer> rdev_ = NanNew<Integer>(rdev);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = NanNew(reply->constructor_template)->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[6] = {context, parentInode,
@@ -505,12 +554,12 @@ namespace NodeFuse {
 
         TryCatch try_catch;
 
-        mknod->Call(fuse->fsobj, 6, argv);
+        mknod->Call(fsobj, 6, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
-        scope.Close(Undefined());
+        //scope.Close(Undefined());
 
     }
 
@@ -538,21 +587,22 @@ namespace NodeFuse {
                            const char* name,
                            mode_t mode) {
 
-        HandleScope scope;
+        NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = NanNew(fuse->fsobj);
 
-        Local<Value> vmkdir = fuse->fsobj->Get(mkdir_sym);
+        Local<Value> vmkdir = fsobj->Get(NanNew(mkdir_sym));
         Local<Function> mkdir = Local<Function>::Cast(vmkdir);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> parentInode = Number::New(parent);
+        Local<Number> parentInode = NanNew<Number>(parent);
 
-        Local<String> name_ = String::New(name);
-        Local<Integer> mode_ = Integer::New(mode);
+        Local<String> name_ = NanNew<String>(name);
+        Local<Integer> mode_ = NanNew<Integer>(mode);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = NanNew(reply->constructor_template)->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[5] = {context, parentInode,
@@ -560,12 +610,12 @@ namespace NodeFuse {
 
         TryCatch try_catch;
 
-        mkdir->Call(fuse->fsobj, 5, argv);
+        mkdir->Call(fsobj, 5, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
-        scope.Close(Undefined());
+        //scope.Close(Undefined());
 
     }
 
@@ -590,31 +640,32 @@ namespace NodeFuse {
                             fuse_ino_t parent,
                             const char* name) {
 
-        HandleScope scope;
+        NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = NanNew(fuse->fsobj);
 
-        Local<Value> vunlink = fuse->fsobj->Get(unlink_sym);
+        Local<Value> vunlink = fsobj->Get(NanNew(unlink_sym));
         Local<Function> unlink = Local<Function>::Cast(vunlink);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> parentInode = Number::New(parent);
-        Local<String> name_ = String::New(name);
+        Local<Number> parentInode = NanNew<Number>(parent);
+        Local<String> name_ = NanNew<String>(name);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = NanNew(reply->constructor_template)->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[4] = {context, parentInode, name_, replyObj};
 
         TryCatch try_catch;
 
-        unlink->Call(fuse->fsobj, 4, argv);
+        unlink->Call(fsobj, 4, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
-        scope.Close(Undefined());
+        //scope.Close(Undefined());
 
     }
 
@@ -638,51 +689,53 @@ namespace NodeFuse {
                            fuse_ino_t parent,
                            const char* name) {
 
-        HandleScope scope;
+        NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = NanNew(fuse->fsobj);
 
-        Local<Value> vrmdir = fuse->fsobj->Get(rmdir_sym);
+        Local<Value> vrmdir = fsobj->Get(NanNew(rmdir_sym));
         Local<Function> rmdir = Local<Function>::Cast(vrmdir);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> parentInode = Number::New(parent);
-        Local<String> name_ = String::New(name);
+        Local<Number> parentInode = NanNew<Number>(parent);
+        Local<String> name_ = NanNew<String>(name);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = NanNew(reply->constructor_template)->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[4] = {context, parentInode, name_, replyObj};
 
         TryCatch try_catch;
 
-        rmdir->Call(fuse->fsobj, 4, argv);
+        rmdir->Call(fsobj, 4, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
-        scope.Close(Undefined());
+        //scope.Close(Undefined());
     }
 
     void FileSystem::SymLink(fuse_req_t req,
                              const char* link,
                              fuse_ino_t parent,
                              const char* name) {
-        HandleScope scope;
+        NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = NanNew(fuse->fsobj);
 
-        Local<Value> vsymlink = fuse->fsobj->Get(symlink_sym);
+        Local<Value> vsymlink = fsobj->Get(NanNew(symlink_sym));
         Local<Function> symlink = Local<Function>::Cast(vsymlink);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> parentInode = Number::New(parent);
-        Local<String> name_ = String::New(name);
-        Local<String> link_ = String::New(link);
+        Local<Number> parentInode = NanNew<Number>(parent);
+        Local<String> name_ = NanNew<String>(name);
+        Local<String> link_ = NanNew<String>(link);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = NanNew(reply->constructor_template)->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[5] = {context, parentInode,
@@ -690,7 +743,7 @@ namespace NodeFuse {
 
         TryCatch try_catch;
 
-        symlink->Call(fuse->fsobj, 5, argv);
+        symlink->Call(fsobj, 5, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
@@ -702,21 +755,22 @@ namespace NodeFuse {
                             const char *name,
                             fuse_ino_t newparent,
                             const char *newname) {
-        HandleScope scope;
+        NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = NanNew(fuse->fsobj);
 
-        Local<Value> vrename = fuse->fsobj->Get(rename_sym);
+        Local<Value> vrename = fsobj->Get(NanNew(rename_sym));
         Local<Function> rename = Local<Function>::Cast(vrename);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> parentInode = Number::New(parent);
-        Local<String> name_ = String::New(name);
-        Local<Number> newParentInode = Number::New(newparent);
-        Local<String> newName = String::New(newname);
+        Local<Number> parentInode = NanNew<Number>(parent);
+        Local<String> name_ = NanNew<String>(name);
+        Local<Number> newParentInode = NanNew<Number>(newparent);
+        Local<String> newName = NanNew<String>(newname);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = NanNew(reply->constructor_template)->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[6] = {context, parentInode,
@@ -725,7 +779,7 @@ namespace NodeFuse {
 
         TryCatch try_catch;
 
-        rename->Call(fuse->fsobj, 6, argv);
+        rename->Call(fsobj, 6, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
@@ -736,20 +790,21 @@ namespace NodeFuse {
                           fuse_ino_t ino,
                           fuse_ino_t newparent,
                           const char* newname) {
-        HandleScope scope;
+        NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = NanNew(fuse->fsobj);
 
-        Local<Value> vlink = fuse->fsobj->Get(link_sym);
+        Local<Value> vlink = fsobj->Get(NanNew(link_sym));
         Local<Function> link = Local<Function>::Cast(vlink);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
-        Local<Number> newParent = Number::New(newparent);
-        Local<String> newName = String::New(newname);
+        Local<Number> inode = NanNew<Number>(ino);
+        Local<Number> newParent = NanNew<Number>(newparent);
+        Local<String> newName = NanNew<String>(newname);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = NanNew(reply->constructor_template)->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[5] = {context, inode,
@@ -757,7 +812,7 @@ namespace NodeFuse {
 
         TryCatch try_catch;
 
-        link->Call(fuse->fsobj, 5, argv);
+        link->Call(fsobj, 5, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
@@ -783,23 +838,24 @@ namespace NodeFuse {
                           fuse_ino_t ino,
                           struct fuse_file_info* fi) {
 
-        HandleScope scope;
+        NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = NanNew(fuse->fsobj);
 
-        Local<Value> vopen = fuse->fsobj->Get(open_sym);
+        Local<Value> vopen = fsobj->Get(NanNew(open_sym));
         Local<Function> open = Local<Function>::Cast(vopen);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
+        Local<Number> inode = NanNew<Number>(ino);
 
         FileInfo* info = new FileInfo();
         info->fi = fi;
-        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        Local<Object> infoObj = NanNew(info->constructor_template)->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = NanNew(reply->constructor_template)->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[4] = {context, inode,
@@ -807,12 +863,12 @@ namespace NodeFuse {
 
         TryCatch try_catch;
 
-        open->Call(fuse->fsobj, 4, argv);
+        open->Call(fsobj, 4, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
-        scope.Close(Undefined());
+        //scope.Close(Undefined());
 
     }
 
@@ -842,25 +898,26 @@ namespace NodeFuse {
                           off_t off,
                           struct fuse_file_info* fi) {
 
-        HandleScope scope;
+        NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = NanNew(fuse->fsobj);
 
-        Local<Value> vread = fuse->fsobj->Get(read_sym);
+        Local<Value> vread = fsobj->Get(NanNew(read_sym));
         Local<Function> read = Local<Function>::Cast(vread);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
-        Local<Integer> size = Integer::New(size_);
-        Local<Integer> offset = Integer::New(off);
+        Local<Number> inode = NanNew<Number>(ino);
+        Local<Integer> size = NanNew<Integer>(size_);
+        Local<Integer> offset = NanNew<Integer>(off);
 
         FileInfo* info = new FileInfo();
         info->fi = fi;
-        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        Local<Object> infoObj = NanNew(info->constructor_template)->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = NanNew(reply->constructor_template)->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[6] = {context, inode,
@@ -869,12 +926,12 @@ namespace NodeFuse {
 
         TryCatch try_catch;
 
-        read->Call(fuse->fsobj, 6, argv);
+        read->Call(fsobj, 6, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
-        scope.Close(Undefined());
+        //scope.Close(Undefined());
 
     }
 
@@ -906,62 +963,65 @@ namespace NodeFuse {
                            size_t size,
                            off_t off,
                            struct fuse_file_info* fi){
-        HandleScope scope;
+        NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = NanNew(fuse->fsobj);
 
-        Local<Value> vwrite = fuse->fsobj->Get(write_sym);
+        Local<Value> vwrite = fsobj->Get(NanNew(write_sym));
         Local<Function> write = Local<Function>::Cast(vwrite);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
-        Local<Integer> offset = Integer::New(off);
+        Local<Number> inode = NanNew<Number>(ino);
+        Local<Integer> offset = NanNew<Integer>(off);
 
-        Buffer* buffer = Buffer::New((char*) buf, size);
+        Local<Object> buffer = NanBufferUse((char*) buf, size);
 
         FileInfo* info = new FileInfo();
         info->fi = fi;
-        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        Local<Object> infoObj = NanNew(info->constructor_template)->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = NanNew(reply->constructor_template)->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[6] = {context, inode,
-                                Local<Object>::New(buffer->handle_), offset,
+                                // NanNew<Object>(buffer->handle_), offset,
+                                buffer, offset,
                                 infoObj, replyObj};
 
         TryCatch try_catch;
-        write->Call(fuse->fsobj, 6, argv);
+        write->Call(fsobj, 6, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
-        scope.Close(Undefined());
+        //scope.Close(Undefined());
 
     }
 
     void FileSystem::Flush(fuse_req_t req,
                            fuse_ino_t ino,
                            struct fuse_file_info* fi) {
-        HandleScope scope;
+        NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = NanNew(fuse->fsobj);
 
-        Local<Value> vflush = fuse->fsobj->Get(flush_sym);
+        Local<Value> vflush = fsobj->Get(NanNew(flush_sym));
         Local<Function> flush = Local<Function>::Cast(vflush);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
+        Local<Number> inode = NanNew<Number>(ino);
 
         FileInfo* info = new FileInfo();
         info->fi = fi;
-        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        Local<Object> infoObj = NanNew(info->constructor_template)->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = NanNew(reply->constructor_template)->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[4] = {context, inode,
@@ -969,7 +1029,7 @@ namespace NodeFuse {
 
         TryCatch try_catch;
 
-        flush->Call(fuse->fsobj, 4, argv);
+        flush->Call(fsobj, 4, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
@@ -996,23 +1056,24 @@ namespace NodeFuse {
                              fuse_ino_t ino,
                              struct fuse_file_info* fi) {
 
-        HandleScope scope;
+        NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = NanNew(fuse->fsobj);
 
-        Local<Value> vrelease = fuse->fsobj->Get(release_sym);
+        Local<Value> vrelease = fsobj->Get(NanNew(release_sym));
         Local<Function> release = Local<Function>::Cast(vrelease);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
+        Local<Number> inode = NanNew<Number>(ino);
 
         FileInfo* info = new FileInfo();
         info->fi = fi;
-        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        Local<Object> infoObj = NanNew(info->constructor_template)->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = NanNew(reply->constructor_template)->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[4] = {context, inode,
@@ -1020,45 +1081,46 @@ namespace NodeFuse {
 
         TryCatch try_catch;
 
-        release->Call(fuse->fsobj, 4, argv);
+        release->Call(fsobj, 4, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
-        scope.Close(Undefined());
+        //scope.Close(Undefined());
     }
 
     void FileSystem::FSync(fuse_req_t req,
                            fuse_ino_t ino,
                            int datasync_,
                            struct fuse_file_info* fi) {
-        HandleScope scope;
+        NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = NanNew(fuse->fsobj);
 
-        Local<Value> vfsync = fuse->fsobj->Get(fsync_sym);
+        Local<Value> vfsync = fsobj->Get(NanNew(fsync_sym));
         Local<Function> fsync = Local<Function>::Cast(vfsync);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
+        Local<Number> inode = NanNew<Number>(ino);
         bool datasync = datasync_ == 0 ? false : true;
 
         FileInfo* info = new FileInfo();
         info->fi = fi;
-        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        Local<Object> infoObj = NanNew(info->constructor_template)->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = NanNew(reply->constructor_template)->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[5] = {context, inode,
-                                Boolean::New(datasync)->ToObject(),
+                                NanNew<Boolean>(datasync)->ToObject(),
                                 infoObj, replyObj};
 
         TryCatch try_catch;
 
-        fsync->Call(fuse->fsobj, 5, argv);
+        fsync->Call(fsobj, 5, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
@@ -1068,23 +1130,24 @@ namespace NodeFuse {
     void FileSystem::OpenDir(fuse_req_t req,
                              fuse_ino_t ino,
                              struct fuse_file_info* fi) {
-        HandleScope scope;
+        NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = NanNew(fuse->fsobj);
 
-        Local<Value> vopendir = fuse->fsobj->Get(opendir_sym);
+        Local<Value> vopendir = fsobj->Get(NanNew(opendir_sym));
         Local<Function> opendir = Local<Function>::Cast(vopendir);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
+        Local<Number> inode = NanNew<Number>(ino);
 
         FileInfo* info = new FileInfo();
         info->fi = fi;
-        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        Local<Object> infoObj = NanNew(info->constructor_template)->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = NanNew(reply->constructor_template)->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[4] = {context, inode,
@@ -1092,7 +1155,7 @@ namespace NodeFuse {
 
         TryCatch try_catch;
 
-        opendir->Call(fuse->fsobj, 4, argv);
+        opendir->Call(fsobj, 4, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
@@ -1124,25 +1187,26 @@ namespace NodeFuse {
                              off_t off,
                              struct fuse_file_info* fi) {
 
-        HandleScope scope;
+        NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = NanNew(fuse->fsobj);
 
-        Local<Value> vreaddir = fuse->fsobj->Get(readdir_sym);
+        Local<Value> vreaddir = fsobj->Get(NanNew(readdir_sym));
         Local<Function> readdir = Local<Function>::Cast(vreaddir);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
-        Local<Integer> size = Integer::New(size_);
-        Local<Integer> offset = Integer::New(off);
+        Local<Number> inode = NanNew<Number>(ino);
+        Local<Integer> size = NanNew<Integer>(size_);
+        Local<Integer> offset = NanNew<Integer>(off);
 
         FileInfo* info = new FileInfo();
         info->fi = fi;
-        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        Local<Object> infoObj = NanNew(info->constructor_template)->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = NanNew(reply->constructor_template)->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[6] = {context, inode,
@@ -1151,35 +1215,36 @@ namespace NodeFuse {
 
         TryCatch try_catch;
 
-        readdir->Call(fuse->fsobj, 6, argv);
+        readdir->Call(fsobj, 6, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
-        scope.Close(Undefined());
+        //scope.Close(Undefined());
 
     }
 
     void FileSystem::ReleaseDir(fuse_req_t req,
                                 fuse_ino_t ino,
                                 struct fuse_file_info* fi) {
-        HandleScope scope;
+        NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = NanNew(fuse->fsobj);
 
-        Local<Value> vreleasedir = fuse->fsobj->Get(releasedir_sym);
+        Local<Value> vreleasedir = fsobj->Get(NanNew(releasedir_sym));
         Local<Function> releasedir = Local<Function>::Cast(vreleasedir);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
+        Local<Number> inode = NanNew<Number>(ino);
 
         FileInfo* info = new FileInfo();
         info->fi = fi;
-        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        Local<Object> infoObj = NanNew(info->constructor_template)->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = NanNew(reply->constructor_template)->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[4] = {context, inode,
@@ -1187,7 +1252,7 @@ namespace NodeFuse {
 
         TryCatch try_catch;
 
-        releasedir->Call(fuse->fsobj, 4, argv);
+        releasedir->Call(fsobj, 4, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
@@ -1198,33 +1263,34 @@ namespace NodeFuse {
                               fuse_ino_t ino,
                               int datasync_,
                               struct fuse_file_info* fi) {
-        HandleScope scope;
+        NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = NanNew(fuse->fsobj);
 
-        Local<Value> vfsyncdir = fuse->fsobj->Get(fsyncdir_sym);
+        Local<Value> vfsyncdir = fsobj->Get(NanNew(fsyncdir_sym));
         Local<Function> fsyncdir = Local<Function>::Cast(vfsyncdir);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
+        Local<Number> inode = NanNew<Number>(ino);
         bool datasync = datasync_ == 0 ? false : true;
 
         FileInfo* info = new FileInfo();
         info->fi = fi;
-        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        Local<Object> infoObj = NanNew(info->constructor_template)->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = NanNew(reply->constructor_template)->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[5] = {context, inode,
-                                Boolean::New(datasync)->ToObject(),
+                                NanNew<Boolean>(datasync)->ToObject(),
                                 infoObj, replyObj};
 
         TryCatch try_catch;
 
-        fsyncdir->Call(fuse->fsobj, 5, argv);
+        fsyncdir->Call(fsobj, 5, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
@@ -1232,25 +1298,26 @@ namespace NodeFuse {
     }
 
     void FileSystem::StatFs(fuse_req_t req, fuse_ino_t ino) {
-        HandleScope scope;
+        NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = NanNew(fuse->fsobj);
 
-        Local<Value> vstatfs = fuse->fsobj->Get(statfs_sym);
+        Local<Value> vstatfs = fsobj->Get(NanNew(statfs_sym));
         Local<Function> statfs = Local<Function>::Cast(vstatfs);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
+        Local<Number> inode = NanNew<Number>(ino);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = NanNew(reply->constructor_template)->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[3] = {context, inode, replyObj};
 
         TryCatch try_catch;
 
-        statfs->Call(fuse->fsobj, 3, argv);
+        statfs->Call(fsobj, 3, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
@@ -1268,27 +1335,28 @@ namespace NodeFuse {
 #else
                               int flags_) {
 #endif
-        HandleScope scope;
+        NanScope();
         Fuse *fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = NanNew(fuse->fsobj);
 
-        Local<Value> vsetxattr = fuse->fsobj->Get(setxattr_sym);
+        Local<Value> vsetxattr = fsobj->Get(NanNew(setxattr_sym));
         Local<Function> setxattr = Local<Function>::Cast(vsetxattr);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
-        Local<String> name = String::New(name_);
-        Local<String> value = String::New(value_);
+        Local<Number> inode = NanNew<Number>(ino);
+        Local<String> name = NanNew<String>(name_);
+        Local<String> value = NanNew<String>(value_);
 #ifdef __APPLE__
-        Local<Integer> position = Integer::New(position_);
+        Local<Integer> position = NanNew<Integer>(position_);
 #endif
-        Local<Number> size = Number::New(size_);
+        Local<Number> size = NanNew<Number>(size_);
 
         //TODO change for an object with accessors
-        Local<Integer> flags = Integer::New(flags_);
+        Local<Integer> flags = NanNew<Integer>(flags_);
 
         Reply *reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = NanNew(reply->constructor_template)->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
 #ifdef __APPLE__
@@ -1305,9 +1373,9 @@ namespace NodeFuse {
         TryCatch try_catch;
 
 #ifdef __APPLE__
-        setxattr->Call(fuse->fsobj, 8, argv);
+        setxattr->Call(fsobj, 8, argv);
 #else
-        setxattr->Call(fuse->fsobj, 7, argv);
+        setxattr->Call(fsobj, 7, argv);
 #endif
 
         if (try_catch.HasCaught()) {
@@ -1324,24 +1392,25 @@ namespace NodeFuse {
 #else
                               ) {
 #endif
-        HandleScope scope;
+        NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = NanNew(fuse->fsobj);
 
-        Local<Value> vgetxattr = fuse->fsobj->Get(getxattr_sym);
+        Local<Value> vgetxattr = fsobj->Get(NanNew(getxattr_sym));
         Local<Function> getxattr = Local<Function>::Cast(vgetxattr);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
-        Local<String> name = String::New(name_);
-        Local<Number> size = Number::New(size_);
+        Local<Number> inode = NanNew<Number>(ino);
+        Local<String> name = NanNew<String>(name_);
+        Local<Number> size = NanNew<Number>(size_);
 #ifdef __APPLE__
-        Local<Integer> position = Integer::New(position_);
+        Local<Integer> position = NanNew<Integer>(position_);
 #endif
 
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = NanNew(reply->constructor_template)->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
 #ifdef __APPLE__
@@ -1356,9 +1425,9 @@ namespace NodeFuse {
         TryCatch try_catch;
 
 #ifdef __APPLE__
-        getxattr->Call(fuse->fsobj, 6, argv);
+        getxattr->Call(fsobj, 6, argv);
 #else
-        getxattr->Call(fuse->fsobj, 5, argv);
+        getxattr->Call(fsobj, 5, argv);
 #endif
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
@@ -1368,26 +1437,27 @@ namespace NodeFuse {
     void FileSystem::ListXAttr(fuse_req_t req,
                                fuse_ino_t ino,
                                size_t size_) {
-        HandleScope scope;
+        NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = NanNew(fuse->fsobj);
 
-        Local<Value> vlistxattr = fuse->fsobj->Get(listxattr_sym);
+        Local<Value> vlistxattr = fsobj->Get(NanNew(listxattr_sym));
         Local<Function> listxattr = Local<Function>::Cast(vlistxattr);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
-        Local<Number> size = Number::New(size_);
+        Local<Number> inode = NanNew<Number>(ino);
+        Local<Number> size = NanNew<Number>(size_);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = NanNew(reply->constructor_template)->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[4] = {context, inode,
                                 size, replyObj};
         TryCatch try_catch;
 
-        listxattr->Call(fuse->fsobj, 4, argv);
+        listxattr->Call(fsobj, 4, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
@@ -1397,26 +1467,27 @@ namespace NodeFuse {
     void FileSystem::RemoveXAttr(fuse_req_t req,
                                  fuse_ino_t ino,
                                  const char* name_) {
-        HandleScope scope;
+        NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = NanNew(fuse->fsobj);
 
-        Local<Value> vremovexattr = fuse->fsobj->Get(removexattr_sym);
+        Local<Value> vremovexattr = fsobj->Get(NanNew(removexattr_sym));
         Local<Function> removexattr = Local<Function>::Cast(vremovexattr);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
-        Local<String> name = String::New(name_);
+        Local<Number> inode = NanNew<Number>(ino);
+        Local<String> name = NanNew<String>(name_);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = NanNew(reply->constructor_template)->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[4] = {context, inode,
                                 name, replyObj};
         TryCatch try_catch;
 
-        removexattr->Call(fuse->fsobj, 4, argv);
+        removexattr->Call(fsobj, 4, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
@@ -1426,19 +1497,20 @@ namespace NodeFuse {
     void FileSystem::Access(fuse_req_t req,
                             fuse_ino_t ino,
                             int mask_) {
-        HandleScope scope;
+        NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = NanNew(fuse->fsobj);
 
-        Local<Value> vaccess = fuse->fsobj->Get(access_sym);
+        Local<Value> vaccess = fsobj->Get(NanNew(access_sym));
         Local<Function> access = Local<Function>::Cast(vaccess);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
-        Local<Integer> mask = Integer::New(mask_);
+        Local<Number> inode = NanNew<Number>(ino);
+        Local<Integer> mask = NanNew<Integer>(mask_);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = NanNew(reply->constructor_template)->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[4] = {context, inode,
@@ -1446,7 +1518,7 @@ namespace NodeFuse {
 
         TryCatch try_catch;
 
-        access->Call(fuse->fsobj, 4, argv);
+        access->Call(fsobj, 4, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
@@ -1478,25 +1550,26 @@ namespace NodeFuse {
                             mode_t mode,
                             struct fuse_file_info* fi) {
 
-        HandleScope scope;
+        NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = NanNew(fuse->fsobj);
 
-        Local<Value> vcreate = fuse->fsobj->Get(create_sym);
+        Local<Value> vcreate = fsobj->Get(NanNew(create_sym));
         Local<Function> create = Local<Function>::Cast(vcreate);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> parentInode = Number::New(parent);
-        Local<String> name_ = String::New(name);
-        Local<Integer> mode_ = Integer::New(mode);
+        Local<Number> parentInode = NanNew<Number>(parent);
+        Local<String> name_ = NanNew<String>(name);
+        Local<Integer> mode_ = NanNew<Integer>(mode);
 
         FileInfo* info = new FileInfo();
         info->fi = fi;
-        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        Local<Object> infoObj = NanNew(info->constructor_template)->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = NanNew(reply->constructor_template)->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[6] = {context, parentInode,
@@ -1505,12 +1578,12 @@ namespace NodeFuse {
 
         TryCatch try_catch;
 
-        create->Call(fuse->fsobj, 6, argv);
+        create->Call(fsobj, 6, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
         }
-        scope.Close(Undefined());
+        //scope.Close(Undefined());
 
     }
 
@@ -1518,25 +1591,26 @@ namespace NodeFuse {
                              fuse_ino_t ino,
                              struct fuse_file_info* fi,
                              struct flock* lock) {
-        HandleScope scope;
+        NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = NanNew(fuse->fsobj);
 
-        Local<Value> vgetlk = fuse->fsobj->Get(getlk_sym);
+        Local<Value> vgetlk = fsobj->Get(NanNew(getlk_sym));
         Local<Function> getlk = Local<Function>::Cast(vgetlk);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
+        Local<Number> inode = NanNew<Number>(ino);
 
         FileInfo* info = new FileInfo();
         info->fi = fi;
-        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        Local<Object> infoObj = NanNew(info->constructor_template)->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
         Local<Object> lockObj = FlockToObject(lock)->ToObject();
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = NanNew(reply->constructor_template)->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[5] = {context, inode,
@@ -1544,7 +1618,7 @@ namespace NodeFuse {
 
         TryCatch try_catch;
 
-        getlk->Call(fuse->fsobj, 5, argv);
+        getlk->Call(fsobj, 5, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
@@ -1556,26 +1630,27 @@ namespace NodeFuse {
                              struct fuse_file_info* fi,
                              struct flock* lock,
                              int sleep_) {
-        HandleScope scope;
+        NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = NanNew(fuse->fsobj);
 
-        Local<Value> vsetlk = fuse->fsobj->Get(setlk_sym);
+        Local<Value> vsetlk = fsobj->Get(NanNew(setlk_sym));
         Local<Function> setlk = Local<Function>::Cast(vsetlk);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
-        Local<Integer> sleep = Integer::New(sleep_);
+        Local<Number> inode = NanNew<Number>(ino);
+        Local<Integer> sleep = NanNew<Integer>(sleep_);
 
         FileInfo* info = new FileInfo();
         info->fi = fi;
-        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        Local<Object> infoObj = NanNew(info->constructor_template)->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
         Local<Object> lockObj = FlockToObject(lock)->ToObject();
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = NanNew(reply->constructor_template)->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[6] = {context, inode,
@@ -1584,7 +1659,7 @@ namespace NodeFuse {
 
         TryCatch try_catch;
 
-        setlk->Call(fuse->fsobj, 6, argv);
+        setlk->Call(fsobj, 6, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
@@ -1595,20 +1670,21 @@ namespace NodeFuse {
                           fuse_ino_t ino,
                           size_t blocksize_,
                           uint64_t idx) {
-        HandleScope scope;
+        NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = NanNew(fuse->fsobj);
 
-        Local<Value> vbmap = fuse->fsobj->Get(bmap_sym);
+        Local<Value> vbmap = fsobj->Get(NanNew(bmap_sym));
         Local<Function> bmap = Local<Function>::Cast(vbmap);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
-        Local<Integer> blocksize = Integer::New(blocksize_);
-        Local<Integer> index = Integer::New(idx);
+        Local<Number> inode = NanNew<Number>(ino);
+        Local<Integer> blocksize = NanNew<Integer>(blocksize_);
+        Local<Integer> index = NanNew<Integer>(idx);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = NanNew(reply->constructor_template)->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[5] = {context, inode,
@@ -1616,7 +1692,7 @@ namespace NodeFuse {
 
         TryCatch try_catch;
 
-        bmap->Call(fuse->fsobj, 5, argv);
+        bmap->Call(fsobj, 5, argv);
 
         if (try_catch.HasCaught()) {
             FatalException(try_catch);
