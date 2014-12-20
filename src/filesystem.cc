@@ -941,7 +941,7 @@ namespace NodeFuse {
                            const char *buf,
                            size_t size,
                            off_t off,
-                           struct fuse_file_info* fi) {
+                           struct fuse_file_info* fi_) {
         struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
         op->op = _FUSE_OPS_WRITE_;
         op->req = req;
@@ -949,6 +949,8 @@ namespace NodeFuse {
         op->off = off;
         op->size = size;
         op->name = buf;
+        struct fuse_file_info* fi = (struct fuse_file_info*)malloc(sizeof(struct fuse_file_info));
+        memcpy( (void *) fi, fi_, sizeof(struct fuse_file_info));
         op->s.fi = fi;
         if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
             printf("ckring was full while trying to enqueue write at inode %d\n", (int) ino);
@@ -963,7 +965,7 @@ namespace NodeFuse {
                            const char *buf_,
                            size_t size,
                            off_t off,
-                           struct fuse_file_info* fi){
+                           struct fuse_file_info* fi_){
         NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = NanNew(fuse->fsobj);
@@ -979,6 +981,10 @@ namespace NodeFuse {
         Local<Object> buffer = NanBufferUse((char*) buf, size);
 
         FileInfo* info = new FileInfo();
+
+        struct fuse_file_info* fi = (struct fuse_file_info*)malloc(sizeof(struct fuse_file_info));
+        memcpy( (void *) fi, fi_, sizeof(struct fuse_file_info));
+        
         info->fi = fi;
         Local<Object> infoObj = NanNew(info->constructor_template)->GetFunction()->NewInstance();
         info->Wrap(infoObj);
