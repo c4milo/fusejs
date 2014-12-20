@@ -54,10 +54,8 @@ namespace NodeFuse {
       mode_t mode;
       const char* name;
       int to_set;
-      union{
-        struct fuse_file_info *fi;
-      } s;
-      struct stat* attr;
+      struct fuse_file_info fi;
+      struct stat attr;
       void *userdata;
     };
     class FileSystem {
@@ -232,12 +230,12 @@ namespace NodeFuse {
                                 unsigned long nlookup);
             static void RemoteGetAttr(fuse_req_t req,
                                 fuse_ino_t ino,
-                                struct fuse_file_info* fi);
+                                struct fuse_file_info fi);
             static void RemoteSetAttr(fuse_req_t req,
                                 fuse_ino_t ino,
-                                struct stat* attr,
+                                struct stat attr,
                                 int to_set,
-                                struct fuse_file_info* fi);
+                                struct fuse_file_info fi);
             static void RemoteReadLink(fuse_req_t req, fuse_ino_t ino);
             static void RemoteMkNod(fuse_req_t req,
                               fuse_ino_t parent,
@@ -269,43 +267,43 @@ namespace NodeFuse {
                              const char* newname);
             static void RemoteOpen(fuse_req_t req,
                              fuse_ino_t ino,
-                             struct fuse_file_info* fi);
+                             struct fuse_file_info fi);
             static void RemoteRead(fuse_req_t req,
                              fuse_ino_t ino,
                              size_t size,
                              off_t off,
-                             struct fuse_file_info* fi);
+                             struct fuse_file_info fi);
             static void RemoteWrite(fuse_req_t req,
                               fuse_ino_t ino,
                               const char *buf,
                               size_t size,
                               off_t off,
-                              struct fuse_file_info* fi);
+                              struct fuse_file_info fi);
             static void RemoteFlush(fuse_req_t req,
                               fuse_ino_t ino,
-                              struct fuse_file_info* fi);
+                              struct fuse_file_info fi);
             static void RemoteRelease(fuse_req_t req,
                                 fuse_ino_t ino,
-                                struct fuse_file_info* fi);
+                                struct fuse_file_info fi);
             static void RemoteFSync(fuse_req_t req,
                               fuse_ino_t ino,
                               int datasync,
-                              struct fuse_file_info* fi);
+                              struct fuse_file_info fi);
             static void RemoteOpenDir(fuse_req_t req,
                                 fuse_ino_t ino,
-                                struct fuse_file_info* fi);
+                                struct fuse_file_info fi);
             static void RemoteReadDir(fuse_req_t req,
                                 fuse_ino_t ino,
                                 size_t size,
                                 off_t off,
-                                struct fuse_file_info* fi);
+                                struct fuse_file_info fi);
             static void RemoteReleaseDir(fuse_req_t req,
                                    fuse_ino_t ino,
-                                   struct fuse_file_info* fi);
+                                   struct fuse_file_info fi);
             static void RemoteFSyncDir(fuse_req_t req,
                                  fuse_ino_t ino,
                                  int datasync,
-                                 struct fuse_file_info* fi);
+                                 struct fuse_file_info fi);
             static void RemoteStatFs(fuse_req_t req, fuse_ino_t ino);
             static void RemoteSetXAttr(fuse_req_t req,
                                  fuse_ino_t ino,
@@ -341,14 +339,14 @@ namespace NodeFuse {
                                fuse_ino_t parent,
                                const char* name,
                                mode_t mode,
-                               struct fuse_file_info* fi);
+                               struct fuse_file_info fi);
             static void RemoteGetLock(fuse_req_t req,
                               fuse_ino_t ino,
-                              struct fuse_file_info* fi,
+                              struct fuse_file_info fi,
                               struct flock* lock);
             static void RemoteSetLock(fuse_req_t req,
                               fuse_ino_t ino,
-                              struct fuse_file_info* fi,
+                              struct fuse_file_info fi,
                               struct flock* lock,
                               int sleep);
             static void RemoteBMap(fuse_req_t req,
@@ -359,14 +357,14 @@ namespace NodeFuse {
                               fuse_ino_t ino,
                               int cmd,
                               void* arg,
-                              struct fuse_file_info* fi,
+                              struct fuse_file_info fi,
                               unsigned* flagsp,
                               const void* in_buf,
                               size_t in_bufsz,
                               size_t out_bufszp);
             static void RemotePoll(fuse_req_t req,
                              fuse_ino_t ino,
-                             struct fuse_file_info* fi,
+                             struct fuse_file_info fi,
                              struct fuse_pollhandle* ph);            
     };
 }//namespace NodeFuse
