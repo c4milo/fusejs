@@ -1,20 +1,24 @@
-{   "name" : "fusejs",
-    "version": "0.0.2",
-    "author": "Eric Yen - http://github.com/thejinx0r",
-    "email": "eric@ericyen.com",
-    "description" : "Low level Fuse bindings for NodeJS.",
-    "repositories": [
-       {
-            "type": "git",
-            "url": "http://github.com/thejinx0r/fusejs.git"
-       }
-    ],
-    "devDependencies": {
-        "mocha": "0.14.1",
-        "should": "0.6.0"
-    },
-    "scripts": {
-       "install": "node-gyp rebuild"
-    },
-    "main" : "./fuse"
+{
+  "name": "fusejs",
+  "version": "0.0.2",
+  "author": "Eric Yen - http://github.com/thejinx0r",
+  "email": "eric@ericyen.com",
+  "description": "Low level Fuse bindings for NodeJS.",
+  "repositories": [
+    {
+      "type": "git",
+      "url": "http://github.com/thejinx0r/fusejs.git"
+    }
+  ],
+  "devDependencies": {
+    "mocha": "0.14.1",
+    "should": "0.6.0"
+  },
+  "scripts": {
+    "install": "node-gyp rebuild"
+  },
+  "main": "./fuse",
+  "dependencies": {
+    "nan": "^1.4.1"
+  }
 }
