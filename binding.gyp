@@ -5,7 +5,8 @@
           "sources": [ "src/bindings.cc","src/bindings.h", "src/file_info.cc","src/file_info.h", "src/filesystem.cc","src/filesystem.h", "src/node_fuse.cc","src/node_fuse.h", "src/reply.cc","src/reply.h"],
           "include_dirs": [
             './ck/',
-            '<!@(pkg-config fuse --cflags-only-I | sed s/-I//g)'
+            '<!@(pkg-config fuse --cflags-only-I | sed s/-I//g)',
+            "<!(node -e \"require('nan')\")"
           ],
           'cflags_cc': ['-Wall', '-g', '-Warray-bounds', '-fpermissive'],
           "defines": [

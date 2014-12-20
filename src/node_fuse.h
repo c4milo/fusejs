@@ -6,6 +6,7 @@
 #include <fuse_lowlevel.h>
 #include <errno.h>
 #include <string.h>
+#include <nan.h>
 
 #define NODE_FUSE_VERSION "0.0.2"
 
