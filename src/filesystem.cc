@@ -882,7 +882,7 @@ namespace NodeFuse {
 
     void FileSystem::Read(fuse_req_t req,
                           fuse_ino_t ino,
-                          size_t size_,
+                          size_t size,
                           off_t off,
                           struct fuse_file_info* fi) {
         struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
@@ -890,7 +890,7 @@ namespace NodeFuse {
         op->req = req;
         op->ino = ino;
         op->off = off;
-        op->size = size_;
+        op->size = size;
         if(fi != NULL){
             memcpy( (void*) &(op->fi), fi, sizeof(struct fuse_file_info));
         }
@@ -917,8 +917,8 @@ namespace NodeFuse {
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Number> inode = NanNew<Number>(ino);
-        Local<Integer> size = NanNew<Integer>(size_);
-        Local<Integer> offset = NanNew<Integer>(off);
+        Local<Number> size = NanNew<Number>(size_);
+        Local<Number> offset = NanNew<Number>(off);
 
         FileInfo* info = new FileInfo();
         info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
@@ -987,7 +987,7 @@ namespace NodeFuse {
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Number> inode = NanNew<Number>(ino);
-        Local<Integer> offset = NanNew<Integer>(off);
+        Local<Number> offset = NanNew<Number>(off);
 
         Local<Object> buffer = NanBufferUse((char*) buf, size);
 
