@@ -514,7 +514,7 @@ namespace NodeFuse {
         reply->dentry_buffer = buffer;
         size_t len2 = fuse_add_direntry(reply->request, (char*) (buffer + acc_size),
          requestedSize - acc_size,
-         (const char*) strdup(*name), &statbuff, acc_size + len);
+         *name, &statbuff, acc_size + len);
         
         // fprintf(stderr, "Current length! -> %d\n", (int)reply->dentry_cur_length);
 
