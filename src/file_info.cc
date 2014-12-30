@@ -57,11 +57,19 @@ namespace NodeFuse {
         NanAssignPersistent( creat_sym     , NanNew("creat"));
         NanAssignPersistent( trunc_sym     , NanNew("trunc"));
         NanAssignPersistent( excl_sym      , NanNew("excl"));
+        #ifdef O_SHLOCK
         NanAssignPersistent( shlock_sym    , NanNew("shlock"));
+        #endif
+        #ifdef O_EXLOCK
         NanAssignPersistent( exlock_sym    , NanNew("exlock"));
+        #endif
         NanAssignPersistent( nofollow_sym  , NanNew("nofollow"));
+        #ifdef O_SYMLINK
         NanAssignPersistent( symlink_sym   , NanNew("symlink"));
+        #endif
+        #ifdef O_EVTONLY
         NanAssignPersistent( evtonly_sym   , NanNew("evtonly"));
+        #endif
         Local<FunctionTemplate> t = NanNew<FunctionTemplate>();
         Local<ObjectTemplate> object_tmpl = t->InstanceTemplate();
 
