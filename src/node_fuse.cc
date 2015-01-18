@@ -224,9 +224,9 @@ namespace NodeFuse {
         rv->Set( NanNew(type_sym), NanNew<Integer>(lock->l_type)); //TODO convert to object with accessors
         //This corresponds to the whence argument to fseek or lseek, and specifies what the offset is relative to. Its value can be one of SEEK_SET, SEEK_CUR, or SEEK_END.
         rv->Set( NanNew(whence_sym), NanNew<Integer>(lock->l_whence)); //TODO convert to object with accessors
-        rv->Set( NanNew(start_sym), NanNew<Integer>(lock->l_start));
-        rv->Set( NanNew(len_sym), NanNew<Integer>(lock->l_len));
-        rv->Set( NanNew(pid_sym), NanNew<Integer>(lock->l_pid));
+        rv->Set( NanNew(start_sym), NanNew<Integer>( (int) lock->l_start));
+        rv->Set( NanNew(len_sym), NanNew<Integer>( (int) lock->l_len));
+        rv->Set( NanNew(pid_sym), NanNew<Integer>( (int) lock->l_pid));
 
         return rv;
     }

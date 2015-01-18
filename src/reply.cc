@@ -527,6 +527,6 @@ namespace NodeFuse {
         reply->dentry_acc_size += len;
         reply->dentry_cur_length++;
 
-        NanReturnValue(NanNew<Integer>(len2));
+        NanReturnValue(NanNew<Integer>( (int) len2));
     }
 } //ends namespace NodeFuse

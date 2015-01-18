@@ -279,13 +279,13 @@ namespace NodeFuse {
         NanScope();
         FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(args.This());
 
-        NanReturnValue(NanNew<Integer>(fileInfo->fi->fh));
+        NanReturnValue(NanNew<Integer>( (int) fileInfo->fi->fh));
     }
 
     NAN_GETTER(FileInfo::GetLockOwner){
         NanScope();
         FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(args.This());
 
-        NanReturnValue(NanNew<Integer>(fileInfo->fi->lock_owner));
+        NanReturnValue(NanNew<Integer>( (int) fileInfo->fi->lock_owner));
     }
 } //ends namespace NodeFuse

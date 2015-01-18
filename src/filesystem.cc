@@ -352,7 +352,7 @@ namespace NodeFuse {
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Number> inode = NanNew<Number>(ino);
-        Local<Integer> nlookup_ = NanNew<Integer>(nlookup);
+        Local<Integer> nlookup_ = NanNew<Integer>( (int) nlookup);
 
         Local<Value> argv[3] = {context, inode, nlookup_};
 
@@ -1218,8 +1218,8 @@ namespace NodeFuse {
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Number> inode = NanNew<Number>(ino);
-        Local<Integer> size = NanNew<Integer>(size_);
-        Local<Integer> offset = NanNew<Integer>(off);
+        Local<Integer> size = NanNew<Integer>((int)size_);
+        Local<Integer> offset = NanNew<Integer>((int) off);
 
         FileInfo* info = new FileInfo();
         info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
@@ -1718,8 +1718,10 @@ namespace NodeFuse {
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Number> inode = NanNew<Number>(ino);
-        Local<Integer> blocksize = NanNew<Integer>(blocksize_);
-        Local<Integer> index = NanNew<Integer>(idx);
+        Local<Integer> blocksize = NanNew<Integer>((int)blocksize_);
+
+        // TODO: Check if down casting to integer breaks BMAP
+        Local<Integer> index = NanNew<Integer>( (int) idx);
 
         Reply* reply = new Reply();
         reply->request = req;

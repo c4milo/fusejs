@@ -15,6 +15,7 @@ var FileSystem = function() {
      **/
     this.init = function(connInfo) {
         console.log("init not implemented");
+        reply.err(38);
     };
 
     /**
@@ -25,6 +26,7 @@ var FileSystem = function() {
      **/
     this.destroy = function() {
         console.log("destroy not implemented");
+        reply.err(38);
     };
 
     /**
@@ -39,6 +41,7 @@ var FileSystem = function() {
      **/
     this.lookup = function(context, parent, name, reply) {
         console.log("lookup not implemented");
+        reply.err(38);
     };
 
     /**
@@ -77,6 +80,7 @@ var FileSystem = function() {
      **/
     this.getattr = function(context, inode, reply) {
         console.log("getattr not implemented");
+        reply.err(38);
     };
 
     /**
@@ -103,6 +107,7 @@ var FileSystem = function() {
      **/
     this.setattr = function(context, inode, attrs, reply) {
         console.log("setattr not implemented");
+        reply.err(38);
     };
 
     /**
@@ -116,6 +121,7 @@ var FileSystem = function() {
      **/
     this.readlink = function(context, inode, reply) {
         console.log("readlink not implemented");
+        reply.err(38);
     };
 
     /**
@@ -136,6 +142,7 @@ var FileSystem = function() {
      **/
     this.mknod = function(context, parent, name, mode, rdev, reply) {
         console.log("mknod not implemented");
+        reply.err(38);
     };
 
     /**
@@ -151,6 +158,7 @@ var FileSystem = function() {
      **/
     this.mkdir = function(context, parent, name, mode, reply) {
         console.log("mkdir not implemented");
+        reply.err(38);
     };
 
     /**
@@ -165,6 +173,7 @@ var FileSystem = function() {
      **/
     this.unlink = function(context, parent, name, reply) {
         console.log("unlink not implemented");
+        reply.err(38);
     };
 
     /**
@@ -178,6 +187,7 @@ var FileSystem = function() {
      **/
     this.rmdir = function(context, parent, name, reply) {
         console.log("rmdir not implemented");
+        reply.err(38);
     };
 
     /**
@@ -193,6 +203,7 @@ var FileSystem = function() {
      **/
     this.symlink = function(context, parent, link, name, reply) {
         console.log("symlink not implemented");
+        reply.err(38);
     };
 
     /**
@@ -209,6 +220,7 @@ var FileSystem = function() {
      **/
     this.rename = function(context, parent, name, newParent, newName, reply) {
         console.log("rename not implemented");
+        reply.err(38);
     };
 
     /**
@@ -224,6 +236,7 @@ var FileSystem = function() {
      **/
     this.link = function(context, inode, newParent, newName, reply) {
         console.log("link not implemented");
+        reply.err(38);
     };
 
 
@@ -253,6 +266,7 @@ var FileSystem = function() {
      **/
     this.open = function(context, inode, fileInfo, reply) {
         console.log("open not implemented");
+        reply.err(38);
     };
 
     /**
@@ -277,86 +291,107 @@ var FileSystem = function() {
      **/
     this.read = function() {
         console.log("read not implemented");
+        reply.err(38);
     };
 
     this.write = function() {
         console.log("write not implemented");
+        reply.err(38);
     };
 
     this.flush = function() {
         console.log("flush not implemented");
+        reply.err(38);
     };
 
     this.release = function() {
         console.log("release not implemented");
+        reply.err(38);
     };
 
     this.fsync = function() {
         console.log("fsync not implemented");
+        reply.err(38);
     };
 
     this.opendir = function() {
         console.log("opendir not implemented");
+        reply.err(38);
     };
 
     this.readdir = function() {
         console.log("readdir not implemented");
+        reply.err(38);
     };
 
     this.releasedir = function() {
         console.log("releasedir not implemented");
+        reply.err(38);
     };
 
     this.fsyncdir = function() {
         console.log("fsyncdir not implemented");
+        reply.err(38);
     };
 
     this.statfs = function() {
         console.log("statfs not implemented");
+        reply.err(38);
     };
 
     this.setxattr = function() {
         console.log("setxattr not implemented");
+        reply.err(38);
     };
 
     this.getxattr = function() {
         console.log("getxattr not implemented");
+        reply.err(38);
     };
 
     this.listxattr = function() {
         console.log("listxattr not implemented");
+        reply.err(38);
     };
 
     this.removexattr = function() {
         console.log("removexattr not implemented");
+        reply.err(38);
     };
 
     this.access = function() {
         console.log("access not implemented");
+        reply.err(38);
     };
 
     this.create = function() {
         console.log("create not implemented");
+        reply.err(38);
     };
 
     this.getlk = function() {
         console.log("getlk not implemented");
+        reply.err(38);
     };
 
     this.setlk = function() {
         console.log("setlk not implemented");
+        reply.err(38);
     };
 
     this.bmap = function() {
         console.log("bmap not implemented");
+        reply.err(38);
     };
 
     this.ioctl = function() {
         console.log("ioctl not implemented");
+        reply.err(38);
     };
 
     this.poll = function() {
         console.log("poll not implemented");
+        reply.err(38);
     };
 }).call(FileSystem.prototype);
 
