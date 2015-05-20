@@ -19,6 +19,6 @@
   },
   "main": "./fuse",
   "dependencies": {
-    "nan": "~1.4.3"
+    "nan": "~1.8.0"
   }
 }
