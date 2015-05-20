@@ -546,7 +546,7 @@ namespace NodeFuse {
 
         Local<String> name_ = NanNew<String>(name);
         Local<Integer> mode_ = NanNew<Integer>(mode);
-        Local<Integer> rdev_ = NanNew<Integer>(rdev);
+        Local<Integer> rdev_ = NanNew<Integer>((uint32_t)rdev);
 
         Reply* reply = new Reply();
         reply->request = req;
