@@ -48,11 +48,13 @@ namespace NodeFuse {
       int8_t op;
       fuse_req_t req;
       fuse_ino_t ino;
+      fuse_ino_t newino; //used for renaming files
       size_t size;
       off_t off;
       dev_t dev;
       mode_t mode;
       const char* name;
+      const char* newname; //used for renaming files
       int to_set;
       struct fuse_file_info fi;
       struct stat attr;

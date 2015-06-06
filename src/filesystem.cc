@@ -113,6 +113,7 @@ namespace NodeFuse {
                 case _FUSE_OPS_SYMLINK_:
                     break;
                 case _FUSE_OPS_RENAME_:
+                    RemoteRename(op->req, op->ino, op->name, op->newino, op->newname);
                     break;
                 case _FUSE_OPS_LINK_:
                     break;
@@ -182,7 +183,7 @@ namespace NodeFuse {
         fuse_ops.unlink     = FileSystem::Unlink;
         fuse_ops.rmdir      = FileSystem::RmDir;
         // fuse_ops.symlink    = FileSystem::SymLink;
-        // fuse_ops.rename     = FileSystem::Rename;
+        fuse_ops.rename     = FileSystem::Rename;
         // fuse_ops.link       = FileSystem::Link;
         // fuse_ops.flush      = FileSystem::Flush;
         fuse_ops.release    = FileSystem::Release;
@@ -754,8 +755,28 @@ namespace NodeFuse {
             FatalException(try_catch);
         }
     }
-
     void FileSystem::Rename(fuse_req_t req,
+                                fuse_ino_t parent,
+                                const char *name,
+                                fuse_ino_t newparent,
+                                const char *newname){
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_RENAME_;
+        op->req = req;
+        op->ino = parent;
+        op->newino = newparent;
+        op->name = name;
+        op->newname = newname;
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to rename file %s from parent %d \n",  name, (int) parent);
+            return;
+        }
+
+        uv_async_send(&uv_async_handle);
+
+    }
+
+    void FileSystem::RemoteRename(fuse_req_t req,
                             fuse_ino_t parent,
                             const char *name,
                             fuse_ino_t newparent,
