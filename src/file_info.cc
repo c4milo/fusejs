@@ -89,7 +89,9 @@ namespace NodeFuse {
     }
 
     FileInfo::FileInfo() : ObjectWrap() {}
-    FileInfo::~FileInfo() {}
+    FileInfo::~FileInfo() {
+        free(fi);
+    }
 
     NAN_GETTER(FileInfo::GetFlags){
         NanScope();

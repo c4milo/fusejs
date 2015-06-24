@@ -121,6 +121,7 @@ namespace NodeFuse {
                     RemoteWrite(op->req, op->ino, op->name, op->size, op->off, op->fi);
                     break;
                 case _FUSE_OPS_FLUSH_:
+                    RemoteFlush(op->req, op->ino, op->fi);
                     break;
                 case _FUSE_OPS_RELEASE_:
                     RemoteRelease(op->req, op->ino, op->fi);
@@ -172,20 +173,20 @@ namespace NodeFuse {
         fuse_ops.read       = FileSystem::Read;
         fuse_ops.readdir    = FileSystem::ReadDir;
         fuse_ops.write      = FileSystem::Write;
-        // fuse_ops.create     = FileSystem::Create;
+        fuse_ops.create     = FileSystem::Create;
         fuse_ops.setattr    = FileSystem::SetAttr;
         // fuse_ops.init       = FileSystem::Init;
         // fuse_ops.destroy    = FileSystem::Destroy;
         // fuse_ops.forget     = FileSystem::Forget;
         // fuse_ops.readlink   = FileSystem::ReadLink;
-        fuse_ops.mknod      = FileSystem::MkNod;
+        // fuse_ops.mknod      = FileSystem::MkNod;
         fuse_ops.mkdir      = FileSystem::MkDir;
         fuse_ops.unlink     = FileSystem::Unlink;
         fuse_ops.rmdir      = FileSystem::RmDir;
         // fuse_ops.symlink    = FileSystem::SymLink;
         fuse_ops.rename     = FileSystem::Rename;
         // fuse_ops.link       = FileSystem::Link;
-        // fuse_ops.flush      = FileSystem::Flush;
+        fuse_ops.flush      = FileSystem::Flush;
         fuse_ops.release    = FileSystem::Release;
         // fuse_ops.fsync      = FileSystem::FSync;
         // fuse_ops.opendir    = FileSystem::OpenDir;
@@ -459,8 +460,9 @@ namespace NodeFuse {
         Local<Number> inode = NanNew<Number>(ino);
 
         struct stat *attr = (struct stat*) malloc(sizeof(struct stat));
-        memcpy( (void*) attr, (const void *) &attr_, sizeof(struct stat)); 
+        memcpy( (void*) attr, (const void *) &attr_, sizeof(struct stat));         
         Local<Object> attrs = GetAttrsToBeSet(to_set, attr)->ToObject();
+        // free(attr);
 
         Reply *reply = new Reply();
         reply->request = req;
@@ -1042,6 +1044,24 @@ namespace NodeFuse {
     void FileSystem::Flush(fuse_req_t req,
                            fuse_ino_t ino,
                            struct fuse_file_info* fi) {
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_FLUSH_;
+        op->req = req;
+        op->ino = ino;
+        if(fi != NULL){
+            memcpy( (void*) &(op->fi), fi, sizeof(struct fuse_file_info));
+        }
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue write at inode %d\n", (int) ino);
+            return;
+        }
+        uv_async_send(&uv_async_handle);
+
+    }
+    void FileSystem::RemoteFlush(fuse_req_t req,
+                           fuse_ino_t ino,
+                           struct fuse_file_info fi) {
+
         NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = NanNew(fuse->fsobj);
@@ -1053,7 +1073,9 @@ namespace NodeFuse {
         Local<Number> inode = NanNew<Number>(ino);
 
         FileInfo* info = new FileInfo();
-        info->fi = fi;
+        info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
+        memcpy( (void*) info->fi , &fi, sizeof(struct fuse_file_info));
+        
         Local<Object> infoObj = NanNew(info->constructor_template)->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 

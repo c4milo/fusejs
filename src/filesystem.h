@@ -56,6 +56,7 @@ namespace NodeFuse {
       const char* name;
       const char* newname; //used for renaming files
       int to_set;
+      struct fuse_conn_info conn;
       struct fuse_file_info fi;
       struct stat attr;
       void *userdata;
@@ -222,7 +223,7 @@ namespace NodeFuse {
             static void RemoteInitialize();
 
             static void RemoteInit(void* userdata,
-                             struct fuse_conn_info* conn);
+                             struct fuse_conn_info conn);
             static void RemoteDestroy(void* userdata);
             static void RemoteLookup(fuse_req_t req,
                                fuse_ino_t parent,
