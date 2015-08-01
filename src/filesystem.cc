@@ -17,6 +17,7 @@ namespace NodeFuse {
     static Persistent<String> destroy_sym;
     static Persistent<String> lookup_sym;
     static Persistent<String> forget_sym;
+
     static Persistent<String> getattr_sym;
     static Persistent<String> setattr_sym;
     static Persistent<String> readlink_sym;
@@ -88,15 +89,19 @@ namespace NodeFuse {
                     RemoteReadDir(op->req, op->ino, op->size, op->off, op->fi);
                     break;
                 case _FUSE_OPS_INIT_:
+                    RemoteInit(op->userdata, op->conn);
                     break;
                 case _FUSE_OPS_DESTROY_:
+                    RemoteDestroy(op->userdata);
                     break;
                 case _FUSE_OPS_FORGET_:
+                    RemoteForget(op->req, op->ino, op->nlookup);
                     break;
                 case _FUSE_OPS_SETATTR_:
                     RemoteSetAttr(op->req, op->ino, op->attr, op->to_set, op->fi);
                     break;
                 case _FUSE_OPS_READLINK_:
+                    RemoteReadLink(op->req, op->ino);
                     break;
                 case _FUSE_OPS_MKNOD_:
                     RemoteMkNod(op->req, op->ino, op->name, op->mode, op-> dev);
@@ -111,11 +116,13 @@ namespace NodeFuse {
                     RemoteRmDir(op->req, op->ino, op->name);
                     break;
                 case _FUSE_OPS_SYMLINK_:
+                    RemoteSymLink(op->req, op->name, op->ino, op->newname);
                     break;
                 case _FUSE_OPS_RENAME_:
                     RemoteRename(op->req, op->ino, op->name, op->newino, op->newname);
                     break;
                 case _FUSE_OPS_LINK_:
+                    RemoteLink(op->req, op->ino, op->newino, op->name);
                     break;
                 case _FUSE_OPS_WRITE_:
                     RemoteWrite(op->req, op->ino, op->name, op->size, op->off, op->fi);
@@ -127,25 +134,44 @@ namespace NodeFuse {
                     RemoteRelease(op->req, op->ino, op->fi);
                     break;
                 case _FUSE_OPS_FSYNC_:
+                    RemoteFSync(op->req, op->ino, op->to_set, op->fi);
                     break;
                 case _FUSE_OPS_OPENDIR_:
+                    RemoteOpenDir(op->req, op->ino, op->fi);
                     break;
                 case _FUSE_OPS_RELEASEDIR_:
+                    RemoteReleaseDir(op->req, op->ino, op->fi);
                     break;
                 case _FUSE_OPS_FSYNCDIR_:
+                    RemoteFSyncDir(op->req, op->ino, op->to_set, op->fi);
                     break;
                 case _FUSE_OPS_STATFS_:
                     RemoteStatFs(op->req, op->ino);
                     break;
                 case _FUSE_OPS_SETXATTR_:
+                    RemoteSetXAttr(op->req, op->ino,op->name, op->newname, op->size, op->to_set
+                            #ifdef __APPLE__
+                                              ,op->position
+                            #endif
+                        );
+
                     break;
                 case _FUSE_OPS_GETXATTR_:
+                    RemoteGetXAttr(op->req, op-> ino, op->name, op->size
+                            #ifdef __APPLE__
+                                              ,op-> position
+                            #endif
+                        );
+
                     break;
                 case _FUSE_OPS_LISTXATTR_:
+                    RemoteListXAttr(op->req, op->ino, op->size);
                     break;
                 case _FUSE_OPS_REMOVEXATTR_:
+                    RemoteRemoveXAttr(op->req, op->ino, op->name);
                     break;
                 case _FUSE_OPS_ACCESS_:
+                    RemoteAccess(op->req, op->ino, op->to_set);
                     break;
                 case _FUSE_OPS_CREATE_:
                     RemoteCreate(op->req, op->ino, op->name, op->mode, op->fi);
@@ -157,6 +183,10 @@ namespace NodeFuse {
                 case _FUSE_OPS_BMAP_:
                     break;
             }
+                // free((void*)op->name);
+                // free((void*)op->newname);
+              // free(op->userdata);
+            
             free(op);
         }
     }
@@ -175,34 +205,34 @@ namespace NodeFuse {
         fuse_ops.write      = FileSystem::Write;
         fuse_ops.create     = FileSystem::Create;
         fuse_ops.setattr    = FileSystem::SetAttr;
-        // fuse_ops.init       = FileSystem::Init;
-        // fuse_ops.destroy    = FileSystem::Destroy;
-        // fuse_ops.forget     = FileSystem::Forget;
-        // fuse_ops.readlink   = FileSystem::ReadLink;
-        // fuse_ops.mknod      = FileSystem::MkNod;
+        fuse_ops.init       = FileSystem::Init;
+        fuse_ops.destroy    = FileSystem::Destroy;
+        fuse_ops.forget     = FileSystem::Forget;
+        fuse_ops.readlink   = FileSystem::ReadLink;
+        fuse_ops.mknod      = FileSystem::MkNod;
         fuse_ops.mkdir      = FileSystem::MkDir;
         fuse_ops.unlink     = FileSystem::Unlink;
         fuse_ops.rmdir      = FileSystem::RmDir;
-        // fuse_ops.symlink    = FileSystem::SymLink;
+        fuse_ops.symlink    = FileSystem::SymLink;
         fuse_ops.rename     = FileSystem::Rename;
-        // fuse_ops.link       = FileSystem::Link;
+        fuse_ops.link       = FileSystem::Link;
         fuse_ops.flush      = FileSystem::Flush;
         fuse_ops.release    = FileSystem::Release;
-        // fuse_ops.fsync      = FileSystem::FSync;
-        // fuse_ops.opendir    = FileSystem::OpenDir;
-        // fuse_ops.releasedir = FileSystem::ReleaseDir;
-        // fuse_ops.fsyncdir   = FileSystem::FSyncDir;
+        fuse_ops.fsync      = FileSystem::FSync;
+        fuse_ops.opendir    = FileSystem::OpenDir;
+        fuse_ops.releasedir = FileSystem::ReleaseDir;
+        fuse_ops.fsyncdir   = FileSystem::FSyncDir;
         fuse_ops.statfs     = FileSystem::StatFs;
-        // fuse_ops.setxattr   = FileSystem::SetXAttr;
-        // fuse_ops.getxattr   = FileSystem::GetXAttr;
-        // fuse_ops.listxattr  = FileSystem::ListXAttr;
-        // fuse_ops.removexattr= FileSystem::RemoveXAttr;
-        // fuse_ops.access     = FileSystem::Access;
-        // fuse_ops.getlk      = FileSystem::GetLock;
-        // fuse_ops.setlk      = FileSystem::SetLock;
-        // fuse_ops.bmap       = FileSystem::BMap;
-        //fuse_ops.ioctl      = FileSystem::IOCtl;
-        //fuse_ops.poll       = FileSystem::Poll;
+        fuse_ops.setxattr   = FileSystem::SetXAttr;
+        fuse_ops.getxattr   = FileSystem::GetXAttr;
+        fuse_ops.listxattr  = FileSystem::ListXAttr;
+        fuse_ops.removexattr= FileSystem::RemoveXAttr;
+        fuse_ops.access     = FileSystem::Access;
+        fuse_ops.getlk      = FileSystem::GetLock;
+        fuse_ops.setlk      = FileSystem::SetLock;
+        fuse_ops.bmap       = FileSystem::BMap;
+        // fuse_ops.ioctl      = FileSystem::IOCtl;
+        // fuse_ops.poll       = FileSystem::Poll;
 
         NanAssignPersistent(init_sym,        NanNew("init"));
         NanAssignPersistent(destroy_sym,     NanNew("destroy"));
@@ -251,6 +281,19 @@ namespace NodeFuse {
 
     void FileSystem::Init(void* userdata,
                           struct fuse_conn_info* conn) {
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_INIT_;
+        op->userdata =  userdata;
+        memcpy( &(op->conn), conn, sizeof(struct fuse_conn_info));
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue init");
+            return;
+        }
+        uv_async_send(&uv_async_handle);
+
+    }
+    void FileSystem::RemoteInit(void* userdata,
+                          struct fuse_conn_info conn) {
         NanScope();
         Fuse* fuse = static_cast<Fuse *>(userdata);
         Local<Object> fsobj = NanNew(fuse->fsobj);
@@ -260,14 +303,14 @@ namespace NodeFuse {
         //These properties will be read-only for now.
         //TODO set accessors for read/write properties
         Local<Object> info = NanNew<Object>();
-        info->Set(NanNew<String>(conn_info_proto_major_sym), NanNew<Integer>(conn->proto_major));
-        info->Set(NanNew<String>(conn_info_proto_minor_sym), NanNew<Integer>(conn->proto_minor));
-        info->Set(NanNew<String>(conn_info_async_read_sym), NanNew<Integer>(conn->async_read));
-        info->Set(NanNew<String>(conn_info_max_write_sym), NanNew<Number>(conn->max_write));
-        info->Set(NanNew<String>(conn_info_max_readahead_sym), NanNew<Number>(conn->max_readahead));
+        info->Set(NanNew<String>(conn_info_proto_major_sym), NanNew<Integer>(conn.proto_major));
+        info->Set(NanNew<String>(conn_info_proto_minor_sym), NanNew<Integer>(conn.proto_minor));
+        info->Set(NanNew<String>(conn_info_async_read_sym), NanNew<Integer>(conn.async_read));
+        info->Set(NanNew<String>(conn_info_max_write_sym), NanNew<Number>(conn.max_write));
+        info->Set(NanNew<String>(conn_info_max_readahead_sym), NanNew<Number>(conn.max_readahead));
         //TODO macro to enable certain properties given the fuse version
-        //info->Set(conn_info_capable_sym, NanNew<Integer>(conn->capable));
-        //info->Set(conn_info_want_sym, NanNew<Integer>(conn->want));
+        //info->Set(conn_info_capable_sym, NanNew<Integer>(conn.capable));
+        //info->Set(conn_info_want_sym, NanNew<Integer>(conn.want));
 
         Local<Value> argv[1] = {info};
 
@@ -279,8 +322,19 @@ namespace NodeFuse {
             FatalException(try_catch);
         }
     }
-
     void FileSystem::Destroy(void* userdata) {
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+
+        op->op = _FUSE_OPS_DESTROY_;
+        op->userdata =  userdata;        
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue init");
+            return;
+        }
+        uv_async_send(&uv_async_handle);
+    }
+
+    void FileSystem::RemoteDestroy(void* userdata) {
         NanScope();
         Fuse* fuse = static_cast<Fuse *>(userdata);
         Local<Object> fsobj = NanNew(fuse->fsobj);
@@ -342,8 +396,23 @@ namespace NodeFuse {
         //scope.Close(Undefined());
 
     }
-
     void FileSystem::Forget(fuse_req_t req,
+                            fuse_ino_t ino,
+                            unsigned long nlookup) {
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_FORGET_;
+        op->req = req;
+        op->ino = ino;
+        op->nlookup = nlookup;
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue forget at inode %d\n", (int)ino);
+            return;
+        }
+        uv_async_send(&uv_async_handle);
+
+    }
+
+    void FileSystem::RemoteForget(fuse_req_t req,
                             fuse_ino_t ino,
                             unsigned long nlookup) {
         NanScope();
@@ -483,6 +552,18 @@ namespace NodeFuse {
     }
 
     void FileSystem::ReadLink(fuse_req_t req, fuse_ino_t ino) {
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_READLINK_;
+        op->req = req;
+        op->ino = ino;
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue setattr at inode %d\n", (int) ino);
+            return;
+        }
+
+        uv_async_send(&uv_async_handle);
+    }
+    void FileSystem::RemoteReadLink(fuse_req_t req, fuse_ino_t ino) {
         NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = NanNew(fuse->fsobj);
@@ -729,6 +810,24 @@ namespace NodeFuse {
                              const char* link,
                              fuse_ino_t parent,
                              const char* name) {
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_SYMLINK_;
+        op->name = link;
+        op->ino = parent;
+        op->newname = name;
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to symlink from %s to %s with parent inode %d \n",  name, link, (int) parent);
+            return;
+        }
+
+        uv_async_send(&uv_async_handle);
+
+    }
+
+    void FileSystem::RemoteSymLink(fuse_req_t req,
+                             const char* link,
+                             fuse_ino_t parent,
+                             const char* name) {
         NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = NanNew(fuse->fsobj);
@@ -813,8 +912,26 @@ namespace NodeFuse {
             FatalException(try_catch);
         }
     }
-
     void FileSystem::Link(fuse_req_t req,
+                          fuse_ino_t ino,
+                          fuse_ino_t newparent,
+                          const char* newname) 
+    {
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_LINK_;
+        op->req = req;
+        op->ino = ino;
+        op->newino = newparent;
+        op->name = newname;
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to link inode %d to new parent parent %d with newname %s\n",  (int) ino, (int) newparent, newname);
+            return;
+        }
+
+        uv_async_send(&uv_async_handle);
+    }
+
+    void FileSystem::RemoteLink(fuse_req_t req,
                           fuse_ino_t ino,
                           fuse_ino_t newparent,
                           const char* newname) {
@@ -1151,11 +1268,32 @@ namespace NodeFuse {
         }
         //scope.Close(Undefined());
     }
-
     void FileSystem::FSync(fuse_req_t req,
                            fuse_ino_t ino,
                            int datasync_,
                            struct fuse_file_info* fi) {
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_FSYNC_;
+        op->req = req;
+        op->ino = ino;
+        op->to_set = datasync_;
+        if(fi != NULL){
+            memcpy( (void*) &(op->fi), fi, sizeof(struct fuse_file_info));
+        }
+
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to fsync file %d\n",  (int) ino);
+            return;
+        }
+
+        uv_async_send(&uv_async_handle);
+
+    }
+
+    void FileSystem::RemoteFSync(fuse_req_t req,
+                           fuse_ino_t ino,
+                           int datasync_,
+                           struct fuse_file_info fi) {
         NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = NanNew(fuse->fsobj);
@@ -1168,7 +1306,9 @@ namespace NodeFuse {
         bool datasync = datasync_ == 0 ? false : true;
 
         FileInfo* info = new FileInfo();
-        info->fi = fi;
+        info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
+        memcpy( (void*) info->fi , &fi, sizeof(struct fuse_file_info));
+
         Local<Object> infoObj = NanNew(info->constructor_template)->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
@@ -1189,10 +1329,28 @@ namespace NodeFuse {
             FatalException(try_catch);
         }
     }
-
     void FileSystem::OpenDir(fuse_req_t req,
                              fuse_ino_t ino,
                              struct fuse_file_info* fi) {
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_OPENDIR_;
+        op->req = req;
+        op->ino = ino;
+        if(fi != NULL){
+            memcpy( (void*) &(op->fi), fi, sizeof(struct fuse_file_info));
+        }
+
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to opendir with inode %d \n",  (int)ino);
+            return;
+        }
+
+        uv_async_send(&uv_async_handle);
+    }
+
+    void FileSystem::RemoteOpenDir(fuse_req_t req,
+                             fuse_ino_t ino,
+                             struct fuse_file_info fi) {
         NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = NanNew(fuse->fsobj);
@@ -1204,7 +1362,8 @@ namespace NodeFuse {
         Local<Number> inode = NanNew<Number>(ino);
 
         FileInfo* info = new FileInfo();
-        info->fi = fi;
+        info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
+        memcpy( (void*) info->fi , &fi, sizeof(struct fuse_file_info));
         Local<Object> infoObj = NanNew(info->constructor_template)->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
@@ -1293,6 +1452,26 @@ namespace NodeFuse {
     void FileSystem::ReleaseDir(fuse_req_t req,
                                 fuse_ino_t ino,
                                 struct fuse_file_info* fi) {
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_RELEASEDIR_;
+        op->req = req;
+        op->ino = ino;
+        if(fi != NULL){
+            memcpy( (void*) &(op->fi), fi, sizeof(struct fuse_file_info));
+        }
+
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to releasedir with inode %d \n",  (int)ino);
+            return;
+        }
+
+        uv_async_send(&uv_async_handle);
+
+    }
+    void FileSystem::RemoteReleaseDir(fuse_req_t req,
+                                fuse_ino_t ino,
+                                struct fuse_file_info fi) {
+
         NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = NanNew(fuse->fsobj);
@@ -1304,7 +1483,8 @@ namespace NodeFuse {
         Local<Number> inode = NanNew<Number>(ino);
 
         FileInfo* info = new FileInfo();
-        info->fi = fi;
+        info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
+        memcpy( (void*) info->fi , &fi, sizeof(struct fuse_file_info));
         Local<Object> infoObj = NanNew(info->constructor_template)->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
@@ -1329,6 +1509,27 @@ namespace NodeFuse {
                               fuse_ino_t ino,
                               int datasync_,
                               struct fuse_file_info* fi) {
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_FSYNCDIR_;
+        op->req = req;
+        op->ino = ino;
+        op->to_set = datasync_;
+        if(fi != NULL){
+            memcpy( (void*) &(op->fi), fi, sizeof(struct fuse_file_info));
+        }
+
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to fsync dir %d\n",  (int) ino);
+            return;
+        }
+
+        uv_async_send(&uv_async_handle);
+    }
+    void FileSystem::RemoteFSyncDir(fuse_req_t req,
+                              fuse_ino_t ino,
+                              int datasync_,
+                              struct fuse_file_info fi) {
+
         NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = NanNew(fuse->fsobj);
@@ -1341,7 +1542,8 @@ namespace NodeFuse {
         bool datasync = datasync_ == 0 ? false : true;
 
         FileInfo* info = new FileInfo();
-        info->fi = fi;
+        info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
+        memcpy( (void*) info->fi , &fi, sizeof(struct fuse_file_info));
         Local<Object> infoObj = NanNew(info->constructor_template)->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
@@ -1404,6 +1606,36 @@ namespace NodeFuse {
     }
 
     void FileSystem::SetXAttr(fuse_req_t req,
+                                  fuse_ino_t ino,
+                                  const char* name_,
+                                  const char* value_,
+                                  size_t size_,
+                #ifdef __APPLE__
+                                  int flags_,
+                                  uint32_t position_) {
+                #else
+                                  int flags_) {
+                #endif
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_SETXATTR_;
+        op->req = req;
+        op->name = name_;
+        op->newname = value_;
+        op->size = size_;
+        op->to_set = flags_;
+        #ifdef __APPLE__
+        op->position = position_;
+        #endif
+
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to setxattr file %s from parent %d \n",  name_, (int) ino);
+            return;
+        }
+
+        uv_async_send(&uv_async_handle);
+
+    }
+    void FileSystem::RemoteSetXAttr(fuse_req_t req,
                               fuse_ino_t ino,
                               const char* name_,
                               const char* value_,
@@ -1466,11 +1698,39 @@ namespace NodeFuse {
                               fuse_ino_t ino,
                               const char* name_,
                               size_t size_
-#ifdef __APPLE__
+            #ifdef __APPLE__
                               ,uint32_t position_) {
-#else
+            #else
                               ) {
-#endif
+            #endif
+    struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+    op->op = _FUSE_OPS_GETXATTR_;
+    op->req = req;
+    op->ino = ino;
+    op->name = name_;
+    op->size = size_;
+    #ifdef __APPLE__
+    op->position = position_;
+    #endif
+
+    if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+        printf("ckring was full while trying to getxattr for inode %d\n",  (int) ino);
+        return;
+    }
+
+    uv_async_send(&uv_async_handle);
+
+    }
+    void FileSystem::RemoteGetXAttr(fuse_req_t req,
+                              fuse_ino_t ino,
+                              const char* name_,
+                              size_t size_
+            #ifdef __APPLE__
+                              ,uint32_t position_) {
+            #else
+                              ) {
+            #endif
+
         NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = NanNew(fuse->fsobj);
@@ -1516,6 +1776,23 @@ namespace NodeFuse {
     void FileSystem::ListXAttr(fuse_req_t req,
                                fuse_ino_t ino,
                                size_t size_) {
+
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_LISTXATTR_;
+        op->req = req;
+        op->ino = ino;
+        op->size = size_;
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue write at inode %d\n", (int) ino);
+            return;
+        }
+        uv_async_send(&uv_async_handle);
+
+    }
+
+    void FileSystem::RemoteListXAttr(fuse_req_t req,
+                               fuse_ino_t ino,
+                               size_t size_) {
         NanScope();
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = NanNew(fuse->fsobj);
@@ -1542,8 +1819,22 @@ namespace NodeFuse {
             FatalException(try_catch);
         }
     }
-
     void FileSystem::RemoveXAttr(fuse_req_t req,
+                                 fuse_ino_t ino,
+                                 const char* name_) {
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_REMOVEXATTR_;
+        op->req = req;
+        op->ino = ino;
+        op->name = name_;
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue write at inode %d\n", (int) ino);
+            return;
+        }
+        uv_async_send(&uv_async_handle);
+    }
+
+    void FileSystem::RemoteRemoveXAttr(fuse_req_t req,
                                  fuse_ino_t ino,
                                  const char* name_) {
         NanScope();
@@ -1572,8 +1863,25 @@ namespace NodeFuse {
             FatalException(try_catch);
         }
     }
-
     void FileSystem::Access(fuse_req_t req,
+                            fuse_ino_t ino,
+                            int mask_) {
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_ACCESS_;
+        op->req = req;
+        op->ino = ino;
+        op->to_set = mask_;
+
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to rename file %s from parent %d \n",  name, (int) parent);
+            return;
+        }
+
+        uv_async_send(&uv_async_handle);
+
+    }
+
+    void FileSystem::RemoteAccess(fuse_req_t req,
                             fuse_ino_t ino,
                             int mask_) {
         NanScope();

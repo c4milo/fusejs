@@ -4,34 +4,34 @@
 #include "bindings.h"
 uv_async_t uv_async_handle;
 namespace NodeFuse {
-    Persistent<FunctionTemplate> Fuse::constructor_template;
+    NanPersistent<FunctionTemplate> Fuse::constructor_template;
 
-    //static Persistent<String> mountpoint_sym;
-    static Persistent<String> filesystem_sym;
-    static Persistent<String> options_sym;
+    //static NanPersistent<String> mountpoint_sym;
+    static NanPersistent<String> filesystem_sym;
+    static NanPersistent<String> options_sym;
 
     void Fuse::Initialize(Handle<Object> target) {
         Local<FunctionTemplate> t = NanNew<FunctionTemplate>(Fuse::New);
 
         t->InstanceTemplate()->SetInternalFieldCount(1);
 
-        NODE_SET_PROTOTYPE_METHOD(t, "mount",
+        NanSetPrototypeMethod(t, "mount",
                                       Fuse::Mount);
-        //NODE_SET_PROTOTYPE_METHOD(t, "unmount",
+        //NanSetPrototypeMethod(t, "unmount",
         //                              Fuse::Unmount);
 
-        NanAssignPersistent(constructor_template, t);
+        constructor_template.Reset(t);
         // constructor_template->SetClassName(String::NewSymbol("Fuse"));
 
-        target->Set(NanNew("fuse_version"), NanNew<Integer>(fuse_version()));
-        target->Set(NanNew("Fuse"), NanNew(constructor_template)->GetFunction());
+        NanSet(target, NanNew("fuse_version").ToLocalChecked(), NanNew<Integer>(fuse_version()));
+        NanSet(target, NanNew("Fuse").ToLocalChecked(), NanGetFunction(NanNew(constructor_template)));
 
         //mountpoint_sym        = NODE_PSYMBOL("mountpoint");
-        NanAssignPersistent(filesystem_sym, NanNew("filesystem"));
-        NanAssignPersistent(options_sym, NanNew("options"));
+        filesystem_sym.Reset(NanNew("filesystem").ToLocalChecked());
+        options_sym.Reset(NanNew("options").ToLocalChecked());
     }
 
-    Fuse::Fuse() : ObjectWrap() {}
+    Fuse::Fuse() : NanObjectWrap() {}
     Fuse::~Fuse() {
         if (fargs != NULL) {
             fuse_opt_free_args(fargs);
@@ -52,13 +52,13 @@ namespace NodeFuse {
     }
 
     NAN_METHOD( Fuse::New) {
-        NanEscapableScope();
+        NanEscapableScope scope;
 
         Fuse *fuse = new Fuse();
-        Local<Object> obj = args.This();
+        Local<Object> obj = info.This();
         fuse->Wrap(obj);
 
-        NanReturnValue( obj );
+        info.GetReturnValue().Set( obj );
     }
 
     void Fuse::RemoteMount(void *_args_) {
@@ -111,41 +111,41 @@ namespace NodeFuse {
     }
     
     NAN_METHOD(Fuse::Mount) {
-        NanEscapableScope();
+        NanEscapableScope scope;
 
-        int argslen = args.Length();
+        int argslen = info.Length();
 
         if (argslen == 0) {
             NanThrowError(
             "You must specify arguments to invoke this function");
-            NanReturnUndefined();
+            return;
         }
 
-        if (!args[0]->IsObject()) {
+        if (!info[0]->IsObject()) {
             NanThrowError(
             "You must specify an Object as first argument");
-            NanReturnUndefined();
+            return;
         }
 
-        Local<Object> argsObj = args[0]->ToObject();
+        Local<Object> argsObj = info[0]->ToObject();
         //THROW_IF_MISSING_PROPERTY(argsObj, mountpoint_sym, "mountpoint");
         THROW_IF_MISSING_PROPERTY(argsObj, filesystem_sym, "filesystem");
         THROW_IF_MISSING_PROPERTY(argsObj, options_sym, "options");
 
-        //Local<Value> vmountpoint = argsObj->Get(mountpoint_sym);
-        Local<Value> vfilesystem = argsObj->Get(NanNew(filesystem_sym));
-        Local<Value> voptions = argsObj->Get(NanNew(options_sym));
+        //Local<Value> vmountpoint = NanGet(argsObj, mountpoint_sym);
+        Local<Value> vfilesystem = NanGet(argsObj, NanNew(filesystem_sym));
+        Local<Value> voptions = NanGet(argsObj, NanNew(options_sym));
 
         if (!vfilesystem->IsFunction()) {
             NanThrowError(
                 "Wrong type for property 'filesystem', a Function is expected");
-            NanReturnUndefined();
+            return;
         }
 
         if (!voptions->IsArray()) {
             NanThrowError(
                 "Wrong type for property 'options', an Array is expected");
-            NanReturnUndefined();
+            return;
         }
 
         Local<Array> options = Local<Array>::Cast(voptions);
@@ -153,22 +153,22 @@ namespace NodeFuse {
 
         //If no mountpoint is provided, show usage.
         if (argc < 1) {
-            options->Set(NanNew<Integer>(1), NanNew<String>("--help"));
+            NanSet(options, NanNew<Integer>(1), NanNew<String>("--help").ToLocalChecked());
             argc++;
         }
 
-        Local<Object> currentInstance = args.This();
-        Fuse *fuse  = ObjectWrap::Unwrap<Fuse>(currentInstance);
+        Local<Object> currentInstance = info.This();
+        Fuse *fuse  = NanObjectWrap::Unwrap<Fuse>(currentInstance);
         struct fuse_args fargs = FUSE_ARGS_INIT(0, NULL);
         fuse->fargs = (struct fuse_args *)malloc(sizeof(fargs));
         memcpy( fuse->fargs, &fargs, sizeof(fargs) );   
 
         for (int i = 0; i < argc; i++) {
-            String::Utf8Value option(options->Get(NanNew<Integer>(i))->ToString());
+            String::Utf8Value NanGet(option(options, NanNew<Integer>(i))->ToString());
             char *fopt = strdup(*option);
             if (fuse_opt_add_arg(fuse->fargs, (const char *) fopt) == -1) {
                 FUSEJS_THROW_EXCEPTION("Unable to allocate memory, fuse_opt_add_arg failed: ", strerror(errno));
-                NanReturnUndefined();
+                return;
             }
         }
 
@@ -179,18 +179,18 @@ namespace NodeFuse {
                                         &fuse->multithreaded, &fuse->foreground);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error parsing fuse options: ", strerror(errno));
-            NanReturnUndefined();
+            return;
         }
 
         if (!fuse->mountpoint) {
             FUSEJS_THROW_EXCEPTION("Mount point argument was not found", "");
-            NanReturnUndefined();
+            return;
         }
 
         fuse->channel = fuse_mount((const char*) fuse->mountpoint, fuse->fargs);
         if (fuse->channel == NULL) {
             FUSEJS_THROW_EXCEPTION("Unable to mount filesystem: ", strerror(errno));
-            NanReturnUndefined();
+            return;
         }
 
         Local<Value> argv[2] = {
@@ -199,9 +199,9 @@ namespace NodeFuse {
         };
 
         Local<Function> filesystem = Local<Function>::Cast(vfilesystem);
-        NanAssignPersistent(fuse->fsobj, NanNew(filesystem)->NewInstance(2, argv) );
+        NanNewInstance(fuse->fsobj.Reset(NanNew(filesystem)2, argv) );
         assert(NanNew(fuse->fsobj)->IsObject());
-        assert(NanNew(fuse->fsobj)->Get(NanNew("init"))->IsFunction());
+        NanGet(assert(NanNew(fuse->fsobj), NanNew("init").ToLocalChecked())->IsFunction());
 
         uv_async_init(uv_default_loop(), &uv_async_handle, (uv_async_cb) FileSystem::DispatchOp);
         uv_thread_t fuse_thread;
@@ -213,11 +213,11 @@ namespace NodeFuse {
 
 
 
-    /*Handle<Value> Fuse::Unmount(const Arguments& args) {
+    /*Handle<Value> Fuse::Unmount(const Arguments& info) {
         HandleScope scope;
 
-        Local<Object> currentInstance = args.This();
-        Fuse *fuse = ObjectWrap::Unwrap<Fuse>(currentInstance);
+        Local<Object> currentInstance = info.This();
+        Fuse *fuse = NanObjectWrap::Unwrap<Fuse>(currentInstance);
 
         fuse_session_remove_chan(fuse->channel);
         fuse_remove_signal_handlers(fuse->session);

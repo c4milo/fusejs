@@ -204,6 +204,18 @@ namespace NodeFuse {
             attrs->Set( NanNew(mtime_sym), NODE_UNIXTIME_V8(stat->st_mtime));
         }
 
+        #ifdef FUSE_SET_ATTR_ATIME_NOW
+        if (to_set & FUSE_SET_ATTR_ATIME_NOW ){
+            attrs->Set( NanNew(atime_sym), NanNew<Integer>(-1));
+        }
+
+        if (to_set & FUSE_SET_ATTR_MTIME_NOW ){
+            attrs->Set( NanNew(mtime_sym), NanNew<Integer>(-1));
+        }
+        #endif
+
+
+
         return attrs;
     }
 

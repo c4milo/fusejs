@@ -54,12 +54,16 @@ namespace NodeFuse {
       dev_t dev;
       mode_t mode;
       const char* name;
-      const char* newname; //used for renaming files
+      const char* newname; //used for renaming files, and for symlinking
       int to_set;
       struct fuse_conn_info conn;
       struct fuse_file_info fi;
       struct stat attr;
       void *userdata;
+      unsigned long nlookup;
+      #ifdef __APPLE__
+      uint32_t position;
+      #endif 
     };
     class FileSystem {
         private:
