@@ -29,7 +29,7 @@ namespace NodeFuse {
         memset(entry, 0, sizeof(struct fuse_entry_param));
 
         Local<Object> obj = value->ToObject();
-        entry->ino = obj->Get(Nan::New<String>("ino").ToLocalChecked())->IntegerValue();
+        entry->ino = obj->Get(Nan::New<String>("inode").ToLocalChecked())->IntegerValue();
         entry->generation = obj->Get(Nan::New<String>("generation").ToLocalChecked())->IntegerValue();
         entry->attr_timeout = obj->Get(Nan::New<String>("attr_timeout").ToLocalChecked())->NumberValue();
         entry->entry_timeout = obj->Get(Nan::New<String>("entry_timeout").ToLocalChecked())->NumberValue();
@@ -46,8 +46,11 @@ namespace NodeFuse {
         memset(statbuf, 0, sizeof(struct stat));
 
         Local<Object> obj = value->ToObject();
+
         statbuf->st_dev = obj->Get(Nan::New<String>("dev").ToLocalChecked())->IntegerValue();
-        statbuf->st_ino = obj->Get(Nan::New<String>("ino").ToLocalChecked())->IntegerValue();
+        // statbuf->st_dev = Nan::Get(obj, Nan::New<String>("dev").ToLocalChecked())->IntegerValue();
+        statbuf->st_ino = obj->Get(Nan::New<String>("inode").ToLocalChecked())->IntegerValue();
+        // statbuf->st_ino = Nan::GetRealNamedProperty(obj, Nan::New<String>("inode").ToLocalChecked()).ToLocalChecked()->IntegerValue();
         statbuf->st_mode = obj->Get(Nan::New<String>("mode").ToLocalChecked())->IntegerValue();
         statbuf->st_nlink = obj->Get(Nan::New<String>("nlink").ToLocalChecked())->IntegerValue();
         statbuf->st_uid = obj->Get(Nan::New<String>("uid").ToLocalChecked())->IntegerValue();
@@ -56,9 +59,9 @@ namespace NodeFuse {
         statbuf->st_size = obj->Get(Nan::New<String>("size").ToLocalChecked())->NumberValue();
         statbuf->st_blksize = obj->Get(Nan::New<String>("blksize").ToLocalChecked())->IntegerValue();
         statbuf->st_blocks = obj->Get(Nan::New<String>("blocks").ToLocalChecked())->IntegerValue();
-        statbuf->st_atime = NODE_V8_UNIXTIME(obj->Get(Nan::New<String>("atime").ToLocalChecked()));
-        statbuf->st_mtime = NODE_V8_UNIXTIME(obj->Get(Nan::New<String>("mtime").ToLocalChecked()));
-        statbuf->st_ctime = NODE_V8_UNIXTIME(obj->Get(Nan::New<String>("ctime").ToLocalChecked()));
+        statbuf->st_atime = obj->Get(Nan::New<String>("atime").ToLocalChecked())->IntegerValue();
+        statbuf->st_mtime = obj->Get(Nan::New<String>("mtime").ToLocalChecked())->IntegerValue();
+        statbuf->st_ctime = obj->Get(Nan::New<String>("ctime").ToLocalChecked())->IntegerValue();
 
         return 0;
     }

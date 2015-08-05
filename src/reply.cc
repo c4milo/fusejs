@@ -228,22 +228,22 @@ namespace NodeFuse {
         size_t size = args[1]->IntegerValue();
 
         if (reply->dentry_buffer == NULL){
-            fprintf(stderr, "reply buf null\n");
+            // fprintf(stderr, "reply buf null\n");
             Local<Object> buffer = args[0]->ToObject();
             const char* data = Buffer::Data(buffer);
             ret = fuse_reply_buf( reply->request, data, size);
         }else{
 
             if (reply->dentry_offset < reply->dentry_acc_size){
-                fprintf(stderr, "reply buf less than %6d, %6d, \t%6d\n", (int) reply->dentry_offset, (int) reply->dentry_acc_size, (int) MIN(reply->dentry_acc_size - reply->dentry_offset,size));
+                // fprintf(stderr, "reply buf less than %6d, %6d, \t%6d\n", (int) reply->dentry_offset, (int) reply->dentry_acc_size, (int) MIN(reply->dentry_acc_size - reply->dentry_offset,size));
                 ret = fuse_reply_buf(reply->request, reply->dentry_buffer + reply->dentry_offset, MIN(reply->dentry_acc_size - reply->dentry_offset,size) );
             }else{
-                fprintf(stderr, "reply buf done\n");
+                // fprintf(stderr, "reply buf done\n");
                 ret = fuse_reply_buf(reply->request, NULL, 0 );
             }
 
         }
-        fprintf(stderr, "reply buf return %d\n", ret);
+        // fprintf(stderr, "reply buf return %d\n", ret);
 
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
@@ -462,7 +462,7 @@ namespace NodeFuse {
 
         struct stat statbuff;
         ObjectToStat(args[2]->ToObject(), &statbuff);
-
+        // fprintf(stderr, "stat\n");
 
         size_t acc_size = reply->dentry_acc_size;
 

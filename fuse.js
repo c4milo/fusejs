@@ -1,5 +1,5 @@
 var bindings = require('./build/Release/fusejs.node');
-
+var warn_not_implemented = false;
 var FileSystem = function() {
 
 };
@@ -14,7 +14,9 @@ var FileSystem = function() {
      * There's no reply to this function.
      **/
     this.init = function(connInfo) {
-        console.log("init not implemented");
+        if(warn_not_implemented){
+            console.log("init not implemented");
+        }
     };
 
     /**
@@ -24,7 +26,9 @@ var FileSystem = function() {
      * There's no reply to this function.
      **/
     this.destroy = function(reply) {
-        console.log("destroy not implemented");
+        if(warn_not_implemented){
+            console.log("destroy not implemented");
+        }
         reply.err(38);
     };
 
@@ -39,7 +43,9 @@ var FileSystem = function() {
      * Valid replies: reply.entry() or reply.err().
      **/
     this.lookup = function(context, parent, name, reply) {
-        console.log("lookup not implemented");
+        if(warn_not_implemented){
+            console.log("lookup not implemented");
+        }
         reply.err(38);
     };
 
@@ -65,7 +71,9 @@ var FileSystem = function() {
      *
      **/
     this.forget = function(context, inode, nlookup) {
-        console.log("forget not implemented");
+        if(warn_not_implemented){
+            console.log("forget not implemented");
+        }
     };
 
     /**
@@ -78,7 +86,9 @@ var FileSystem = function() {
      * Valid replies: reply.attr() or reply.err()
      **/
     this.getattr = function(context, inode, reply) {
-        console.log("getattr not implemented");
+        if(warn_not_implemented){
+            console.log("getattr not implemented");
+        }
         reply.err(38);
     };
 
@@ -105,7 +115,9 @@ var FileSystem = function() {
      * Valid replies: reply.attr() or reply.err();
      **/
     this.setattr = function(context, inode, attrs, reply) {
-        console.log("setattr not implemented");
+        if(warn_not_implemented){
+            console.log("setattr not implemented");
+        }
         reply.err(38);
     };
 
@@ -119,7 +131,9 @@ var FileSystem = function() {
      * Valid replies: reply.readlink() or reply.err()
      **/
     this.readlink = function(context, inode, reply) {
-        console.log("readlink not implemented");
+        if(warn_not_implemented){
+            console.log("readlink not implemented");
+        }
         reply.err(38);
     };
 
@@ -140,7 +154,9 @@ var FileSystem = function() {
      * Valid replies: reply.entry() or reply.err()
      **/
     this.mknod = function(context, parent, name, mode, rdev, reply) {
-        console.log("mknod not implemented");
+        if(warn_not_implemented){
+            console.log("mknod not implemented");
+        }
         reply.err(38);
     };
 
@@ -156,7 +172,9 @@ var FileSystem = function() {
      * Valid replies: reply.entry() or reply.err()
      **/
     this.mkdir = function(context, parent, name, mode, reply) {
-        console.log("mkdir not implemented");
+        if(warn_not_implemented){
+            console.log("mkdir not implemented");
+        }
         reply.err(38);
     };
 
@@ -171,7 +189,9 @@ var FileSystem = function() {
      * Valid replies: reply.err()
      **/
     this.unlink = function(context, parent, name, reply) {
-        console.log("unlink not implemented");
+        if(warn_not_implemented){
+            console.log("unlink not implemented");
+        }
         reply.err(38);
     };
 
@@ -185,7 +205,9 @@ var FileSystem = function() {
      * Valid replies: reply.err()
      **/
     this.rmdir = function(context, parent, name, reply) {
-        console.log("rmdir not implemented");
+        if(warn_not_implemented){
+            console.log("rmdir not implemented");
+        }
         reply.err(38);
     };
 
@@ -201,7 +223,9 @@ var FileSystem = function() {
      * Valid replies: reply.entry() or reply.err()
      **/
     this.symlink = function(context, parent, link, name, reply) {
-        console.log("symlink not implemented");
+        if(warn_not_implemented){
+            console.log("symlink not implemented");
+        }
         reply.err(38);
     };
 
@@ -218,7 +242,9 @@ var FileSystem = function() {
      * Valid replies: reply.err()
      **/
     this.rename = function(context, parent, name, newParent, newName, reply) {
-        console.log("rename not implemented");
+        if(warn_not_implemented){
+            console.log("rename not implemented");
+        }
         reply.err(38);
     };
 
@@ -234,7 +260,9 @@ var FileSystem = function() {
      * Valid replies: reply.entry() or reply.err()
      **/
     this.link = function(context, inode, newParent, newName, reply) {
-        console.log("link not implemented");
+        if(warn_not_implemented){
+            console.log("link not implemented");
+        }
         reply.err(38);
     };
 
@@ -264,7 +292,9 @@ var FileSystem = function() {
      * Valid replies: reply.open() or reply.err()
      **/
     this.open = function(context, inode, fileInfo, reply) {
-        console.log("open not implemented");
+        if(warn_not_implemented){
+            console.log("open not implemented");
+        }
         reply.err(38);
     };
 
@@ -289,107 +319,149 @@ var FileSystem = function() {
      * Valid replies: reply.buffer() or fuse.err()
      **/
     this.read = function() {
-        console.log("read not implemented");
+        if(warn_not_implemented){
+            console.log("read not implemented");
+        }
         reply.err(38);
     };
 
     this.write = function() {
-        console.log("write not implemented");
+        if(warn_not_implemented){
+            console.log("write not implemented");
+        }
         reply.err(38);
     };
 
     this.flush = function() {
-        console.log("flush not implemented");
+        if(warn_not_implemented){
+            console.log("flush not implemented");
+        }
         reply.err(38);
     };
 
     this.release = function() {
-        console.log("release not implemented");
+        if(warn_not_implemented){
+            console.log("release not implemented");
+        }
         reply.err(38);
     };
 
     this.fsync = function() {
-        console.log("fsync not implemented");
+        if(warn_not_implemented){
+            console.log("fsync not implemented");
+        }
         reply.err(38);
     };
 
     this.opendir = function() {
-        console.log("opendir not implemented");
+        if(warn_not_implemented){
+            console.log("opendir not implemented");
+        }
         reply.err(38);
     };
 
     this.readdir = function() {
-        console.log("readdir not implemented");
+        if(warn_not_implemented){
+            console.log("readdir not implemented");
+        }
         reply.err(38);
     };
 
     this.releasedir = function() {
-        console.log("releasedir not implemented");
+        if(warn_not_implemented){
+            console.log("releasedir not implemented");
+        }
         reply.err(38);
     };
 
     this.fsyncdir = function() {
-        console.log("fsyncdir not implemented");
+        if(warn_not_implemented){
+            console.log("fsyncdir not implemented");
+        }
         reply.err(38);
     };
 
     this.statfs = function() {
-        console.log("statfs not implemented");
+        if(warn_not_implemented){
+            console.log("statfs not implemented");
+        }
         reply.err(38);
     };
 
     this.setxattr = function() {
-        console.log("setxattr not implemented");
+        if(warn_not_implemented){
+            console.log("setxattr not implemented");
+        }
         reply.err(38);
     };
 
     this.getxattr = function(context, parentInode, name, size, position, reply) {
-        console.log("getxattr not implemented");
+        if(warn_not_implemented){
+            console.log("getxattr not implemented");
+        }
         reply.err(38);
     };
 
     this.listxattr = function() {
-        console.log("listxattr not implemented");
+        if(warn_not_implemented){
+            console.log("listxattr not implemented");
+        }
         reply.err(38);
     };
 
     this.removexattr = function() {
-        console.log("removexattr not implemented");
+        if(warn_not_implemented){
+            console.log("removexattr not implemented");
+        }
         reply.err(38);
     };
 
     this.access = function(context, inode, mask, reply) {        
-        console.log("access not implemented");
-        reply.err(0);
+        if(warn_not_implemented){
+            console.log("access not implemented");
+        }
+        reply.err(38);
     };
 
     this.create = function() {
-        console.log("create not implemented");
+        if(warn_not_implemented){
+            console.log("create not implemented");
+        }
         reply.err(38);
     };
 
     this.getlk = function() {
-        console.log("getlk not implemented");
+        if(warn_not_implemented){
+            console.log("getlk not implemented");
+        }
         reply.err(38);
     };
 
     this.setlk = function() {
-        console.log("setlk not implemented");
+        if(warn_not_implemented){
+            console.log("setlk not implemented");
+        }
         reply.err(38);
     };
 
     this.bmap = function() {
-        console.log("bmap not implemented");
+        if(warn_not_implemented){
+            console.log("bmap not implemented");
+        }
         reply.err(38);
     };
 
     this.ioctl = function() {
-        console.log("ioctl not implemented");
+        if(warn_not_implemented){
+            console.log("ioctl not implemented");
+        }
         reply.err(38);
     };
 
     this.poll = function() {
-        console.log("poll not implemented");
+        if(warn_not_implemented){
+            console.log("poll not implemented");
+        }
         reply.err(38);
     };
 }).call(FileSystem.prototype);
