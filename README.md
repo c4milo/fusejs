@@ -1,8 +1,5 @@
 ## FuseJS - Low level bindings for Fuse
 [![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/c4milo/fusejs?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-<a class="FlattrButton" style="display:none;" href="https://github.com/c4milo/fusejs"></a>
-<noscript><a href="http://flattr.com/thing/1104361/" target="_blank">
-<img src="http://api.flattr.com/button/flattr-badge-large.png" alt="Flattr this" title="Flattr this" border="0" /></a></noscript>
 
 Fusejs are a set of NodeJS bindings for [Fuse](http://fuse.sourceforge.net/) low level API. 
 It allows you to write filesystems, in userspace, using Javascript and NodeJS. 
@@ -106,7 +103,7 @@ You can also take a look at the examples in: (TODO!)
 ## License
 (The MIT License)
 
-Copyright 2012 Camilo Aguilar. All rights reserved.
+Copyright 2015 FuseJS Authors. All rights reserved.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to
