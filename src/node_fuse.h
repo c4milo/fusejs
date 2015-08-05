@@ -1,27 +1,29 @@
-// Copyright 2012, Camilo Aguilar. Cloudescape, LLC.
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 #ifndef SRC_NODE_FUSE_H_
 #define SRC_NODE_FUSE_H_
 
 #include <node.h>
+#include <node_buffer.h>
 #include <fuse_lowlevel.h>
 #include <errno.h>
 #include <string.h>
+#include <nan.h>
 
-#define NODE_FUSE_VERSION "0.0.1"
+#define NODE_FUSE_VERSION "0.1.0"
 
 using namespace v8;
 using namespace node;
 
-#define THROW_IF_MISSING_PROPERTY(obj, symbol, name)                                \
-    if (!obj->Has(symbol)) {                                                        \
-        return v8::ThrowException(v8::Exception::TypeError(                         \
-        v8::String::New("You must have set the property " #name " in the object")));\
+#define THROW_IF_MISSING_PROPERTY(obj, name)                                \
+    if (Nan::Has(obj,Nan::New<String>(name).ToLocalChecked()) == Nan::Just(false) ) {                                                        \
+        Nan::ThrowError("You must have set the property " #name " in the object");    \
     }                                                                               \
 
 #define FUSEJS_THROW_EXCEPTION(err, fuse_err)                                       \
-        v8::Local<v8::Value> exception = v8::Exception::Error(                      \
-        v8::String::Concat(v8::String::New(err), v8::String::New(fuse_err)));        \
-        ThrowException(exception);
+        Nan::ThrowError( v8::String::Concat(Nan::New<String>(err).ToLocalChecked(), Nan::New<String>(fuse_err).ToLocalChecked()));        \
 
 namespace NodeFuse {
     int ObjectToFuseEntryParam(Handle<Value> value, struct fuse_entry_param* entry);

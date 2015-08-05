@@ -1,93 +1,114 @@
-// Copyright 2012, Camilo Aguilar. Cloudescape, LLC.
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "file_info.h"
 
 namespace NodeFuse {
-    Persistent<FunctionTemplate> FileInfo::constructor_template;
+    Nan::Persistent<Function> FileInfo::constructor;
 
-    static Persistent<String> flags_sym         = NODE_PSYMBOL("flags");
-    static Persistent<String> writepage_sym     = NODE_PSYMBOL("writepage");
-    static Persistent<String> direct_io_sym     = NODE_PSYMBOL("direct_io");
-    static Persistent<String> keep_cache_sym    = NODE_PSYMBOL("keep_cache");
-    static Persistent<String> flush_sym         = NODE_PSYMBOL("flush");
-    static Persistent<String> nonseekable_sym   = NODE_PSYMBOL("nonseekable");
-    static Persistent<String> file_handle_sym   = NODE_PSYMBOL("fh");
-    static Persistent<String> lock_owner_sym    = NODE_PSYMBOL("lock_owner");
+    NAN_METHOD(FileInfo::New){
+        if (info.IsConstructCall()) {
+          FileInfo *fi = new FileInfo();
+          Local<Object> obj = info.This();
+          fi->Wrap(obj);
+          info.GetReturnValue().Set( obj );
+        } else {
+          Local<Function> cons = Nan::New<Function>(constructor);
+          info.GetReturnValue().Set(cons->NewInstance());
+        }
 
-    //Open flags
-    static Persistent<String> rdonly_sym    = NODE_PSYMBOL("rdonly");
-    static Persistent<String> wronly_sym    = NODE_PSYMBOL("wronly");
-    static Persistent<String> rdwr_sym      = NODE_PSYMBOL("rdwr");
-    static Persistent<String> nonblock_sym  = NODE_PSYMBOL("nonblock");
-    static Persistent<String> append_sym    = NODE_PSYMBOL("append");
-    static Persistent<String> creat_sym     = NODE_PSYMBOL("creat");
-    static Persistent<String> trunc_sym     = NODE_PSYMBOL("trunc");
-    static Persistent<String> excl_sym      = NODE_PSYMBOL("excl");
-#ifdef O_SHLOCK
-    static Persistent<String> shlock_sym    = NODE_PSYMBOL("shlock");
-#endif
-#ifdef O_EXLOCK
-    static Persistent<String> exlock_sym    = NODE_PSYMBOL("exlock");
-#endif
-    static Persistent<String> nofollow_sym  = NODE_PSYMBOL("nofollow");
-#ifdef O_SYMLINK
-    static Persistent<String> symlink_sym   = NODE_PSYMBOL("symlink");
-#endif
-#ifdef O_EVTONLY
-    static Persistent<String> evtonly_sym   = NODE_PSYMBOL("evtonly");
-#endif
+    }
 
+    void FileInfo::Initialize(Handle<Object> target) {
+        /*
+        flags_sym = Nan::Global<String>( Nan::New("flags").ToLocalChecked());
+        writepage_sym = Nan::Global<String>( Nan::New("writepage").ToLocalChecked());
+        direct_io_sym = Nan::Global<String>( Nan::New("direct_io").ToLocalChecked());
+        keep_cache_sym = Nan::Global<String>( Nan::New("keep_cache").ToLocalChecked());
+        flush_sym = Nan::Global<String>( Nan::New("flush").ToLocalChecked());
+        nonseekable_sym = Nan::Global<String>( Nan::New("nonseekable").ToLocalChecked());
+        file_handle_sym = Nan::Global<String>( Nan::New("fh").ToLocalChecked());
+        lock_owner_sym = Nan::Global<String>( Nan::New("lock_owner").ToLocalChecked());
+        rdonly_sym = Nan::Global<String>( Nan::New("rdonly").ToLocalChecked());
+        wronly_sym = Nan::Global<String>( Nan::New("wronly").ToLocalChecked());
+        rdwr_sym = Nan::Global<String>( Nan::New("rdwr").ToLocalChecked());
+        nonblock_sym = Nan::Global<String>( Nan::New("nonblock").ToLocalChecked());
+        append_sym = Nan::Global<String>( Nan::New("append").ToLocalChecked());
+        creat_sym = Nan::Global<String>( Nan::New("creat").ToLocalChecked());
+        trunc_sym = Nan::Global<String>( Nan::New("trunc").ToLocalChecked());
+        excl_sym = Nan::Global<String>( Nan::New("excl").ToLocalChecked());
+        #ifdef O_SHLOCK
+        shlock_sym = Nan::Global<String>( Nan::New("shlock").ToLocalChecked());
+        #endif
+        #ifdef O_EXLOCK
+        exlock_sym = Nan::Global<String>( Nan::New("exlock").ToLocalChecked());
+        #endif
+        nofollow_sym = Nan::Global<String>( Nan::New("nofollow").ToLocalChecked());
+        #ifdef O_SYMLINK
+        symlink_sym = Nan::Global<String>( Nan::New("symlink").ToLocalChecked());
+        #endif
+        #ifdef O_EVTONLY
+        evtonly_sym = Nan::Global<String>( Nan::New("evtonly").ToLocalChecked());
+        #endif
+        */
+        Local<v8::FunctionTemplate> tpl = Nan::New<v8::FunctionTemplate>(New);
+        tpl->SetClassName(Nan::New<v8::String>("FileInfo").ToLocalChecked());
+        tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-    void FileInfo::Initialize() {
-        Local<FunctionTemplate> t = FunctionTemplate::New();
-        Local<ObjectTemplate> object_tmpl = t->InstanceTemplate();
+        Local<ObjectTemplate> object_tmpl = tpl->InstanceTemplate();
 
         object_tmpl->SetInternalFieldCount(1);
 
-        object_tmpl->SetAccessor(flags_sym, FileInfo::GetFlags);
-        object_tmpl->SetAccessor(writepage_sym, FileInfo::GetWritePage);
-        object_tmpl->SetAccessor(direct_io_sym, FileInfo::GetDirectIO, FileInfo::SetDirectIO);
-        object_tmpl->SetAccessor(keep_cache_sym, FileInfo::GetKeepCache, FileInfo::SetKeepCache);
-        object_tmpl->SetAccessor(flush_sym, FileInfo::GetFlush);
-        object_tmpl->SetAccessor(nonseekable_sym, FileInfo::GetNonSeekable, FileInfo::SetNonSeekable);
-        object_tmpl->SetAccessor(file_handle_sym, FileInfo::GetFileHandle, FileInfo::SetFileHandle);
-        object_tmpl->SetAccessor(lock_owner_sym, FileInfo::GetLockOwner);
+        Nan::SetAccessor(object_tmpl, Nan::New("flags").ToLocalChecked(), FileInfo::GetFlags);
+        Nan::SetAccessor(object_tmpl, Nan::New("writepage").ToLocalChecked(), FileInfo::GetWritePage);
+        Nan::SetAccessor(object_tmpl, Nan::New("direct_io").ToLocalChecked(), FileInfo::GetDirectIO, FileInfo::SetDirectIO);
+        Nan::SetAccessor(object_tmpl, Nan::New("keep_cache").ToLocalChecked(), FileInfo::GetKeepCache, FileInfo::SetKeepCache);
+        Nan::SetAccessor(object_tmpl, Nan::New("flush").ToLocalChecked(), FileInfo::GetFlush);
+        Nan::SetAccessor(object_tmpl, Nan::New("nonseekable").ToLocalChecked(), FileInfo::GetNonSeekable, FileInfo::SetNonSeekable);
+        Nan::SetAccessor(object_tmpl, Nan::New("file_handle").ToLocalChecked(), FileInfo::GetFileHandle, FileInfo::SetFileHandle);
+        Nan::SetAccessor(object_tmpl, Nan::New("lock_owner").ToLocalChecked(), FileInfo::GetLockOwner);
+        constructor.Reset(tpl->GetFunction());
 
-        constructor_template = Persistent<FunctionTemplate>::New(t);
-        constructor_template->SetClassName(String::NewSymbol("FileInfo"));
     }
 
     FileInfo::FileInfo() : ObjectWrap() {}
-    FileInfo::~FileInfo() {}
+    FileInfo::~FileInfo() {
+        // if(fi != nullptr)
+        // {
+        //     free(fi);
+        // }
+        
+    }
 
-    Handle<Value> FileInfo::GetFlags(Local<String> property, const AccessorInfo& info) {
-        HandleScope scope;
+    NAN_GETTER(FileInfo::GetFlags){
         FileInfo* fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
-        Local<Object> flagsObj = Object::New();
+        Local<Object> flagsObj = Nan::New<Object>();
 
         //Initializes object
-        flagsObj->Set(rdonly_sym, False());
-        flagsObj->Set(wronly_sym, False());
-        flagsObj->Set(rdwr_sym, False());
-        flagsObj->Set(nonblock_sym, False());
-        flagsObj->Set(append_sym, False());
-        flagsObj->Set(creat_sym, False());
-        flagsObj->Set(trunc_sym, False());
-        flagsObj->Set(excl_sym, False());
+        Nan::Set(flagsObj, Nan::New("rdonly").ToLocalChecked(), Nan::False());
+        Nan::Set(flagsObj, Nan::New("wronly").ToLocalChecked(), Nan::False());
+        Nan::Set(flagsObj, Nan::New("rdwr").ToLocalChecked(), Nan::False());
+        Nan::Set(flagsObj, Nan::New("nonblock").ToLocalChecked(), Nan::False());
+        Nan::Set(flagsObj, Nan::New("append").ToLocalChecked(), Nan::False());
+        Nan::Set(flagsObj, Nan::New("creat").ToLocalChecked(), Nan::False());
+        Nan::Set(flagsObj, Nan::New("trunc").ToLocalChecked(), Nan::False());
+        Nan::Set(flagsObj, Nan::New("excl").ToLocalChecked(), Nan::False());
 #ifdef O_SHLOCK
-        flagsObj->Set(shlock_sym, False());
+        Nan::Set(flagsObj, Nan::New("shlock").ToLocalChecked(), Nan::False());
 #endif
 #ifdef O_EXLOCK
-        flagsObj->Set(exlock_sym, False());
+        Nan::Set(flagsObj, Nan::New("exlock").ToLocalChecked(), Nan::False());
 #endif
-        flagsObj->Set(nofollow_sym, False());
+        Nan::Set(flagsObj, Nan::New("nofollow").ToLocalChecked(), Nan::False());
 #ifdef O_SYMLINK
-        flagsObj->Set(symlink_sym, False());
+        Nan::Set(flagsObj, Nan::New("symlink").ToLocalChecked(), Nan::False());
 #endif
 #ifdef O_EVTONLY
-        flagsObj->Set(evtonly_sym, False());
+        Nan::Set(flagsObj, Nan::New("evtonly").ToLocalChecked(), Nan::False());
 #endif
         /*
            O_RDONLY        open for reading only
@@ -106,150 +127,150 @@ namespace NodeFuse {
         */
 
         int flags = fileInfo->fi->flags;
-        if (flags & O_RDONLY) {
-            flagsObj->Set(rdonly_sym, True());
-        }
 
-        if (flags & O_WRONLY) {
-            flagsObj->Set(wronly_sym, True());
+        switch( flags & 3){
+            case 0:
+                Nan::Set(flagsObj, Nan::New("rdonly").ToLocalChecked(), Nan::True());
+                break;
+            case 1:
+                Nan::Set(flagsObj, Nan::New("wronly").ToLocalChecked(), Nan::True());
+                break;
+            case 2:
+                Nan::Set(flagsObj, Nan::New("rdwr").ToLocalChecked(), Nan::True());
+                break;
         }
-
-        if (flags & O_RDWR) {
-            flagsObj->Set(rdwr_sym, True());
-        }
-
         if (flags & O_NONBLOCK) {
-            flagsObj->Set(nonblock_sym, True());
+            Nan::Set(flagsObj, Nan::New("nonblock").ToLocalChecked(), Nan::True());
         }
 
         if (flags & O_APPEND) {
-            flagsObj->Set(append_sym, True());
+            Nan::Set(flagsObj, Nan::New("append").ToLocalChecked(), Nan::True());
         }
 
         if (flags & O_CREAT) {
-            flagsObj->Set(creat_sym, True());
+            Nan::Set(flagsObj, Nan::New("creat").ToLocalChecked(), Nan::True());
         }
 
         if (flags & O_TRUNC) {
-            flagsObj->Set(trunc_sym, True());
+            Nan::Set(flagsObj, Nan::New("trunc").ToLocalChecked(), Nan::True());
         }
 
         if (flags & O_EXCL) {
-            flagsObj->Set(excl_sym, True());
+            Nan::Set(flagsObj, Nan::New("excl").ToLocalChecked(), Nan::True());
         }
 
 #ifdef O_SHLOCK
         if (flags & O_SHLOCK) {
-            flagsObj->Set(shlock_sym, True());
+            Nan::Set(flagsObj, Nan::New("shlock").ToLocalChecked(), Nan::True());
         }
 #endif
 
 #ifdef O_EXLOCK
         if (flags & O_EXLOCK) {
-            flagsObj->Set(exlock_sym, True());
+            Nan::Set(flagsObj, Nan::New("exlock").ToLocalChecked(), Nan::True());
         }
 #endif
 
         if (flags & O_NOFOLLOW) {
-            flagsObj->Set(nofollow_sym, True());
+            Nan::Set(flagsObj, Nan::New("nofollow").ToLocalChecked(), Nan::True());
         }
 
 #ifdef O_SYMLINK
         if (flags & O_SYMLINK) {
-            flagsObj->Set(symlink_sym, True());
+            Nan::Set(flagsObj, Nan::New("symlink").ToLocalChecked(), Nan::True());
         }
 #endif
 
 #ifdef O_EVTONLY
         if (flags & O_EVTONLY) {
-            flagsObj->Set(evtonly_sym, True());
+            Nan::Set(flagsObj, Nan::New("evtonly").ToLocalChecked(), Nan::True());
         }
 #endif
 
-        return scope.Close(flagsObj);
+        info.GetReturnValue().Set(flagsObj);
     }
 
-    Handle<Value> FileInfo::GetWritePage(Local<String> property, const AccessorInfo& info) {
+    NAN_GETTER(FileInfo::GetWritePage){
         FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
-        return fileInfo->fi->writepage ? True() : False();
+        info.GetReturnValue().Set(fileInfo->fi->writepage ? Nan::True() : Nan::False());
     }
 
-    Handle<Value> FileInfo::GetDirectIO(Local<String> property, const AccessorInfo& info) {
+    NAN_GETTER(FileInfo::GetDirectIO){//(Local<String> property, const AccessorInfo& info) {
         FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
-        return fileInfo->fi->direct_io ? True() : False();
+        info.GetReturnValue().Set(fileInfo->fi->direct_io ? Nan::True() : Nan::False());
     }
 
-    void FileInfo::SetDirectIO(Local<String> property, Local<Value> value, const AccessorInfo& info) {
+    NAN_SETTER(FileInfo::SetDirectIO){
         FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
 
         if (!value->IsBoolean()) {
-            FUSEJS_THROW_EXCEPTION("Invalid value type: ", "a Boolean was expected");
+            // TODO: Check to see if this case will cause errors
+            // FUSEJS_THROW_EXCEPTION("Invalid value type: ", "a Boolean was expected");
         }
 
         fileInfo->fi->direct_io = value->IsTrue() ? 1 : 0;
     }
 
-    Handle<Value> FileInfo::GetKeepCache(Local<String> property, const AccessorInfo& info) {
+    NAN_GETTER(FileInfo::GetKeepCache){
         FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
-        return fileInfo->fi->keep_cache ? True() : False();
+        info.GetReturnValue().Set(fileInfo->fi->keep_cache ? Nan::True() : Nan::False());
     }
 
-    void FileInfo::SetKeepCache(Local<String> property, Local<Value> value, const AccessorInfo& info) {
+    NAN_SETTER(FileInfo::SetKeepCache){
         FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
 
         if (!value->IsBoolean()) {
-            FUSEJS_THROW_EXCEPTION("Invalid value type: ", "a Boolean was expected");
+            // TODO: Check to see if this case will cause errors
+            // FUSEJS_THROW_EXCEPTION("Invalid value type: ", "a Boolean was expected");
         }
 
         fileInfo->fi->keep_cache = value->IsTrue() ? 1 : 0;
     }
 
-    Handle<Value> FileInfo::GetFlush(Local<String> property, const AccessorInfo& info) {
+    NAN_GETTER(FileInfo::GetFlush){
         FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
-        return fileInfo->fi->flush ? True() : False();
+        info.GetReturnValue().Set( fileInfo->fi->flush ? Nan::True() : Nan::False());
     }
 
-    Handle<Value> FileInfo::GetNonSeekable(Local<String> property, const AccessorInfo& info) {
-        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
+    NAN_GETTER(FileInfo::GetNonSeekable){     
 #if FUSE_USE_VERSION > 27
-        return fileInfo->fi->nonseekable ? True() : False();
+        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
+        info.GetReturnValue().Set(fileInfo->fi->nonseekable ? Nan::True() : Nan::False());
 #else
-        return False();
+        info.GetReturnValue().Set(Nan::False());
 #endif
     }
 
-    void FileInfo::SetNonSeekable(Local<String> property, Local<Value> value, const AccessorInfo& info) {
-        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
+    NAN_SETTER( FileInfo::SetNonSeekable){
 
         if (!value->IsBoolean()) {
             FUSEJS_THROW_EXCEPTION("Invalid value type: ", "a Boolean was expected");
         }
 #if FUSE_USE_VERSION > 27
+        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
         fileInfo->fi->nonseekable = value->IsTrue() ? 1 : 0;
 #endif
     }
 
-    void FileInfo::SetFileHandle(Local<String> property, Local<Value> value, const AccessorInfo& info) {
+    NAN_SETTER(FileInfo::SetFileHandle){
         FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
 
         if (!value->IsNumber()) {
-            FUSEJS_THROW_EXCEPTION("Invalid value type: ", "a Number was expected");
+            Nan::ThrowTypeError("Invalid value type: a Number was expected");        
         }
 
-        fileInfo->fi->fh = value->IntegerValue();
+        fileInfo->fi->fh = Nan::To<int64_t>(value).FromJust();
     }
 
-    Handle<Value> FileInfo::GetFileHandle(Local<String> property, const AccessorInfo& info) {
-        HandleScope scope;
+    NAN_GETTER(FileInfo::GetFileHandle){
         FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
 
-        return scope.Close(Integer::New(fileInfo->fi->fh));
+        info.GetReturnValue().Set(Nan::New<Integer>( (int) fileInfo->fi->fh));
     }
 
-    Handle<Value> FileInfo::GetLockOwner(Local<String> property, const AccessorInfo& info) {
-        HandleScope scope;
+    NAN_GETTER(FileInfo::GetLockOwner){
         FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
 
-        return scope.Close(Integer::New(fileInfo->fi->lock_owner));
+        info.GetReturnValue().Set(Nan::New<Integer>( (int) fileInfo->fi->lock_owner));
     }
 } //ends namespace NodeFuse

@@ -1,4 +1,7 @@
-// Copyright 2012, Camilo Aguilar. Cloudescape, LLC.
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 #ifndef SRC_REPLY_H_
 #define SRC_REPLY_H_
 #include "node_fuse.h"
@@ -8,32 +11,35 @@ namespace NodeFuse {
         friend class FileSystem;
 
         public:
-            static void Initialize();
+            static void Initialize(Handle<Object> target);
 
             Reply();
             virtual ~Reply();
+            static NAN_METHOD(New);
 
         protected:
-            static Handle<Value> Entry(const Arguments& args);
-            static Handle<Value> Attributes(const Arguments& args);
-            static Handle<Value> ReadLink(const Arguments& args);
-            static Handle<Value> Error(const Arguments& args);
-            static Handle<Value> Open(const Arguments& args);
-            static Handle<Value> Buffer(const Arguments& args);
-            static Handle<Value> Write(const Arguments& args);
-            static Handle<Value> StatFs(const Arguments& args);
-            static Handle<Value> Create(const Arguments& args);
-            static Handle<Value> XAttributes(const Arguments& args);
-            static Handle<Value> Lock(const Arguments& args);
-            static Handle<Value> BMap(const Arguments& args);
-            static Handle<Value> AddDirEntry(const Arguments& args);
+            static NAN_METHOD(Entry);
+            static NAN_METHOD(Attributes);
+            static NAN_METHOD(ReadLink);
+            static NAN_METHOD(Error);
+            static NAN_METHOD(Open);
+            static NAN_METHOD(Buffer);
+            static NAN_METHOD(Write);
+            static NAN_METHOD(StatFs);
+            static NAN_METHOD(Create);
+            static NAN_METHOD(XAttributes);
+            static NAN_METHOD(Lock);
+            static NAN_METHOD(BMap);
+            static NAN_METHOD(AddDirEntry);
 
         private:
             fuse_req_t request;
             size_t dentry_acc_size;
             size_t dentry_cur_length;
+            size_t dentry_offset;
+            size_t dentry_size;
             char* dentry_buffer;
-            static Persistent<FunctionTemplate> constructor_template;
+            static Nan::Persistent<Function> constructor;
     };
 } //namespace NodeFuse
 

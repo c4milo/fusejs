@@ -1,20 +1,35 @@
-{   "name" : "fusejs",
-    "version": "0.0.1",
-    "author": "Camilo Aguilar - http://github.com/c4milo",
-    "email": "camilo.aguilar@gmail.com",
-    "description" : "Low level Fuse bindings for NodeJS.",
-    "repositories": [
-       {
-            "type": "git",
-            "url": "http://github.com/c4milo/fusejs.git"
-       }
-    ],
-    "devDependencies": {
-        "mocha": "0.14.1",
-        "should": "0.6.0"
+{
+  "name": "fusejs",
+  "version": "1.0.0",
+  "contributors":[
+    {
+      "name": "Eric Yen",
+      "url" : "http://github.com/thejinx0r",
+      "email": "eric@ericyen.com"
     },
-    "scripts": {
-       "install": "make"
-    },
-    "main" : "./fuse"
+    {    
+      "name": "Camilo Aguilar",
+      "url": "http://github.com/c4milo",
+      "email": "camilo.aguilar@gmail.com"
+    }
+  ], 
+  "description": "Low level Fuse bindings for NodeJS.",
+  "repositories": [
+    {
+      "type": "git",
+      "url": "http://github.com/thejinx0r/fusejs.git"
+    }
+  ],
+  "devDependencies": {
+    "mocha": "0.14.1",
+    "should": "0.6.0"
+  },
+  "scripts": {
+    "install": "node-gyp rebuild"
+  },
+  "license": "MPL-2.0",
+  "main": "./fuse",
+  "dependencies": {
+    "nan": "2.0.0"
+  }
 }

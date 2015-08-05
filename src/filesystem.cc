@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 #include "filesystem.h"
 #include "reply.h"
 #include "file_info.h"
@@ -5,70 +9,154 @@
 #include "node_buffer.h"
 
 namespace NodeFuse {
+    Persistent<Function> FileSystem::constructor;
+
+    ck_ring_t *ck_ring;
+    ck_ring_buffer_t ck_ring_buffer[_RING_SIZE_];
 
     static struct fuse_lowlevel_ops fuse_ops = {};
+    
+    void FileSystem::DispatchOp(uv_async_t* handle, int status)
+    {
+        struct fuse_cmd *op = NULL; //(struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
 
-    //Symbols for FUSE operations
-    static Persistent<String> init_sym        = NODE_PSYMBOL("init");
-    static Persistent<String> destroy_sym     = NODE_PSYMBOL("destroy");
-    static Persistent<String> lookup_sym      = NODE_PSYMBOL("lookup");
-    static Persistent<String> forget_sym      = NODE_PSYMBOL("forget");
-    static Persistent<String> getattr_sym     = NODE_PSYMBOL("getattr");
-    static Persistent<String> setattr_sym     = NODE_PSYMBOL("setattr");
-    static Persistent<String> readlink_sym    = NODE_PSYMBOL("readlink");
-    static Persistent<String> mknod_sym       = NODE_PSYMBOL("mknod");
-    static Persistent<String> mkdir_sym       = NODE_PSYMBOL("mkdir");
-    static Persistent<String> unlink_sym      = NODE_PSYMBOL("unlink");
-    static Persistent<String> rmdir_sym       = NODE_PSYMBOL("rmdir");
-    static Persistent<String> symlink_sym     = NODE_PSYMBOL("symlink");
-    static Persistent<String> rename_sym      = NODE_PSYMBOL("rename");
-    static Persistent<String> link_sym        = NODE_PSYMBOL("link");
-    static Persistent<String> open_sym        = NODE_PSYMBOL("open");
-    static Persistent<String> read_sym        = NODE_PSYMBOL("read");
-    static Persistent<String> write_sym       = NODE_PSYMBOL("write");
-    static Persistent<String> flush_sym       = NODE_PSYMBOL("flush");
-    static Persistent<String> release_sym     = NODE_PSYMBOL("release");
-    static Persistent<String> fsync_sym       = NODE_PSYMBOL("fsync");
-    static Persistent<String> opendir_sym     = NODE_PSYMBOL("opendir");
-    static Persistent<String> readdir_sym     = NODE_PSYMBOL("readdir");
-    static Persistent<String> releasedir_sym  = NODE_PSYMBOL("releasedir");
-    static Persistent<String> fsyncdir_sym    = NODE_PSYMBOL("fsyncdir");
-    static Persistent<String> statfs_sym      = NODE_PSYMBOL("statfs");
-    static Persistent<String> setxattr_sym    = NODE_PSYMBOL("setxattr");
-    static Persistent<String> getxattr_sym    = NODE_PSYMBOL("getxattr");
-    static Persistent<String> listxattr_sym   = NODE_PSYMBOL("listxattr");
-    static Persistent<String> removexattr_sym = NODE_PSYMBOL("removexattr");
-    static Persistent<String> access_sym      = NODE_PSYMBOL("access");
-    static Persistent<String> create_sym      = NODE_PSYMBOL("create");
-    static Persistent<String> getlk_sym       = NODE_PSYMBOL("getlk");
-    static Persistent<String> setlk_sym       = NODE_PSYMBOL("setlk");
-    static Persistent<String> bmap_sym        = NODE_PSYMBOL("bmap");
-    static Persistent<String> ioctl_sym       = NODE_PSYMBOL("ioctl");
-    static Persistent<String> poll_sym        = NODE_PSYMBOL("poll");
+        while (ck_ring_dequeue_spmc(ck_ring, ck_ring_buffer, (void*) &op) == true){
+            switch(op->op){
+                case _FUSE_OPS_LOOKUP_:
+                    RemoteLookup(op->req, op->ino, op->name);
+                    break;
+                case _FUSE_OPS_GETATTR_:
+                    RemoteGetAttr(op->req, op->ino, op->fi);
+                    break;
+                case _FUSE_OPS_OPEN_:
+                    RemoteOpen(op->req, op->ino, op->fi);
+                    break;
+                case _FUSE_OPS_READ_:
+                    RemoteRead(op->req, op->ino, op->size, op->off, op->fi);
+                    break;
+                case _FUSE_OPS_READDIR_:
+                    RemoteReadDir(op->req, op->ino, op->size, op->off, op->fi);
+                    break;
+                case _FUSE_OPS_INIT_:
+                    RemoteInit(op->userdata, op->conn);
+                    break;
+                case _FUSE_OPS_DESTROY_:
+                    RemoteDestroy(op->userdata);
+                    break;
+                case _FUSE_OPS_FORGET_:
+                    RemoteForget(op->req, op->ino, op->nlookup);
+                    break;
+                case _FUSE_OPS_SETATTR_:
+                    RemoteSetAttr(op->req, op->ino, op->attr, op->to_set, op->fi);
+                    break;
+                case _FUSE_OPS_READLINK_:
+                    RemoteReadLink(op->req, op->ino);
+                    break;
+                case _FUSE_OPS_MKNOD_:
+                    RemoteMkNod(op->req, op->ino, op->name, op->mode, op-> dev);
+                    break;
+                case _FUSE_OPS_MKDIR_:
+                    RemoteMkDir(op->req, op->ino, op->name,op->mode);
+                    break;
+                case _FUSE_OPS_UNLINK_:
+                    RemoteUnlink(op->req, op->ino, op->name);
+                    break;
+                case _FUSE_OPS_RMDIR_:
+                    RemoteRmDir(op->req, op->ino, op->name);
+                    break;
+                case _FUSE_OPS_SYMLINK_:
+                    RemoteSymLink(op->req, op->name, op->ino, op->newname);
+                    break;
+                case _FUSE_OPS_RENAME_:
+                    RemoteRename(op->req, op->ino, op->name, op->newino, op->newname);
+                    break;
+                case _FUSE_OPS_LINK_:
+                    RemoteLink(op->req, op->ino, op->newino, op->name);
+                    break;
+                case _FUSE_OPS_WRITE_:
+                    RemoteWrite(op->req, op->ino, op->name, op->size, op->off, op->fi);
+                    break;
+                case _FUSE_OPS_FLUSH_:
+                    RemoteFlush(op->req, op->ino, op->fi);
+                    break;
+                case _FUSE_OPS_RELEASE_:
+                    RemoteRelease(op->req, op->ino, op->fi);
+                    break;
+                case _FUSE_OPS_FSYNC_:
+                    RemoteFSync(op->req, op->ino, op->to_set, op->fi);
+                    break;
+                case _FUSE_OPS_OPENDIR_:
+                    RemoteOpenDir(op->req, op->ino, op->fi);
+                    break;
+                case _FUSE_OPS_RELEASEDIR_:
+                    RemoteReleaseDir(op->req, op->ino, op->fi);
+                    break;
+                case _FUSE_OPS_FSYNCDIR_:
+                    RemoteFSyncDir(op->req, op->ino, op->to_set, op->fi);
+                    break;
+                case _FUSE_OPS_STATFS_:
+                    RemoteStatFs(op->req, op->ino);
+                    break;
+                case _FUSE_OPS_SETXATTR_:
+                    RemoteSetXAttr(op->req, op->ino,op->name, op->newname, op->size, op->to_set
+                            #ifdef __APPLE__
+                                              ,op->position
+                            #endif
+                        );
 
-    //fuse_conn_info symbols
-    //Major version of the fuse protocol
-    static Persistent<String> conn_info_proto_major_sym     = NODE_PSYMBOL("proto_major");
-    //Minor version of the fuse protocol
-    static Persistent<String> conn_info_proto_minor_sym     = NODE_PSYMBOL("proto_minor");
-    //Is asynchronous read supported
-    static Persistent<String> conn_info_async_read_sym      = NODE_PSYMBOL("async_read");
-    //Maximum size of the write buffer
-    static Persistent<String> conn_info_max_write_sym       = NODE_PSYMBOL("max_write");
-    //Maximum readahead
-    static Persistent<String> conn_info_max_readahead_sym   = NODE_PSYMBOL("max_readahead");
-    //Capability flags, that the kernel supports
-    static Persistent<String> conn_info_capable_sym         = NODE_PSYMBOL("capable");
-    //Capability flags, that the filesystem wants to enable
-    static Persistent<String> conn_info_want_sym            = NODE_PSYMBOL("want");
+                    break;
+                case _FUSE_OPS_GETXATTR_:
+                    RemoteGetXAttr(op->req, op-> ino, op->name, op->size
+                            #ifdef __APPLE__
+                                              ,op-> position
+                            #endif
+                        );
 
-    void FileSystem::Initialize() {
+                    break;
+                case _FUSE_OPS_LISTXATTR_:
+                    RemoteListXAttr(op->req, op->ino, op->size);
+                    break;
+                case _FUSE_OPS_REMOVEXATTR_:
+                    RemoteRemoveXAttr(op->req, op->ino, op->name);
+                    break;
+                case _FUSE_OPS_ACCESS_:
+                    RemoteAccess(op->req, op->ino, op->to_set);
+                    break;
+                case _FUSE_OPS_CREATE_:
+                    RemoteCreate(op->req, op->ino, op->name, op->mode, op->fi);
+                    break;
+                case _FUSE_OPS_GETLK_:
+                    break;
+                case _FUSE_OPS_SETLK_:
+                    break;
+                case _FUSE_OPS_BMAP_:
+                    break;
+            }
+                // free((void*)op->name);
+                // free((void*)op->newname);
+              // free(op->userdata);
+            
+            free(op);
+        }
+    }
+
+
+    void FileSystem::Initialize(Handle<Object> target) {
+
+        ck_ring = (ck_ring_t *) malloc(sizeof(ck_ring_t));
+        ck_ring_init(ck_ring, _RING_SIZE_);
+
+        fuse_ops.lookup     = FileSystem::Lookup;
+        fuse_ops.getattr    = FileSystem::GetAttr;
+        fuse_ops.open       = FileSystem::Open;
+        fuse_ops.read       = FileSystem::Read;
+        fuse_ops.readdir    = FileSystem::ReadDir;
+        fuse_ops.write      = FileSystem::Write;
+        fuse_ops.create     = FileSystem::Create;
+        fuse_ops.setattr    = FileSystem::SetAttr;
         fuse_ops.init       = FileSystem::Init;
         fuse_ops.destroy    = FileSystem::Destroy;
-        fuse_ops.lookup     = FileSystem::Lookup;
         fuse_ops.forget     = FileSystem::Forget;
-        fuse_ops.getattr    = FileSystem::GetAttr;
-        fuse_ops.setattr    = FileSystem::SetAttr;
         fuse_ops.readlink   = FileSystem::ReadLink;
         fuse_ops.mknod      = FileSystem::MkNod;
         fuse_ops.mkdir      = FileSystem::MkDir;
@@ -77,158 +165,277 @@ namespace NodeFuse {
         fuse_ops.symlink    = FileSystem::SymLink;
         fuse_ops.rename     = FileSystem::Rename;
         fuse_ops.link       = FileSystem::Link;
-        fuse_ops.open       = FileSystem::Open;
-        fuse_ops.read       = FileSystem::Read;
-        fuse_ops.write      = FileSystem::Write;
         fuse_ops.flush      = FileSystem::Flush;
         fuse_ops.release    = FileSystem::Release;
         fuse_ops.fsync      = FileSystem::FSync;
         fuse_ops.opendir    = FileSystem::OpenDir;
-        fuse_ops.readdir    = FileSystem::ReadDir;
         fuse_ops.releasedir = FileSystem::ReleaseDir;
         fuse_ops.fsyncdir   = FileSystem::FSyncDir;
         fuse_ops.statfs     = FileSystem::StatFs;
-        fuse_ops.setxattr   = FileSystem::SetXAttr;
-        fuse_ops.getxattr   = FileSystem::GetXAttr;
-        fuse_ops.listxattr  = FileSystem::ListXAttr;
-        fuse_ops.removexattr= FileSystem::RemoveXAttr;
+        // fuse_ops.setxattr   = FileSystem::SetXAttr;
+        // fuse_ops.getxattr   = FileSystem::GetXAttr;
+        // fuse_ops.listxattr  = FileSystem::ListXAttr;
+        // fuse_ops.removexattr= FileSystem::RemoveXAttr;
         fuse_ops.access     = FileSystem::Access;
-        fuse_ops.create     = FileSystem::Create;
-        fuse_ops.getlk      = FileSystem::GetLock;
-        fuse_ops.setlk      = FileSystem::SetLock;
-        fuse_ops.bmap       = FileSystem::BMap;
-        //fuse_ops.ioctl      = FileSystem::IOCtl;
-        //fuse_ops.poll       = FileSystem::Poll;
+        // fuse_ops.getlk      = FileSystem::GetLock;
+        // fuse_ops.setlk      = FileSystem::SetLock;
+        // fuse_ops.bmap       = FileSystem::BMap;
+        // fuse_ops.ioctl      = FileSystem::IOCtl;
+        // fuse_ops.poll       = FileSystem::Poll;
+
+        // init_sym Nan::New("init"));
+        // NanAssignPersistent(destroy_sym,     Nan::New("destroy"));
+        // NanAssignPersistent(lookup_sym,      Nan::New("lookup"));
+        // NanAssignPersistent(forget_sym,      Nan::New("forget"));
+        // NanAssignPersistent(getattr_sym,     Nan::New("getattr"));
+        // NanAssignPersistent(setattr_sym,     Nan::New("setattr"));
+        // NanAssignPersistent(readlink_sym,    Nan::New("readlink"));
+        // NanAssignPersistent(mknod_sym,       Nan::New("mknod"));
+        // NanAssignPersistent(mkdir_sym,       Nan::New("mkdir"));
+        // NanAssignPersistent(unlink_sym,      Nan::New("unlink"));
+        // NanAssignPersistent(rmdir_sym,       Nan::New("rmdir"));
+        // NanAssignPersistent(symlink_sym,     Nan::New("symlink"));
+        // NanAssignPersistent(rename_sym,      Nan::New("rename"));
+        // NanAssignPersistent(link_sym,        Nan::New("link"));
+        // NanAssignPersistent(open_sym,        Nan::New("open"));
+        // NanAssignPersistent(read_sym,        Nan::New("read"));
+        // NanAssignPersistent(write_sym,       Nan::New("write"));
+        // NanAssignPersistent(flush_sym,       Nan::New("flush"));
+        // NanAssignPersistent(release_sym,     Nan::New("release"));
+        // NanAssignPersistent(fsync_sym,       Nan::New("fsync"));
+        // NanAssignPersistent(opendir_sym,     Nan::New("opendir"));
+        // NanAssignPersistent(readdir_sym,     Nan::New("readdir"));
+        // NanAssignPersistent(releasedir_sym,  Nan::New("releasedir"));
+        // NanAssignPersistent(fsyncdir_sym,    Nan::New("fsyncdir"));
+        // NanAssignPersistent(statfs_sym,      Nan::New("statfs"));
+        // NanAssignPersistent(setxattr_sym,    Nan::New("setxattr"));
+        // NanAssignPersistent(getxattr_sym,    Nan::New("getxattr"));
+        // NanAssignPersistent(listxattr_sym,   Nan::New("listxattr"));
+        // NanAssignPersistent(removexattr_sym, Nan::New("removexattr"));
+        // NanAssignPersistent(access_sym,      Nan::New("access"));
+        // NanAssignPersistent(create_sym,      Nan::New("create"));
+        // NanAssignPersistent(getlk_sym,       Nan::New("getlk"));
+        // NanAssignPersistent(setlk_sym,       Nan::New("setlk"));
+        // NanAssignPersistent(bmap_sym,        Nan::New("bmap"));
+        // NanAssignPersistent(ioctl_sym,       Nan::New("ioctl"));
+        // NanAssignPersistent(poll_sym,        Nan::New("poll"));
+        // NanAssignPersistent(conn_info_proto_major_sym,     Nan::New("proto_major"));
+        // NanAssignPersistent(conn_info_proto_minor_sym,     Nan::New("proto_minor"));
+        // NanAssignPersistent(conn_info_async_read_sym,      Nan::New("async_read"));
+        // NanAssignPersistent(conn_info_max_write_sym,       Nan::New("max_write"));
+        // NanAssignPersistent(conn_info_max_readahead_sym,   Nan::New("max_readahead"));
+        // NanAssignPersistent(conn_info_capable_sym,         Nan::New("capable"));
+        // NanAssignPersistent(conn_info_want_sym,            Nan::New("want"));
     }
 
     void FileSystem::Init(void* userdata,
                           struct fuse_conn_info* conn) {
-        HandleScope scope;
-        Fuse* fuse = static_cast<Fuse *>(userdata);
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_INIT_;
+        op->userdata =  userdata;
+        memcpy( &(op->conn), conn, sizeof(struct fuse_conn_info));
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue init");
+            return;
+        }
+        uv_async_send(&uv_async_handle);
 
-        Local<Value> vinit = fuse->fsobj->Get(init_sym);
+    }
+    void FileSystem::RemoteInit(void* userdata,
+                          struct fuse_conn_info conn) {
+        Nan::HandleScope scope;;
+        Fuse* fuse = static_cast<Fuse *>(userdata);
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
+        Local<Value> vinit = fsobj->Get(Nan::New<String>("init").ToLocalChecked());
         Local<Function> init = Local<Function>::Cast(vinit);
 
         //These properties will be read-only for now.
         //TODO set accessors for read/write properties
-        Local<Object> info = Object::New();
-        info->Set(conn_info_proto_major_sym, Integer::New(conn->proto_major));
-        info->Set(conn_info_proto_minor_sym, Integer::New(conn->proto_minor));
-        info->Set(conn_info_async_read_sym, Integer::New(conn->async_read));
-        info->Set(conn_info_max_write_sym, Number::New(conn->max_write));
-        info->Set(conn_info_max_readahead_sym, Number::New(conn->max_readahead));
+        Local<Object> info = Nan::New<Object>();
+        info->Set(Nan::New<String>("conn_info_proto_major").ToLocalChecked(), Nan::New<Integer>(conn.proto_major));
+        info->Set(Nan::New<String>("conn_info_proto_minor").ToLocalChecked(), Nan::New<Integer>(conn.proto_minor));
+        info->Set(Nan::New<String>("conn_info_async_read").ToLocalChecked(), Nan::New<Integer>(conn.async_read));
+        info->Set(Nan::New<String>("conn_info_max_write").ToLocalChecked(), Nan::New<Number>(conn.max_write));
+        info->Set(Nan::New<String>("conn_info_max_readahead").ToLocalChecked(), Nan::New<Number>(conn.max_readahead));
         //TODO macro to enable certain properties given the fuse version
-        //info->Set(conn_info_capable_sym, Integer::New(conn->capable));
-        //info->Set(conn_info_want_sym, Integer::New(conn->want));
+        //info->Set(conn_info_capable_sym, Nan::New<Integer>(conn.capable));
+        //info->Set(conn_info_want_sym, Nan::New<Integer>(conn.want));
 
         Local<Value> argv[1] = {info};
 
-        TryCatch try_catch;
+        Nan::TryCatch try_catch;
 
-        init->Call(fuse->fsobj, 1, argv);
+        init->Call(fsobj, 1, argv);
 
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
     }
-
     void FileSystem::Destroy(void* userdata) {
-        HandleScope scope;
-        Fuse* fuse = static_cast<Fuse *>(userdata);
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
 
-        Local<Value> vdestroy = fuse->fsobj->Get(destroy_sym);
+        op->op = _FUSE_OPS_DESTROY_;
+        op->userdata =  userdata;        
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue init");
+            return;
+        }
+        uv_async_send(&uv_async_handle);
+    }
+
+    void FileSystem::RemoteDestroy(void* userdata) {
+        Nan::HandleScope scope;;
+        Fuse* fuse = static_cast<Fuse *>(userdata);
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
+        Local<Value> vdestroy = fsobj->Get(Nan::New<String>("destroy").ToLocalChecked());
         Local<Function> destroy = Local<Function>::Cast(vdestroy);
 
-        TryCatch try_catch;
+        Nan::TryCatch try_catch;
 
-        destroy->Call(fuse->fsobj, 0, NULL);
+        destroy->Call(fsobj, 0, NULL);
 
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
     }
 
     void FileSystem::Lookup(fuse_req_t req,
                             fuse_ino_t parent,
                             const char* name) {
-        HandleScope scope;
-        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_LOOKUP_;
+        op->req = req;
+        op->ino = parent;
+        op->name = name;
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue lookup at inode %d - with child %s\n", (int) parent,name);
+            return;
+        }
+        uv_async_send(&uv_async_handle);
 
-        Local<Value> vlookup = fuse->fsobj->Get(lookup_sym);
+    }
+
+    void FileSystem::RemoteLookup(fuse_req_t req,
+                            fuse_ino_t parent,
+                            const char* name) {
+        Nan::HandleScope scope;;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
+        Local<Value> vlookup = fsobj->Get(Nan::New<String>("lookup").ToLocalChecked());
         Local<Function> lookup = Local<Function>::Cast(vlookup);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> parentInode = Number::New(parent);
-        Local<String> entryName = String::New(name);
+        Local<Number> parentInode = Nan::New<Number>(parent);
+        Local<String> entryName = Nan::New<String>(name).ToLocalChecked();
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[4] = {context, parentInode,
                                 entryName, replyObj};
-        TryCatch try_catch;
+        Nan::TryCatch try_catch;
 
-        lookup->Call(fuse->fsobj, 4, argv);
+        lookup->Call(fsobj, 4, argv);
 
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
-    }
+        //scope.Close(Undefined());
 
+    }
     void FileSystem::Forget(fuse_req_t req,
                             fuse_ino_t ino,
                             unsigned long nlookup) {
-        HandleScope scope;
-        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_FORGET_;
+        op->req = req;
+        op->ino = ino;
+        op->nlookup = nlookup;
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue forget at inode %d\n", (int)ino);
+            return;
+        }
+        uv_async_send(&uv_async_handle);
 
-        Local<Value> vforget = fuse->fsobj->Get(forget_sym);
+    }
+
+    void FileSystem::RemoteForget(fuse_req_t req,
+                            fuse_ino_t ino,
+                            unsigned long nlookup) {
+        Nan::HandleScope scope;;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
+        Local<Value> vforget = fsobj->Get(Nan::New<String>("forget").ToLocalChecked());
         Local<Function> forget = Local<Function>::Cast(vforget);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
-        Local<Integer> nlookup_ = Integer::New(nlookup);
+        Local<Number> inode = Nan::New<Number>(ino);
+        Local<Integer> nlookup_ = Nan::New<Integer>( (int) nlookup);
 
         Local<Value> argv[3] = {context, inode, nlookup_};
 
-        TryCatch try_catch;
+        Nan::TryCatch try_catch;
 
-        forget->Call(fuse->fsobj, 3, argv);
+        forget->Call(fsobj, 3, argv);
 
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
 
         fuse_reply_none(req);
+        //scope.Close(Undefined());
+
     }
 
     void FileSystem::GetAttr(fuse_req_t req,
                              fuse_ino_t ino,
                              struct fuse_file_info* fi) {
-        HandleScope scope;
-        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_GETATTR_;
+        op->req = req;
+        op->ino = ino;
+        if(fi != NULL){
+            memcpy( (void *) &(op->fi),  fi, sizeof(struct fuse_file_info));
+        }
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue getattr at inode %d\n", (int) ino);
+            return;
+        }
 
-        Local<Value> vgetattr = fuse->fsobj->Get(getattr_sym);
+        uv_async_send(&uv_async_handle);
+
+    }
+    void FileSystem::RemoteGetAttr(fuse_req_t req,
+                             fuse_ino_t ino,
+                             struct fuse_file_info fi) {
+        Nan::HandleScope scope;;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
+
+        Local<Value> vgetattr = fsobj->Get(Nan::New<String>("getattr").ToLocalChecked());
         Local<Function> getattr = Local<Function>::Cast(vgetattr);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
+        Local<Number> inode = Nan::New<Number>(ino);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[3] = {context, inode, replyObj};
 
-        TryCatch try_catch;
+        Nan::TryCatch try_catch;
 
-        getattr->Call(fuse->fsobj, 3, argv);
+        getattr->Call(fsobj, 3, argv);
 
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
+        //scope.Close(Undefined());
+
     }
 
     void FileSystem::SetAttr(fuse_req_t req,
@@ -236,56 +443,99 @@ namespace NodeFuse {
                              struct stat* attr,
                              int to_set,
                              struct fuse_file_info* fi) {
-        HandleScope scope;
-        Fuse *fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
-        Local<Value> vsetattr = fuse->fsobj->Get(setattr_sym);
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_SETATTR_;
+        op->req = req;
+        op->ino = ino;
+        memcpy( (void*) &(op->attr), attr, sizeof(struct stat) );
+        op->to_set = to_set;
+        if(fi != NULL){
+            memcpy( (void*) &(op->fi), fi, sizeof(struct fuse_file_info));
+        }
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue setattr at inode %d\n", (int) ino);
+            return;
+        }
+
+        uv_async_send(&uv_async_handle);
+
+    }
+    void FileSystem::RemoteSetAttr(fuse_req_t req,
+                             fuse_ino_t ino,
+                             struct stat attr_,
+                             int to_set,
+                             struct fuse_file_info fi) {
+
+        Nan::HandleScope scope;;
+        Fuse *fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
+
+        Local<Value> vsetattr = fsobj->Get(Nan::New<String>("setattr").ToLocalChecked());
         Local<Function> setattr = Local<Function>::Cast(vsetattr);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
+        Local<Number> inode = Nan::New<Number>(ino);
 
+        struct stat *attr = (struct stat*) malloc(sizeof(struct stat));
+        memcpy( (void*) attr, (const void *) &attr_, sizeof(struct stat));         
         Local<Object> attrs = GetAttrsToBeSet(to_set, attr)->ToObject();
+        // free(attr);
 
         Reply *reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[4] = {context, inode, attrs, replyObj};
 
-        TryCatch try_catch;
+        Nan::TryCatch try_catch;
 
-        setattr->Call(fuse->fsobj, 4, argv);
+        setattr->Call(fsobj, 4, argv);
 
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
+        //scope.Close(Undefined());
+
     }
 
     void FileSystem::ReadLink(fuse_req_t req, fuse_ino_t ino) {
-        HandleScope scope;
-        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_READLINK_;
+        op->req = req;
+        op->ino = ino;
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue setattr at inode %d\n", (int) ino);
+            return;
+        }
 
-        Local<Value> vreadlink = fuse->fsobj->Get(readlink_sym);
+        uv_async_send(&uv_async_handle);
+    }
+    void FileSystem::RemoteReadLink(fuse_req_t req, fuse_ino_t ino) {
+        Nan::HandleScope scope;;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
+
+        Local<Value> vreadlink = fsobj->Get(Nan::New<String>("readlink").ToLocalChecked());
         Local<Function> readlink = Local<Function>::Cast(vreadlink);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
+        Local<Number> inode = Nan::New<Number>(ino);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = Nan::NewInstance(Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[3] = {context, inode, replyObj};
 
-        TryCatch try_catch;
+        Nan::TryCatch try_catch;
 
-        readlink->Call(fuse->fsobj, 3, argv);
+        readlink->Call(fsobj, 3, argv);
 
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
     }
 
@@ -294,298 +544,495 @@ namespace NodeFuse {
                            const char* name,
                            mode_t mode,
                            dev_t rdev) {
-        HandleScope scope;
-        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_MKNOD_;
+        op->req = req;
+        op->ino= parent;
+        op->name = name;
+        op->mode = mode;
+        op->dev = rdev;
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue mknod with parent %d and child %s\n", (int) parent, name);
+            return;
+        }
 
-        Local<Value> vmknod = fuse->fsobj->Get(mknod_sym);
+        uv_async_send(&uv_async_handle);
+
+
+
+    }
+    void FileSystem::RemoteMkNod(fuse_req_t req,
+                           fuse_ino_t parent,
+                           const char* name,
+                           mode_t mode,
+                           dev_t rdev) {
+
+        Nan::HandleScope scope;;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
+
+        Local<Value> vmknod = fsobj->Get(Nan::New<String>("mknod").ToLocalChecked());
         Local<Function> mknod = Local<Function>::Cast(vmknod);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> parentInode = Number::New(parent);
+        Local<Number> parentInode = Nan::New<Number>(parent);
 
-        Local<String> name_ = String::New(name);
-        Local<Integer> mode_ = Integer::New(mode);
-        Local<Integer> rdev_ = Integer::New(rdev);
+        Local<String> name_ = Nan::New<String>(name).ToLocalChecked();
+        Local<Integer> mode_ = Nan::New<Integer>(mode);
+        Local<Integer> rdev_ = Nan::New<Integer>((uint32_t)rdev);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[6] = {context, parentInode,
                                 name_, mode_,
                                 rdev_, replyObj};
 
-        TryCatch try_catch;
+        Nan::TryCatch try_catch;
 
-        mknod->Call(fuse->fsobj, 6, argv);
+        mknod->Call(fsobj, 6, argv);
 
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
+        //scope.Close(Undefined());
+
     }
 
     void FileSystem::MkDir(fuse_req_t req,
                            fuse_ino_t parent,
                            const char* name,
                            mode_t mode) {
-        HandleScope scope;
-        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
-        Local<Value> vmkdir = fuse->fsobj->Get(mkdir_sym);
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_MKDIR_;
+        op->req = req;
+        op->ino = parent;
+        op->name = name;
+        op->mode = mode;
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue mkdir with parent %d and name %s\n", (int) parent, name);
+            return;
+        }
+
+        uv_async_send(&uv_async_handle);
+
+    }
+    void FileSystem::RemoteMkDir(fuse_req_t req,
+                           fuse_ino_t parent,
+                           const char* name,
+                           mode_t mode) {
+
+        Nan::HandleScope scope;;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
+
+        Local<Value> vmkdir = fsobj->Get(Nan::New<String>("mkdir").ToLocalChecked());
         Local<Function> mkdir = Local<Function>::Cast(vmkdir);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> parentInode = Number::New(parent);
+        Local<Number> parentInode = Nan::New<Number>(parent);
 
-        Local<String> name_ = String::New(name);
-        Local<Integer> mode_ = Integer::New(mode);
+        Local<String> name_ = Nan::New<String>(name).ToLocalChecked();
+        Local<Integer> mode_ = Nan::New<Integer>(mode);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[5] = {context, parentInode,
                                 name_, mode_, replyObj};
 
-        TryCatch try_catch;
+        Nan::TryCatch try_catch;
 
-        mkdir->Call(fuse->fsobj, 5, argv);
+        mkdir->Call(fsobj, 5, argv);
 
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
+        //scope.Close(Undefined());
+
     }
 
     void FileSystem::Unlink(fuse_req_t req,
                             fuse_ino_t parent,
                             const char* name) {
-        HandleScope scope;
-        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
-        Local<Value> vunlink = fuse->fsobj->Get(unlink_sym);
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_UNLINK_;
+        op->req = req;
+        op->ino = parent;
+        op->name = name;
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to unlink %s from parent %d \n",  name, (int) parent);
+            return;
+        }
+
+        uv_async_send(&uv_async_handle);
+
+    }
+    void FileSystem::RemoteUnlink(fuse_req_t req,
+                            fuse_ino_t parent,
+                            const char* name) {
+
+        Nan::HandleScope scope;;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
+
+        Local<Value> vunlink = fsobj->Get(Nan::New<String>("unlink").ToLocalChecked());
         Local<Function> unlink = Local<Function>::Cast(vunlink);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> parentInode = Number::New(parent);
-        Local<String> name_ = String::New(name);
+        Local<Number> parentInode = Nan::New<Number>(parent);
+        Local<String> name_ = Nan::New<String>(name).ToLocalChecked();
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[4] = {context, parentInode, name_, replyObj};
 
-        TryCatch try_catch;
+        Nan::TryCatch try_catch;
 
-        unlink->Call(fuse->fsobj, 4, argv);
+        unlink->Call(fsobj, 4, argv);
 
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
+        //scope.Close(Undefined());
+
     }
 
     void FileSystem::RmDir(fuse_req_t req,
                            fuse_ino_t parent,
                            const char* name) {
-        HandleScope scope;
-        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_RMDIR_;
+        op->req = req;
+        op->ino = parent;
+        op->name = name;
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to unlink folder %s from parent %d \n",  name, (int) parent);
+            return;
+        }
 
-        Local<Value> vrmdir = fuse->fsobj->Get(rmdir_sym);
+        uv_async_send(&uv_async_handle);
+
+    }
+    void FileSystem::RemoteRmDir(fuse_req_t req,
+                           fuse_ino_t parent,
+                           const char* name) {
+
+        Nan::HandleScope scope;;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
+
+        Local<Value> vrmdir = fsobj->Get(Nan::New<String>("rmdir").ToLocalChecked());
         Local<Function> rmdir = Local<Function>::Cast(vrmdir);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> parentInode = Number::New(parent);
-        Local<String> name_ = String::New(name);
+        Local<Number> parentInode = Nan::New<Number>(parent);
+        Local<String> name_ = Nan::New<String>(name).ToLocalChecked();
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[4] = {context, parentInode, name_, replyObj};
 
-        TryCatch try_catch;
+        Nan::TryCatch try_catch;
 
-        rmdir->Call(fuse->fsobj, 4, argv);
+        rmdir->Call(fsobj, 4, argv);
 
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
+        //scope.Close(Undefined());
     }
 
     void FileSystem::SymLink(fuse_req_t req,
                              const char* link,
                              fuse_ino_t parent,
                              const char* name) {
-        HandleScope scope;
-        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_SYMLINK_;
+        op->name = link;
+        op->ino = parent;
+        op->newname = name;
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to symlink from %s to %s with parent inode %d \n",  name, link, (int) parent);
+            return;
+        }
 
-        Local<Value> vsymlink = fuse->fsobj->Get(symlink_sym);
+        uv_async_send(&uv_async_handle);
+
+    }
+
+    void FileSystem::RemoteSymLink(fuse_req_t req,
+                             const char* link,
+                             fuse_ino_t parent,
+                             const char* name) {
+        Nan::HandleScope scope;;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
+
+        Local<Value> vsymlink = fsobj->Get(Nan::New<String>("symlink").ToLocalChecked());
         Local<Function> symlink = Local<Function>::Cast(vsymlink);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> parentInode = Number::New(parent);
-        Local<String> name_ = String::New(name);
-        Local<String> link_ = String::New(link);
+        Local<Number> parentInode = Nan::New<Number>(parent);
+        Local<String> name_ = Nan::New<String>(name).ToLocalChecked();
+        Local<String> link_ = Nan::New<String>(link).ToLocalChecked();
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[5] = {context, parentInode,
                                 link_, name_, replyObj};
 
-        TryCatch try_catch;
+        Nan::TryCatch try_catch;
 
-        symlink->Call(fuse->fsobj, 5, argv);
+        symlink->Call(fsobj, 5, argv);
 
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
     }
-
     void FileSystem::Rename(fuse_req_t req,
+                                fuse_ino_t parent,
+                                const char *name,
+                                fuse_ino_t newparent,
+                                const char *newname){
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_RENAME_;
+        op->req = req;
+        op->ino = parent;
+        op->newino = newparent;
+        op->name = name;
+        op->newname = newname;
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to rename file %s from parent %d \n",  name, (int) parent);
+            return;
+        }
+
+        uv_async_send(&uv_async_handle);
+
+    }
+
+    void FileSystem::RemoteRename(fuse_req_t req,
                             fuse_ino_t parent,
                             const char *name,
                             fuse_ino_t newparent,
                             const char *newname) {
-        HandleScope scope;
+        Nan::HandleScope scope;
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vrename = fuse->fsobj->Get(rename_sym);
+        Local<Value> vrename = fsobj->Get(Nan::New<String>("rename").ToLocalChecked());
         Local<Function> rename = Local<Function>::Cast(vrename);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> parentInode = Number::New(parent);
-        Local<String> name_ = String::New(name);
-        Local<Number> newParentInode = Number::New(newparent);
-        Local<String> newName = String::New(newname);
+        Local<Number> parentInode = Nan::New<Number>(parent);
+        Local<String> name_ = Nan::New<String>(name).ToLocalChecked();
+        Local<Number> newParentInode = Nan::New<Number>(newparent);
+        Local<String> newName = Nan::New<String>(newname).ToLocalChecked();
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[6] = {context, parentInode,
                                 name_, newParentInode,
                                 newName, replyObj};
 
-        TryCatch try_catch;
+        Nan::TryCatch try_catch;
 
-        rename->Call(fuse->fsobj, 6, argv);
+        rename->Call(fsobj, 6, argv);
 
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
     }
-
     void FileSystem::Link(fuse_req_t req,
                           fuse_ino_t ino,
                           fuse_ino_t newparent,
-                          const char* newname) {
-        HandleScope scope;
-        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+                          const char* newname) 
+    {
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_LINK_;
+        op->req = req;
+        op->ino = ino;
+        op->newino = newparent;
+        op->name = newname;
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to link inode %d to new parent parent %d with newname %s\n",  (int) ino, (int) newparent, newname);
+            return;
+        }
 
-        Local<Value> vlink = fuse->fsobj->Get(link_sym);
+        uv_async_send(&uv_async_handle);
+    }
+
+    void FileSystem::RemoteLink(fuse_req_t req,
+                          fuse_ino_t ino,
+                          fuse_ino_t newparent,
+                          const char* newname) {
+        Nan::HandleScope scope;;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
+
+        Local<Value> vlink = fsobj->Get(Nan::New<String>("link").ToLocalChecked());
         Local<Function> link = Local<Function>::Cast(vlink);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
-        Local<Number> newParent = Number::New(newparent);
-        Local<String> newName = String::New(newname);
+        Local<Number> inode = Nan::New<Number>(ino);
+        Local<Number> newParent = Nan::New<Number>(newparent);
+        Local<String> newName = Nan::New<String>(newname).ToLocalChecked();
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[5] = {context, inode,
                                 newParent, newName, replyObj};
 
-        TryCatch try_catch;
+        Nan::TryCatch try_catch;
 
-        link->Call(fuse->fsobj, 5, argv);
+        link->Call(fsobj, 5, argv);
 
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
     }
 
     void FileSystem::Open(fuse_req_t req,
                           fuse_ino_t ino,
                           struct fuse_file_info* fi) {
-        HandleScope scope;
-        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_OPEN_;
+        op->req = req;
+        op->ino = ino;
+        if(fi != NULL){
+            memcpy( (void*) &(op->fi), fi, sizeof(struct fuse_file_info));
+        }
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue open at inode %d\n", (int) ino);
+            return;
+        }
+        uv_async_send(&uv_async_handle);
 
-        Local<Value> vopen = fuse->fsobj->Get(open_sym);
+    }
+    void FileSystem::RemoteOpen(fuse_req_t req,
+                          fuse_ino_t ino,
+                          struct fuse_file_info fi) {
+
+        Nan::HandleScope scope;;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
+
+        Local<Value> vopen = fsobj->Get(Nan::New<String>("open").ToLocalChecked());
         Local<Function> open = Local<Function>::Cast(vopen);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
+        Local<Number> inode = Nan::New<Number>(ino);
 
         FileInfo* info = new FileInfo();
-        info->fi = fi;
-        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        info->fi = (struct fuse_file_info* ) malloc(sizeof(struct fuse_file_info));
+        memcpy( info->fi, &fi, sizeof(struct fuse_file_info));
+        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[4] = {context, inode,
                                 infoObj, replyObj};
 
-        TryCatch try_catch;
+        Nan::TryCatch try_catch;
 
-        open->Call(fuse->fsobj, 4, argv);
+        open->Call(fsobj, 4, argv);
 
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
+        //scope.Close(Undefined());
+
     }
 
     void FileSystem::Read(fuse_req_t req,
                           fuse_ino_t ino,
-                          size_t size_,
+                          size_t size,
                           off_t off,
                           struct fuse_file_info* fi) {
-        HandleScope scope;
-        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_READ_;
+        op->req = req;
+        op->ino = ino;
+        op->off = off;
+        op->size = size;
+        if(fi != NULL){
+            memcpy( (void*) &(op->fi), fi, sizeof(struct fuse_file_info));
+        }
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue read at inode %d\n", (int) ino);
+            return;
+        }
+        uv_async_send(&uv_async_handle);
 
-        Local<Value> vread = fuse->fsobj->Get(read_sym);
+
+    }
+    void FileSystem::RemoteRead(fuse_req_t req,
+                          fuse_ino_t ino,
+                          size_t size_,
+                          off_t off,
+                          struct fuse_file_info fi) {
+
+        Nan::HandleScope scope;;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
+
+        Local<Value> vread = fsobj->Get(Nan::New<String>("read").ToLocalChecked());
         Local<Function> read = Local<Function>::Cast(vread);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
-        Local<Integer> size = Integer::New(size_);
-        Local<Integer> offset = Integer::New(off);
+        Local<Number> inode = Nan::New<Number>(ino);
+        Local<Number> size = Nan::New<Number>(size_);
+        Local<Number> offset = Nan::New<Number>(off);
 
         FileInfo* info = new FileInfo();
-        info->fi = fi;
-        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
+        memcpy( (void*) info->fi , &fi, sizeof(struct fuse_file_info));
+        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[6] = {context, inode,
                                 size, offset,
                                 infoObj, replyObj};
 
-        TryCatch try_catch;
+        Nan::TryCatch try_catch;
 
-        read->Call(fuse->fsobj, 6, argv);
+        read->Call(fsobj, 6, argv);
 
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
+        //scope.Close(Undefined());
+
     }
 
     void FileSystem::Write(fuse_req_t req,
@@ -594,177 +1041,295 @@ namespace NodeFuse {
                            size_t size,
                            off_t off,
                            struct fuse_file_info* fi) {
-        HandleScope scope;
-        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_WRITE_;
+        op->req = req;
+        op->ino = ino;
+        op->off = off;
+        op->size = size;
+        op->name = (char *)malloc(size);
+        memcpy((void *)op->name, buf, size);
 
-        Local<Value> vwrite = fuse->fsobj->Get(write_sym);
+        if(fi != NULL){
+            memcpy( (void*) &(op->fi), fi, sizeof(struct fuse_file_info));
+        }
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue write at inode %d\n", (int) ino);
+            return;
+        }
+        uv_async_send(&uv_async_handle);
+
+
+    }
+    void FileSystem::RemoteWrite(fuse_req_t req,
+                           fuse_ino_t ino,
+                           const char *buf,
+                           size_t size,
+                           off_t off,
+                           struct fuse_file_info fi){
+        Nan::HandleScope scope;;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
+
+        Local<Value> vwrite = fsobj->Get(Nan::New<String>("write").ToLocalChecked());
         Local<Function> write = Local<Function>::Cast(vwrite);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
-        Local<Integer> offset = Integer::New(off);
+        Local<Number> inode = Nan::New<Number>(ino);
+        Local<Number> offset = Nan::New<Number>(off);
 
-        Buffer* buffer = Buffer::New((char*) buf, size);
+        Local<Object> buffer = Nan::NewBuffer((char*) buf, size).ToLocalChecked();
 
         FileInfo* info = new FileInfo();
-        info->fi = fi;
-        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        
+        info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
+        memcpy( (void*) info->fi , &fi, sizeof(struct fuse_file_info));
+        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[6] = {context, inode,
-                                Local<Object>::New(buffer->handle_), offset,
+                                // Nan::New<Object>(buffer->handle_), offset,
+                                buffer, offset,
                                 infoObj, replyObj};
 
-        TryCatch try_catch;
-        //fprintf(stderr, "AAHHHHHHHHHHHHHHHH %d\n", ino);
-        write->Call(fuse->fsobj, 6, argv);
+        Nan::TryCatch try_catch;
+        write->Call(fsobj, 6, argv);
 
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
+        //scope.Close(Undefined());
+
     }
 
     void FileSystem::Flush(fuse_req_t req,
                            fuse_ino_t ino,
                            struct fuse_file_info* fi) {
-        HandleScope scope;
-        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_FLUSH_;
+        op->req = req;
+        op->ino = ino;
+        if(fi != NULL){
+            memcpy( (void*) &(op->fi), fi, sizeof(struct fuse_file_info));
+        }
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue write at inode %d\n", (int) ino);
+            return;
+        }
+        uv_async_send(&uv_async_handle);
 
-        Local<Value> vflush = fuse->fsobj->Get(flush_sym);
+    }
+    void FileSystem::RemoteFlush(fuse_req_t req,
+                           fuse_ino_t ino,
+                           struct fuse_file_info fi) {
+
+        Nan::HandleScope scope;;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
+
+        Local<Value> vflush = fsobj->Get(Nan::New<String>("flush").ToLocalChecked());
         Local<Function> flush = Local<Function>::Cast(vflush);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
+        Local<Number> inode = Nan::New<Number>(ino);
 
         FileInfo* info = new FileInfo();
-        info->fi = fi;
-        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
+        memcpy( (void*) info->fi , &fi, sizeof(struct fuse_file_info));
+        
+        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[4] = {context, inode,
                                 infoObj, replyObj};
 
-        TryCatch try_catch;
+        Nan::TryCatch try_catch;
 
-        flush->Call(fuse->fsobj, 4, argv);
+        flush->Call(fsobj, 4, argv);
 
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
     }
 
     void FileSystem::Release(fuse_req_t req,
                              fuse_ino_t ino,
                              struct fuse_file_info* fi) {
-        HandleScope scope;
-        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
-        Local<Value> vrelease = fuse->fsobj->Get(release_sym);
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_RELEASE_;
+        op->req = req;
+        op->ino = ino;
+        if(fi != NULL){
+            memcpy( (void*) &(op->fi), fi, sizeof(struct fuse_file_info));
+        }
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to release inode %d\n", (int) ino);
+            return;
+        }
+        uv_async_send(&uv_async_handle);
+
+    }
+    void FileSystem::RemoteRelease(fuse_req_t req,
+                             fuse_ino_t ino,
+                             struct fuse_file_info fi) {
+
+        Nan::HandleScope scope;;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
+
+        Local<Value> vrelease = fsobj->Get(Nan::New<String>("release").ToLocalChecked());
         Local<Function> release = Local<Function>::Cast(vrelease);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
+        Local<Number> inode = Nan::New<Number>(ino);
 
         FileInfo* info = new FileInfo();
-        info->fi = fi;
-        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
+        memcpy( (void*) info->fi , &fi, sizeof(struct fuse_file_info));
+        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[4] = {context, inode,
                                 infoObj, replyObj};
 
-        TryCatch try_catch;
+        Nan::TryCatch try_catch;
 
-        release->Call(fuse->fsobj, 4, argv);
+        release->Call(fsobj, 4, argv);
 
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
+        //scope.Close(Undefined());
     }
-
     void FileSystem::FSync(fuse_req_t req,
                            fuse_ino_t ino,
                            int datasync_,
                            struct fuse_file_info* fi) {
-        HandleScope scope;
-        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_FSYNC_;
+        op->req = req;
+        op->ino = ino;
+        op->to_set = datasync_;
+        if(fi != NULL){
+            memcpy( (void*) &(op->fi), fi, sizeof(struct fuse_file_info));
+        }
 
-        Local<Value> vfsync = fuse->fsobj->Get(fsync_sym);
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to fsync file %d\n",  (int) ino);
+            return;
+        }
+
+        uv_async_send(&uv_async_handle);
+
+    }
+
+    void FileSystem::RemoteFSync(fuse_req_t req,
+                           fuse_ino_t ino,
+                           int datasync_,
+                           struct fuse_file_info fi) {
+        Nan::HandleScope scope;;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
+
+        Local<Value> vfsync = fsobj->Get(Nan::New<String>("fsync").ToLocalChecked());
         Local<Function> fsync = Local<Function>::Cast(vfsync);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
+        Local<Number> inode = Nan::New<Number>(ino);
         bool datasync = datasync_ == 0 ? false : true;
 
         FileInfo* info = new FileInfo();
-        info->fi = fi;
-        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
+        memcpy( (void*) info->fi , &fi, sizeof(struct fuse_file_info));
+
+        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[5] = {context, inode,
-                                Boolean::New(datasync)->ToObject(),
+                                Nan::New<Boolean>(datasync)->ToObject(),
                                 infoObj, replyObj};
 
-        TryCatch try_catch;
+        Nan::TryCatch try_catch;
 
-        fsync->Call(fuse->fsobj, 5, argv);
+        fsync->Call(fsobj, 5, argv);
 
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
     }
-
     void FileSystem::OpenDir(fuse_req_t req,
                              fuse_ino_t ino,
                              struct fuse_file_info* fi) {
-        HandleScope scope;
-        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_OPENDIR_;
+        op->req = req;
+        op->ino = ino;
+        if(fi != NULL){
+            memcpy( (void*) &(op->fi), fi, sizeof(struct fuse_file_info));
+        }
 
-        Local<Value> vopendir = fuse->fsobj->Get(opendir_sym);
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to opendir with inode %d \n",  (int)ino);
+            return;
+        }
+
+        uv_async_send(&uv_async_handle);
+    }
+
+    void FileSystem::RemoteOpenDir(fuse_req_t req,
+                             fuse_ino_t ino,
+                             struct fuse_file_info fi) {
+        Nan::HandleScope scope;;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
+
+        Local<Value> vopendir = fsobj->Get(Nan::New<String>("opendir").ToLocalChecked());
         Local<Function> opendir = Local<Function>::Cast(vopendir);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
+        Local<Number> inode = Nan::New<Number>(ino);
 
         FileInfo* info = new FileInfo();
-        info->fi = fi;
-        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
+        memcpy( (void*) info->fi , &fi, sizeof(struct fuse_file_info));
+        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[4] = {context, inode,
                                 infoObj, replyObj};
 
-        TryCatch try_catch;
+        Nan::TryCatch try_catch;
 
-        opendir->Call(fuse->fsobj, 4, argv);
+        opendir->Call(fsobj, 4, argv);
 
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
     }
 
@@ -773,71 +1338,119 @@ namespace NodeFuse {
                              size_t size_,
                              off_t off,
                              struct fuse_file_info* fi) {
-        HandleScope scope;
-        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
-        Local<Value> vreaddir = fuse->fsobj->Get(readdir_sym);
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_READDIR_;
+        op->req = req;
+        op->ino = ino;
+        op->size = size_;
+        op->off = off;
+        if(fi != NULL){
+            memcpy( (void*) &(op->fi), fi, sizeof(struct fuse_file_info));
+        }
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue readdir at inode %d\n", (uint8_t) ino);
+            return;
+        }
+        uv_async_send(&uv_async_handle);
+    }
+    void FileSystem::RemoteReadDir(fuse_req_t req,
+                             fuse_ino_t ino,
+                             size_t size_,
+                             off_t off,
+                             struct fuse_file_info fi) {
+
+        Nan::HandleScope scope;;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
+
+        Local<Value> vreaddir = fsobj->Get(Nan::New<String>("readdir").ToLocalChecked());
         Local<Function> readdir = Local<Function>::Cast(vreaddir);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
-        Local<Integer> size = Integer::New(size_);
-        Local<Integer> offset = Integer::New(off);
+        Local<Number> inode = Nan::New<Number>(ino);
+        Local<Integer> size = Nan::New<Integer>((int)size_);
+        Local<Integer> offset = Nan::New<Integer>((int) off);
 
         FileInfo* info = new FileInfo();
-        info->fi = fi;
-        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
+        memcpy( (void*) info->fi , &fi, sizeof(struct fuse_file_info));
+        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[6] = {context, inode,
                                 size, offset,
                                 infoObj, replyObj};
 
-        TryCatch try_catch;
+        Nan::TryCatch try_catch;
 
-        readdir->Call(fuse->fsobj, 6, argv);
+        readdir->Call(fsobj, 6, argv);
 
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
+        //scope.Close(Undefined());
+
     }
 
     void FileSystem::ReleaseDir(fuse_req_t req,
                                 fuse_ino_t ino,
                                 struct fuse_file_info* fi) {
-        HandleScope scope;
-        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_RELEASEDIR_;
+        op->req = req;
+        op->ino = ino;
+        if(fi != NULL){
+            memcpy( (void*) &(op->fi), fi, sizeof(struct fuse_file_info));
+        }
 
-        Local<Value> vreleasedir = fuse->fsobj->Get(releasedir_sym);
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to releasedir with inode %d \n",  (int)ino);
+            return;
+        }
+
+        uv_async_send(&uv_async_handle);
+
+    }
+    void FileSystem::RemoteReleaseDir(fuse_req_t req,
+                                fuse_ino_t ino,
+                                struct fuse_file_info fi) {
+
+        Nan::HandleScope scope;;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
+
+        Local<Value> vreleasedir = fsobj->Get(Nan::New<String>("releasedir").ToLocalChecked());
         Local<Function> releasedir = Local<Function>::Cast(vreleasedir);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
+        Local<Number> inode = Nan::New<Number>(ino);
 
         FileInfo* info = new FileInfo();
-        info->fi = fi;
-        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
+        memcpy( (void*) info->fi , &fi, sizeof(struct fuse_file_info));
+        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//;
         info->Wrap(infoObj);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[4] = {context, inode,
                                 infoObj, replyObj};
 
-        TryCatch try_catch;
+        Nan::TryCatch try_catch;
 
-        releasedir->Call(fuse->fsobj, 4, argv);
+        releasedir->Call(fsobj, 4, argv);
 
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
     }
 
@@ -845,66 +1458,133 @@ namespace NodeFuse {
                               fuse_ino_t ino,
                               int datasync_,
                               struct fuse_file_info* fi) {
-        HandleScope scope;
-        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_FSYNCDIR_;
+        op->req = req;
+        op->ino = ino;
+        op->to_set = datasync_;
+        if(fi != NULL){
+            memcpy( (void*) &(op->fi), fi, sizeof(struct fuse_file_info));
+        }
 
-        Local<Value> vfsyncdir = fuse->fsobj->Get(fsyncdir_sym);
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to fsync dir %d\n",  (int) ino);
+            return;
+        }
+
+        uv_async_send(&uv_async_handle);
+    }
+    void FileSystem::RemoteFSyncDir(fuse_req_t req,
+                              fuse_ino_t ino,
+                              int datasync_,
+                              struct fuse_file_info fi) {
+
+        Nan::HandleScope scope;;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
+
+        Local<Value> vfsyncdir = fsobj->Get(Nan::New<String>("fsyncdir").ToLocalChecked());
         Local<Function> fsyncdir = Local<Function>::Cast(vfsyncdir);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
+        Local<Number> inode = Nan::New<Number>(ino);
         bool datasync = datasync_ == 0 ? false : true;
 
         FileInfo* info = new FileInfo();
-        info->fi = fi;
-        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
+        memcpy( (void*) info->fi , &fi, sizeof(struct fuse_file_info));
+        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[5] = {context, inode,
-                                Boolean::New(datasync)->ToObject(),
+                                Nan::New<Boolean>(datasync)->ToObject(),
                                 infoObj, replyObj};
 
-        TryCatch try_catch;
+        Nan::TryCatch try_catch;
 
-        fsyncdir->Call(fuse->fsobj, 5, argv);
+        fsyncdir->Call(fsobj, 5, argv);
 
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
     }
 
     void FileSystem::StatFs(fuse_req_t req, fuse_ino_t ino) {
-        HandleScope scope;
-        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_STATFS_;
+        op->req = req;
+        op->ino = ino;
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to statfs inode %d\n", (int) ino);
+            return;
+        }
+        uv_async_send(&uv_async_handle);
 
-        Local<Value> vstatfs = fuse->fsobj->Get(statfs_sym);
+    }
+    void FileSystem::RemoteStatFs(fuse_req_t req, fuse_ino_t ino) {
+
+        Nan::HandleScope scope;;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
+
+        Local<Value> vstatfs = fsobj->Get(Nan::New<String>("statfs").ToLocalChecked());
         Local<Function> statfs = Local<Function>::Cast(vstatfs);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
+        Local<Number> inode = Nan::New<Number>(ino);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[3] = {context, inode, replyObj};
 
-        TryCatch try_catch;
+        Nan::TryCatch try_catch;
 
-        statfs->Call(fuse->fsobj, 3, argv);
+        statfs->Call(fsobj, 3, argv);
 
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
     }
 
     void FileSystem::SetXAttr(fuse_req_t req,
+                                  fuse_ino_t ino,
+                                  const char* name_,
+                                  const char* value_,
+                                  size_t size_,
+                #ifdef __APPLE__
+                                  int flags_,
+                                  uint32_t position_) {
+                #else
+                                  int flags_) {
+                #endif
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_SETXATTR_;
+        op->req = req;
+        op->name = name_;
+        op->newname = value_;
+        op->size = size_;
+        op->to_set = flags_;
+        #ifdef __APPLE__
+        op->position = position_;
+        #endif
+
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to setxattr file %s from parent %d \n",  name_, (int) ino);
+            return;
+        }
+
+        uv_async_send(&uv_async_handle);
+
+    }
+    void FileSystem::RemoteSetXAttr(fuse_req_t req,
                               fuse_ino_t ino,
                               const char* name_,
                               const char* value_,
@@ -915,27 +1595,28 @@ namespace NodeFuse {
 #else
                               int flags_) {
 #endif
-        HandleScope scope;
+        Nan::HandleScope scope;;
         Fuse *fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vsetxattr = fuse->fsobj->Get(setxattr_sym);
+        Local<Value> vsetxattr = fsobj->Get(Nan::New<String>("setxattr").ToLocalChecked());
         Local<Function> setxattr = Local<Function>::Cast(vsetxattr);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
-        Local<String> name = String::New(name_);
-        Local<String> value = String::New(value_);
+        Local<Number> inode = Nan::New<Number>(ino);
+        Local<String> name = Nan::New<String>(name_).ToLocalChecked();
+        Local<String> value = Nan::New<String>(value_).ToLocalChecked();
 #ifdef __APPLE__
-        Local<Integer> position = Integer::New(position_);
+        Local<Integer> position = Nan::New<Integer>(position_);
 #endif
-        Local<Number> size = Number::New(size_);
+        Local<Number> size = Nan::New<Number>(size_);
 
         //TODO change for an object with accessors
-        Local<Integer> flags = Integer::New(flags_);
+        Local<Integer> flags = Nan::New<Integer>(flags_);
 
         Reply *reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
 #ifdef __APPLE__
@@ -949,16 +1630,16 @@ namespace NodeFuse {
                                 size, flags, replyObj};
 
 #endif
-        TryCatch try_catch;
+        Nan::TryCatch try_catch;
 
 #ifdef __APPLE__
-        setxattr->Call(fuse->fsobj, 8, argv);
+        setxattr->Call(fsobj, 8, argv);
 #else
-        setxattr->Call(fuse->fsobj, 7, argv);
+        setxattr->Call(fsobj, 7, argv);
 #endif
 
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
     }
 
@@ -966,29 +1647,58 @@ namespace NodeFuse {
                               fuse_ino_t ino,
                               const char* name_,
                               size_t size_
-#ifdef __APPLE__
+            #ifdef __APPLE__
                               ,uint32_t position_) {
-#else
+            #else
                               ) {
-#endif
-        HandleScope scope;
-        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+            #endif
+    struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+    op->op = _FUSE_OPS_GETXATTR_;
+    op->req = req;
+    op->ino = ino;
+    op->name = name_;
+    op->size = size_;
+    #ifdef __APPLE__
+    op->position = position_;
+    #endif
 
-        Local<Value> vgetxattr = fuse->fsobj->Get(getxattr_sym);
+    if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+        printf("ckring was full while trying to getxattr for inode %d\n",  (int) ino);
+        return;
+    }
+
+    uv_async_send(&uv_async_handle);
+
+    }
+    void FileSystem::RemoteGetXAttr(fuse_req_t req,
+                              fuse_ino_t ino,
+                              const char* name_,
+                              size_t size_
+            #ifdef __APPLE__
+                              ,uint32_t position_) {
+            #else
+                              ) {
+            #endif
+
+        Nan::HandleScope scope;;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
+
+        Local<Value> vgetxattr = fsobj->Get(Nan::New<String>("getxattr").ToLocalChecked());
         Local<Function> getxattr = Local<Function>::Cast(vgetxattr);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
-        Local<String> name = String::New(name_);
-        Local<Number> size = Number::New(size_);
+        Local<Number> inode = Nan::New<Number>(ino);
+        Local<String> name = Nan::New<String>(name_).ToLocalChecked();
+        Local<Number> size = Nan::New<Number>(size_);
 #ifdef __APPLE__
-        Local<Integer> position = Integer::New(position_);
+        Local<Integer> position = Nan::New<Integer>(position_);
 #endif
 
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
 #ifdef __APPLE__
@@ -1000,103 +1710,154 @@ namespace NodeFuse {
                                 name, size, replyObj};
 #endif
 
-        TryCatch try_catch;
+        Nan::TryCatch try_catch;
 
 #ifdef __APPLE__
-        getxattr->Call(fuse->fsobj, 6, argv);
+        getxattr->Call(fsobj, 6, argv);
 #else
-        getxattr->Call(fuse->fsobj, 5, argv);
+        getxattr->Call(fsobj, 5, argv);
 #endif
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
     }
 
     void FileSystem::ListXAttr(fuse_req_t req,
                                fuse_ino_t ino,
                                size_t size_) {
-        HandleScope scope;
-        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
 
-        Local<Value> vlistxattr = fuse->fsobj->Get(listxattr_sym);
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_LISTXATTR_;
+        op->req = req;
+        op->ino = ino;
+        op->size = size_;
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue write at inode %d\n", (int) ino);
+            return;
+        }
+        uv_async_send(&uv_async_handle);
+
+    }
+
+    void FileSystem::RemoteListXAttr(fuse_req_t req,
+                               fuse_ino_t ino,
+                               size_t size_) {
+        Nan::HandleScope scope;;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
+
+        Local<Value> vlistxattr = fsobj->Get(Nan::New<String>("listxattr").ToLocalChecked());
         Local<Function> listxattr = Local<Function>::Cast(vlistxattr);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
-        Local<Number> size = Number::New(size_);
+        Local<Number> inode = Nan::New<Number>(ino);
+        Local<Number> size = Nan::New<Number>(size_);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[4] = {context, inode,
                                 size, replyObj};
-        TryCatch try_catch;
+        Nan::TryCatch try_catch;
 
-        listxattr->Call(fuse->fsobj, 4, argv);
+        listxattr->Call(fsobj, 4, argv);
 
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
     }
-
     void FileSystem::RemoveXAttr(fuse_req_t req,
                                  fuse_ino_t ino,
                                  const char* name_) {
-        HandleScope scope;
-        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_REMOVEXATTR_;
+        op->req = req;
+        op->ino = ino;
+        op->name = name_;
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue write at inode %d\n", (int) ino);
+            return;
+        }
+        uv_async_send(&uv_async_handle);
+    }
 
-        Local<Value> vremovexattr = fuse->fsobj->Get(removexattr_sym);
+    void FileSystem::RemoteRemoveXAttr(fuse_req_t req,
+                                 fuse_ino_t ino,
+                                 const char* name_) {
+        Nan::HandleScope scope;;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
+
+        Local<Value> vremovexattr = fsobj->Get(Nan::New<String>("removexattr").ToLocalChecked());
         Local<Function> removexattr = Local<Function>::Cast(vremovexattr);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
-        Local<String> name = String::New(name_);
+        Local<Number> inode = Nan::New<Number>(ino);
+        Local<String> name = Nan::New<String>(name_).ToLocalChecked();
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[4] = {context, inode,
                                 name, replyObj};
-        TryCatch try_catch;
+        Nan::TryCatch try_catch;
 
-        removexattr->Call(fuse->fsobj, 4, argv);
+        removexattr->Call(fsobj, 4, argv);
 
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
     }
-
     void FileSystem::Access(fuse_req_t req,
                             fuse_ino_t ino,
                             int mask_) {
-        HandleScope scope;
-        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_ACCESS_;
+        op->req = req;
+        op->ino = ino;
+        op->to_set = mask_;
 
-        Local<Value> vaccess = fuse->fsobj->Get(access_sym);
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to access %d\n", (int) ino);
+            return;
+        }
+
+        uv_async_send(&uv_async_handle);
+
+    }
+
+    void FileSystem::RemoteAccess(fuse_req_t req,
+                            fuse_ino_t ino,
+                            int mask_) {
+        Nan::HandleScope scope;;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
+
+        Local<Value> vaccess = fsobj->Get(Nan::New<String>("access").ToLocalChecked());
         Local<Function> access = Local<Function>::Cast(vaccess);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
-        Local<Integer> mask = Integer::New(mask_);
+        Local<Number> inode = Nan::New<Number>(ino);
+        Local<Integer> mask = Nan::New<Integer>(mask_);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[4] = {context, inode,
                                 mask, replyObj};
 
-        TryCatch try_catch;
+        Nan::TryCatch try_catch;
 
-        access->Call(fuse->fsobj, 4, argv);
+        access->Call(fsobj, 4, argv);
 
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
     }
 
@@ -1105,74 +1866,101 @@ namespace NodeFuse {
                             const char* name,
                             mode_t mode,
                             struct fuse_file_info* fi) {
-        HandleScope scope;
-        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+        op->op = _FUSE_OPS_CREATE_;
+        op->req = req;
+        op->ino = parent;
+        op->name = name;
+        op->mode = mode;
+        if(fi != NULL){
+            memcpy( (void*) &(op->fi), fi, sizeof(struct fuse_file_info));
+        }
+        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
+            printf("ckring was full while trying to enqueue write at inode %d\n", (int) parent);
+            return;
+        }
+        uv_async_send(&uv_async_handle);
 
-        Local<Value> vcreate = fuse->fsobj->Get(create_sym);
+    }
+    void FileSystem::RemoteCreate(fuse_req_t req,
+                            fuse_ino_t parent,
+                            const char* name,
+                            mode_t mode,
+                            struct fuse_file_info fi) {
+
+        Nan::HandleScope scope;;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
+
+        Local<Value> vcreate = fsobj->Get(Nan::New<String>("create").ToLocalChecked());
         Local<Function> create = Local<Function>::Cast(vcreate);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> parentInode = Number::New(parent);
-        Local<String> name_ = String::New(name);
-        Local<Integer> mode_ = Integer::New(mode);
+        Local<Number> parentInode = Nan::New<Number>(parent);
+        Local<String> name_ = Nan::New<String>(name).ToLocalChecked();
+        Local<Integer> mode_ = Nan::New<Integer>(mode);
 
         FileInfo* info = new FileInfo();
-        info->fi = fi;
-        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
+        memcpy( (void*) info->fi , &fi, sizeof(struct fuse_file_info));
+        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[6] = {context, parentInode,
                                 name_, mode_,
                                 infoObj, replyObj};
 
-        TryCatch try_catch;
+        Nan::TryCatch try_catch;
 
-        create->Call(fuse->fsobj, 6, argv);
+        create->Call(fsobj, 6, argv);
 
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
+        //scope.Close(Undefined());
+
     }
 
     void FileSystem::GetLock(fuse_req_t req,
                              fuse_ino_t ino,
                              struct fuse_file_info* fi,
                              struct flock* lock) {
-        HandleScope scope;
+        Nan::HandleScope scope;;
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vgetlk = fuse->fsobj->Get(getlk_sym);
+        Local<Value> vgetlk = fsobj->Get(Nan::New<String>("getlk").ToLocalChecked());
         Local<Function> getlk = Local<Function>::Cast(vgetlk);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
+        Local<Number> inode = Nan::New<Number>(ino);
 
         FileInfo* info = new FileInfo();
         info->fi = fi;
-        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
         Local<Object> lockObj = FlockToObject(lock)->ToObject();
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[5] = {context, inode,
                                 infoObj, lockObj, replyObj};
 
-        TryCatch try_catch;
+        Nan::TryCatch try_catch;
 
-        getlk->Call(fuse->fsobj, 5, argv);
+        getlk->Call(fsobj, 5, argv);
 
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
     }
 
@@ -1181,38 +1969,40 @@ namespace NodeFuse {
                              struct fuse_file_info* fi,
                              struct flock* lock,
                              int sleep_) {
-        HandleScope scope;
+        Nan::HandleScope scope;;
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vsetlk = fuse->fsobj->Get(setlk_sym);
+        Local<Value> vsetlk = fsobj->Get(Nan::New<String>("setlk").ToLocalChecked());
         Local<Function> setlk = Local<Function>::Cast(vsetlk);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
-        Local<Integer> sleep = Integer::New(sleep_);
+        Local<Number> inode = Nan::New<Number>(ino);
+        Local<Integer> sleep = Nan::New<Integer>(sleep_);
 
         FileInfo* info = new FileInfo();
         info->fi = fi;
-        Local<Object> infoObj = info->constructor_template->GetFunction()->NewInstance();
+        Local<Function> constructor = Nan::New<Function>(FileInfo::constructor);
+        Local<Object> infoObj = Nan::NewInstance(constructor).ToLocalChecked();//->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
         Local<Object> lockObj = FlockToObject(lock)->ToObject();
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[6] = {context, inode,
                                 infoObj, lockObj,
                                 sleep, replyObj};
 
-        TryCatch try_catch;
+        Nan::TryCatch try_catch;
 
-        setlk->Call(fuse->fsobj, 6, argv);
+        setlk->Call(fsobj, 6, argv);
 
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
     }
 
@@ -1220,31 +2010,34 @@ namespace NodeFuse {
                           fuse_ino_t ino,
                           size_t blocksize_,
                           uint64_t idx) {
-        HandleScope scope;
+        Nan::HandleScope scope;;
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vbmap = fuse->fsobj->Get(bmap_sym);
+        Local<Value> vbmap = fsobj->Get(Nan::New<String>("bmap").ToLocalChecked());
         Local<Function> bmap = Local<Function>::Cast(vbmap);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
-        Local<Number> inode = Number::New(ino);
-        Local<Integer> blocksize = Integer::New(blocksize_);
-        Local<Integer> index = Integer::New(idx);
+        Local<Number> inode = Nan::New<Number>(ino);
+        Local<Integer> blocksize = Nan::New<Integer>((int)blocksize_);
+
+        // TODO: Check if down casting to integer breaks BMAP
+        Local<Integer> index = Nan::New<Integer>( (int) idx);
 
         Reply* reply = new Reply();
         reply->request = req;
-        Local<Object> replyObj = reply->constructor_template->GetFunction()->NewInstance();
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         reply->Wrap(replyObj);
 
         Local<Value> argv[5] = {context, inode,
                                 blocksize, index, replyObj};
 
-        TryCatch try_catch;
+        Nan::TryCatch try_catch;
 
-        bmap->Call(fuse->fsobj, 5, argv);
+        bmap->Call(fsobj, 5, argv);
 
         if (try_catch.HasCaught()) {
-            FatalException(try_catch);
+            Nan::FatalException(try_catch);
         }
     }
 
@@ -1267,6 +2060,7 @@ namespace NodeFuse {
 
 
     }
+
 
     struct fuse_lowlevel_ops* FileSystem::GetOperations() {
         return &fuse_ops;

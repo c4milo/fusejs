@@ -1,8 +1,8 @@
 /**
  * Loopback filesystem
  **/
-var FileSystem = require('../fuse').FileSystem;
-var PosixError = require('../fuse').PosixError;
+var FileSystem = require('fusejs').FileSystem;
+var PosixError = require('fusejs').PosixError;
 
 var util = require('util');
 
@@ -188,6 +188,7 @@ util.inherits(Loopback, FileSystem);
         console.log('Readdir was called!');
         console.log('Readdir Size ---> ' + size);
         var entries = ['.', '..', 'dir1', 'dir2'];
+        console.log(entries);
         for (var i = 0, len = entries.length; i < len; i++) {
           var attrs = {};
           attrs.inode = i;

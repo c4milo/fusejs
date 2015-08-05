@@ -1,33 +1,28 @@
-// Copyright 2012, Camilo Aguilar. Cloudescape, LLC.
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include <stdlib.h>
+
 #include "bindings.h"
-
+uv_async_t uv_async_handle;
 namespace NodeFuse {
-    Persistent<FunctionTemplate> Fuse::constructor_template;
-
-    //static Persistent<String> mountpoint_sym;
-    static Persistent<String> filesystem_sym;
-    static Persistent<String> options_sym;
+    Nan::Persistent<Function> Fuse::constructor;
 
     void Fuse::Initialize(Handle<Object> target) {
-        Local<FunctionTemplate> t = FunctionTemplate::New(Fuse::New);
-
+        Local<FunctionTemplate> t = Nan::New<FunctionTemplate>(Fuse::New);
+        t->SetClassName(Nan::New<String>("Fuse").ToLocalChecked());
         t->InstanceTemplate()->SetInternalFieldCount(1);
 
-        NODE_SET_PROTOTYPE_METHOD(t, "mount",
+        Nan::SetPrototypeMethod(t, "mount",
                                       Fuse::Mount);
-        //NODE_SET_PROTOTYPE_METHOD(t, "unmount",
+        //Nan::SetPrototypeMethod(t, "unmount",
         //                              Fuse::Unmount);
 
-        constructor_template = Persistent<FunctionTemplate>::New(t);
-        constructor_template->SetClassName(String::NewSymbol("Fuse"));
+        constructor.Reset(t->GetFunction());
 
-        target->Set(String::NewSymbol("fuse_version"), Integer::New(fuse_version()));
-        target->Set(String::NewSymbol("Fuse"), constructor_template->GetFunction());
+        Nan::Set(target, Nan::New("fuse_version").ToLocalChecked(), Nan::New<Integer>(fuse_version()));
+        Nan::Set(target, Nan::New("Fuse").ToLocalChecked(), t->GetFunction());
 
-        //mountpoint_sym        = NODE_PSYMBOL("mountpoint");
-        filesystem_sym        = NODE_PSYMBOL("filesystem");
-        options_sym           = NODE_PSYMBOL("options");
     }
 
     Fuse::Fuse() : ObjectWrap() {}
@@ -50,111 +45,28 @@ namespace NodeFuse {
         }
     }
 
-    Handle<Value> Fuse::New(const Arguments& args) {
-        HandleScope scope;
+    NAN_METHOD( Fuse::New) {
+        if (info.IsConstructCall()) {
+          Fuse *fuse = new Fuse();
+          Local<Object> obj = info.This();
+          fuse->Wrap(obj);
+              info.GetReturnValue().Set( obj );
+        } else {
+          Local<Function> cons = Nan::New<Function>(constructor);
+          info.GetReturnValue().Set(cons->NewInstance());
+        }
 
-        Fuse *fuse = new Fuse();
-        Local<Object> obj = args.This();
-        fuse->Wrap(obj);
 
-        return obj;
     }
 
-    Handle<Value> Fuse::Mount(const Arguments& args) {
-        HandleScope scope;
-
-        int argslen = args.Length();
-
-        if (argslen == 0) {
-            return ThrowException(Exception::TypeError(
-            String::New("You must specify arguments to invoke this function")));
-        }
-
-        if (!args[0]->IsObject()) {
-            return ThrowException(Exception::TypeError(
-            String::New("You must specify an Object as first argument")));
-        }
-
-        Local<Object> argsObj = args[0]->ToObject();
-        //THROW_IF_MISSING_PROPERTY(argsObj, mountpoint_sym, "mountpoint");
-        THROW_IF_MISSING_PROPERTY(argsObj, filesystem_sym, "filesystem");
-        THROW_IF_MISSING_PROPERTY(argsObj, options_sym, "options");
-
-        //Local<Value> vmountpoint = argsObj->Get(mountpoint_sym);
-        Local<Value> vfilesystem = argsObj->Get(filesystem_sym);
-        Local<Value> voptions = argsObj->Get(options_sym);
-
-        /*if (!vmountpoint->IsString()) {
-            return ThrowException(Exception::TypeError(
-                String::New("Wrong type for property 'mountpoint', a String is expected")));
-
-        }*/
-
-        if (!vfilesystem->IsFunction()) {
-            return ThrowException(Exception::TypeError(
-                String::New("Wrong type for property 'filesystem', a Function is expected")));
-        }
-
-        if (!voptions->IsArray()) {
-            return ThrowException(Exception::TypeError(
-                String::New("Wrong type for property 'options', an Array is expected")));
-        }
-
-        Local<Array> options = Local<Array>::Cast(voptions);
-        int argc = options->Length();
-
-        //If no mountpoint is provided, show usage.
-        if (argc < 3) {
-            options->Set(Integer::New(2), String::New("--help"));
-            argc++;
-        }
-
-        Local<Object> currentInstance = args.This();
-        Fuse *fuse = ObjectWrap::Unwrap<Fuse>(currentInstance);
-
-        struct fuse_args fargs = FUSE_ARGS_INIT(0, NULL);
-        fuse->fargs = &fargs;
-
-        for (int i = 1; i < argc; i++) {
-            String::Utf8Value option(options->Get(Integer::New(i))->ToString());
-
-            if (fuse_opt_add_arg(fuse->fargs, (const char *) *option) == -1) {
-                FUSEJS_THROW_EXCEPTION("Unable to allocate memory, fuse_opt_add_arg failed: ", strerror(errno));
-                return Null();
-            }
-        }
-
-        //String::Utf8Value mountpoint(vmountpoint->ToString());
-        //fuse->mountpoint = *mountpoint;
-
-        int ret = fuse_parse_cmdline(fuse->fargs, &fuse->mountpoint,
-                                        &fuse->multithreaded, &fuse->foreground);
-        if (ret == -1) {
-            FUSEJS_THROW_EXCEPTION("Error parsing fuse options: ", strerror(errno));
-            return Null();
-        }
-
-        if (!fuse->mountpoint) {
-            FUSEJS_THROW_EXCEPTION("Mount point argument was not found", "");
-            return Null();
-        }
-
-        fuse->channel = fuse_mount((const char*) fuse->mountpoint, fuse->fargs);
-        if (fuse->channel == NULL) {
-            FUSEJS_THROW_EXCEPTION("Unable to mount filesystem: ", strerror(errno));
-            return Null();
-        }
-
-        Local<Value> argv[2] = {
-            currentInstance,
-            options
-        };
-
-        Local<Function> filesystem = Local<Function>::Cast(vfilesystem);
-        fuse->fsobj = Persistent<Object>::New(filesystem->NewInstance(2, argv));
-
-        assert(fuse->fsobj->IsObject());
-        assert(fuse->fsobj->Get(String::NewSymbol("init"))->IsFunction());
+    void Fuse::RemoteMount(void *_args_) {
+        Fuse *fuse  = (Fuse *) _args_; 
+        int ret;
+        // fuse->channel = fuse_mount((const char*) fuse->mountpoint, fuse->fargs);
+        // if (fuse->channel == NULL) {
+        //     FUSEJS_THROW_EXCEPTION("Unable to mount filesystem: ", strerror(errno));
+        //     return;
+        // }
 
         struct fuse_lowlevel_ops *operations = FileSystem::GetOperations();
 
@@ -165,7 +77,7 @@ namespace NodeFuse {
             fuse_unmount(fuse->mountpoint, fuse->channel);
             fuse_opt_free_args(fuse->fargs);
             //FUSEJS_THROW_EXCEPTION("Error creating fuse session: ", strerror(errno));
-            return Null();
+            return;
         }
 
         ret = fuse_set_signal_handlers(fuse->session);
@@ -174,7 +86,7 @@ namespace NodeFuse {
             fuse_unmount(fuse->mountpoint, fuse->channel);
             fuse_opt_free_args(fuse->fargs);
             FUSEJS_THROW_EXCEPTION("Error setting fuse signal handlers: ", strerror(errno));
-            return Null();
+            return;
         }
 
         fuse_session_add_chan(fuse->session, fuse->channel);
@@ -186,20 +98,129 @@ namespace NodeFuse {
         fuse_unmount(fuse->mountpoint, fuse->channel);
         fuse_session_remove_chan(fuse->channel);
         fuse_session_destroy(fuse->session);
-        fuse_opt_free_args(fuse->fargs);
+        // fuse_opt_free_args(fuse->fargs);
 
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error starting fuse session loop: ", strerror(errno));
-            return Null();
+            return;
         }
 
-        return currentInstance;
+        return;
+    }
+    
+    NAN_METHOD(Fuse::Mount) {
+        Nan::EscapableHandleScope scope;
+
+        int argslen = info.Length();
+
+        if (argslen == 0) {
+            Nan::ThrowError(
+            "You must specify arguments to invoke this function");
+            return;
+        }
+
+        if (!info[0]->IsObject()) {
+            Nan::ThrowError(
+            "You must specify an Object as first argument");
+            return;
+        }
+
+        Local<Object> argsObj = info[0]->ToObject();
+        // THROW_IF_MISSING_PROPERTY(argsObj, "mountpoint");
+        THROW_IF_MISSING_PROPERTY(argsObj, "filesystem");
+        THROW_IF_MISSING_PROPERTY(argsObj, "options");
+
+        //Local<Value> vmountpoint = Nan::Get(argsObj, mountpoint_sym);
+        Local<Value> vfilesystem = Nan::Get(argsObj, Nan::New<String>("filesystem").ToLocalChecked()).ToLocalChecked();
+        Local<Value> voptions = Nan::Get(argsObj, Nan::New<String>("options").ToLocalChecked()).ToLocalChecked();
+
+        if (!vfilesystem->IsFunction()) {
+            Nan::ThrowError(
+                "Wrong type for property 'filesystem', a Function is expected");
+            return;
+        }
+
+        if (!voptions->IsArray()) {
+            Nan::ThrowError(
+                "Wrong type for property 'options', an Array is expected");
+            return;
+        }
+
+        Local<Array> options = Local<Array>::Cast(voptions);
+        int argc = options->Length();
+
+        //If no mountpoint is provided, show usage.
+        if (argc < 1) {
+            Nan::Set(options, Nan::New<Integer>(1), Nan::New<String>("--help").ToLocalChecked());
+            argc++;
+        }
+
+        Local<Object> currentInstance = info.This();
+        Fuse *fuse  = ObjectWrap::Unwrap<Fuse>(currentInstance);
+        struct fuse_args fargs = FUSE_ARGS_INIT(0, NULL);
+        fuse->fargs = (struct fuse_args *)malloc(sizeof(fargs));
+        memcpy( fuse->fargs, &fargs, sizeof(fargs) );   
+
+        for (int i = 0; i < argc; i++) {
+            v8::String::Utf8Value option(Nan::Get(options, Nan::New<Integer>(i)).ToLocalChecked()->ToString() );
+            char *fopt = strdup(*option);
+            if (fuse_opt_add_arg(fuse->fargs, (const char *) fopt) == -1) {
+                FUSEJS_THROW_EXCEPTION("Unable to allocate memory, fuse_opt_add_arg failed: ", strerror(errno));
+                return;
+            }
+        }
+
+        //String::Utf8Value mountpoint(vmountpoint->ToString());
+        //fuse->mountpoint = *mountpoint;
+
+        int ret = fuse_parse_cmdline(fuse->fargs, &fuse->mountpoint,
+                                        &fuse->multithreaded, &fuse->foreground);
+        if (ret == -1) {
+            FUSEJS_THROW_EXCEPTION("Error parsing fuse options: ", strerror(errno));
+            return;
+        }
+
+        if (!fuse->mountpoint) {
+            FUSEJS_THROW_EXCEPTION("Mount point argument was not found", "");
+            return;
+        }
+
+        fuse->channel = fuse_mount((const char*) fuse->mountpoint, fuse->fargs);
+        if (fuse->channel == NULL) {
+            FUSEJS_THROW_EXCEPTION("Unable to mount filesystem: ", strerror(errno));
+            return;
+        }
+
+        Local<Value> argv[2] = {
+            currentInstance,
+            options
+        };
+
+        Local<Function> filesystem = Local<Function>::Cast(vfilesystem);
+        
+        //NanAssignPersistent(fuse->fsobj, NanNew(filesystem)->NewInstance(2, argv) );
+
+        fuse->fsobj.Reset( filesystem->NewInstance(2,argv) );
+        assert(Nan::New(fuse->fsobj)->IsObject());
+        assert(
+            Nan::Get( Nan::New(fuse->fsobj), 
+                Nan::New("init").ToLocalChecked()).ToLocalChecked()->IsFunction()
+        );
+
+        uv_async_init(uv_default_loop(), &uv_async_handle, (uv_async_cb) FileSystem::DispatchOp);
+        uv_thread_t fuse_thread;
+        uv_thread_create(&fuse_thread, Fuse::RemoteMount, (void *) fuse);
+
+
+        scope.Escape(currentInstance);
     }
 
-    /*Handle<Value> Fuse::Unmount(const Arguments& args) {
+
+
+    /*Handle<Value> Fuse::Unmount(const Arguments& info) {
         HandleScope scope;
 
-        Local<Object> currentInstance = args.This();
+        Local<Object> currentInstance = info.This();
         Fuse *fuse = ObjectWrap::Unwrap<Fuse>(currentInstance);
 
         fuse_session_remove_chan(fuse->channel);
