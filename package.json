@@ -27,6 +27,7 @@
   "scripts": {
     "install": "node-gyp rebuild"
   },
+  "license": "MPL-2.0",
   "main": "./fuse",
   "dependencies": {
     "nan": "2.0.0"
