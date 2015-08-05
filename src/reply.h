@@ -8,10 +8,11 @@ namespace NodeFuse {
         friend class FileSystem;
 
         public:
-            static void Initialize();
+            static void Initialize(Handle<Object> target);
 
             Reply();
             virtual ~Reply();
+            static NAN_METHOD(New);
 
         protected:
             static NAN_METHOD(Entry);
@@ -35,7 +36,7 @@ namespace NodeFuse {
             size_t dentry_offset;
             size_t dentry_size;
             char* dentry_buffer;
-            static Persistent<FunctionTemplate> constructor_template;
+            static Nan::Persistent<Function> constructor;
     };
 } //namespace NodeFuse
 

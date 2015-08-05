@@ -14,13 +14,13 @@
 using namespace v8;
 using namespace node;
 
-#define THROW_IF_MISSING_PROPERTY(obj, symbol, name)                                \
-    if (!obj->Has(NanNew(symbol)) ) {                                                        \
-        NanThrowError("You must have set the property " #name " in the object");    \
+#define THROW_IF_MISSING_PROPERTY(obj, name)                                \
+    if (Nan::Has(obj,Nan::New<String>(name).ToLocalChecked()) == Nan::Just(false) ) {                                                        \
+        Nan::ThrowError("You must have set the property " #name " in the object");    \
     }                                                                               \
 
 #define FUSEJS_THROW_EXCEPTION(err, fuse_err)                                       \
-        NanThrowError( v8::String::Concat(NanNew<String>(err), NanNew<String>(fuse_err)));        \
+        Nan::ThrowError( v8::String::Concat(Nan::New<String>(err).ToLocalChecked(), Nan::New<String>(fuse_err).ToLocalChecked()));        \
 
 namespace NodeFuse {
     int ObjectToFuseEntryParam(Handle<Value> value, struct fuse_entry_param* entry);

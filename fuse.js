@@ -15,7 +15,6 @@ var FileSystem = function() {
      **/
     this.init = function(connInfo) {
         console.log("init not implemented");
-        reply.err(38);
     };
 
     /**
@@ -24,7 +23,7 @@ var FileSystem = function() {
      *
      * There's no reply to this function.
      **/
-    this.destroy = function() {
+    this.destroy = function(reply) {
         console.log("destroy not implemented");
         reply.err(38);
     };
@@ -344,7 +343,7 @@ var FileSystem = function() {
         reply.err(38);
     };
 
-    this.getxattr = function() {
+    this.getxattr = function(context, parentInode, name, size, position, reply) {
         console.log("getxattr not implemented");
         reply.err(38);
     };
@@ -359,9 +358,9 @@ var FileSystem = function() {
         reply.err(38);
     };
 
-    this.access = function() {
+    this.access = function(context, inode, mask, reply) {        
         console.log("access not implemented");
-        reply.err(38);
+        reply.err(0);
     };
 
     this.create = function() {

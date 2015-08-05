@@ -4,34 +4,26 @@
 #include "bindings.h"
 uv_async_t uv_async_handle;
 namespace NodeFuse {
-    NanPersistent<FunctionTemplate> Fuse::constructor_template;
-
-    //static NanPersistent<String> mountpoint_sym;
-    static NanPersistent<String> filesystem_sym;
-    static NanPersistent<String> options_sym;
+    Nan::Persistent<Function> Fuse::constructor;
 
     void Fuse::Initialize(Handle<Object> target) {
-        Local<FunctionTemplate> t = NanNew<FunctionTemplate>(Fuse::New);
-
+        Local<FunctionTemplate> t = Nan::New<FunctionTemplate>(Fuse::New);
+        t->SetClassName(Nan::New<String>("Fuse").ToLocalChecked());
         t->InstanceTemplate()->SetInternalFieldCount(1);
 
-        NanSetPrototypeMethod(t, "mount",
+        Nan::SetPrototypeMethod(t, "mount",
                                       Fuse::Mount);
-        //NanSetPrototypeMethod(t, "unmount",
+        //Nan::SetPrototypeMethod(t, "unmount",
         //                              Fuse::Unmount);
 
-        constructor_template.Reset(t);
-        // constructor_template->SetClassName(String::NewSymbol("Fuse"));
+        constructor.Reset(t->GetFunction());
 
-        NanSet(target, NanNew("fuse_version").ToLocalChecked(), NanNew<Integer>(fuse_version()));
-        NanSet(target, NanNew("Fuse").ToLocalChecked(), NanGetFunction(NanNew(constructor_template)));
+        Nan::Set(target, Nan::New("fuse_version").ToLocalChecked(), Nan::New<Integer>(fuse_version()));
+        Nan::Set(target, Nan::New("Fuse").ToLocalChecked(), t->GetFunction());
 
-        //mountpoint_sym        = NODE_PSYMBOL("mountpoint");
-        filesystem_sym.Reset(NanNew("filesystem").ToLocalChecked());
-        options_sym.Reset(NanNew("options").ToLocalChecked());
     }
 
-    Fuse::Fuse() : NanObjectWrap() {}
+    Fuse::Fuse() : ObjectWrap() {}
     Fuse::~Fuse() {
         if (fargs != NULL) {
             fuse_opt_free_args(fargs);
@@ -52,13 +44,17 @@ namespace NodeFuse {
     }
 
     NAN_METHOD( Fuse::New) {
-        NanEscapableScope scope;
+        if (info.IsConstructCall()) {
+          Fuse *fuse = new Fuse();
+          Local<Object> obj = info.This();
+          fuse->Wrap(obj);
+              info.GetReturnValue().Set( obj );
+        } else {
+          Local<Function> cons = Nan::New<Function>(constructor);
+          info.GetReturnValue().Set(cons->NewInstance());
+        }
 
-        Fuse *fuse = new Fuse();
-        Local<Object> obj = info.This();
-        fuse->Wrap(obj);
 
-        info.GetReturnValue().Set( obj );
     }
 
     void Fuse::RemoteMount(void *_args_) {
@@ -111,39 +107,39 @@ namespace NodeFuse {
     }
     
     NAN_METHOD(Fuse::Mount) {
-        NanEscapableScope scope;
+        Nan::EscapableHandleScope scope;
 
         int argslen = info.Length();
 
         if (argslen == 0) {
-            NanThrowError(
+            Nan::ThrowError(
             "You must specify arguments to invoke this function");
             return;
         }
 
         if (!info[0]->IsObject()) {
-            NanThrowError(
+            Nan::ThrowError(
             "You must specify an Object as first argument");
             return;
         }
 
         Local<Object> argsObj = info[0]->ToObject();
-        //THROW_IF_MISSING_PROPERTY(argsObj, mountpoint_sym, "mountpoint");
-        THROW_IF_MISSING_PROPERTY(argsObj, filesystem_sym, "filesystem");
-        THROW_IF_MISSING_PROPERTY(argsObj, options_sym, "options");
+        // THROW_IF_MISSING_PROPERTY(argsObj, "mountpoint");
+        THROW_IF_MISSING_PROPERTY(argsObj, "filesystem");
+        THROW_IF_MISSING_PROPERTY(argsObj, "options");
 
-        //Local<Value> vmountpoint = NanGet(argsObj, mountpoint_sym);
-        Local<Value> vfilesystem = NanGet(argsObj, NanNew(filesystem_sym));
-        Local<Value> voptions = NanGet(argsObj, NanNew(options_sym));
+        //Local<Value> vmountpoint = Nan::Get(argsObj, mountpoint_sym);
+        Local<Value> vfilesystem = Nan::Get(argsObj, Nan::New<String>("filesystem").ToLocalChecked()).ToLocalChecked();
+        Local<Value> voptions = Nan::Get(argsObj, Nan::New<String>("options").ToLocalChecked()).ToLocalChecked();
 
         if (!vfilesystem->IsFunction()) {
-            NanThrowError(
+            Nan::ThrowError(
                 "Wrong type for property 'filesystem', a Function is expected");
             return;
         }
 
         if (!voptions->IsArray()) {
-            NanThrowError(
+            Nan::ThrowError(
                 "Wrong type for property 'options', an Array is expected");
             return;
         }
@@ -153,18 +149,18 @@ namespace NodeFuse {
 
         //If no mountpoint is provided, show usage.
         if (argc < 1) {
-            NanSet(options, NanNew<Integer>(1), NanNew<String>("--help").ToLocalChecked());
+            Nan::Set(options, Nan::New<Integer>(1), Nan::New<String>("--help").ToLocalChecked());
             argc++;
         }
 
         Local<Object> currentInstance = info.This();
-        Fuse *fuse  = NanObjectWrap::Unwrap<Fuse>(currentInstance);
+        Fuse *fuse  = ObjectWrap::Unwrap<Fuse>(currentInstance);
         struct fuse_args fargs = FUSE_ARGS_INIT(0, NULL);
         fuse->fargs = (struct fuse_args *)malloc(sizeof(fargs));
         memcpy( fuse->fargs, &fargs, sizeof(fargs) );   
 
         for (int i = 0; i < argc; i++) {
-            String::Utf8Value NanGet(option(options, NanNew<Integer>(i))->ToString());
+            v8::String::Utf8Value option(Nan::Get(options, Nan::New<Integer>(i)).ToLocalChecked()->ToString() );
             char *fopt = strdup(*option);
             if (fuse_opt_add_arg(fuse->fargs, (const char *) fopt) == -1) {
                 FUSEJS_THROW_EXCEPTION("Unable to allocate memory, fuse_opt_add_arg failed: ", strerror(errno));
@@ -199,16 +195,22 @@ namespace NodeFuse {
         };
 
         Local<Function> filesystem = Local<Function>::Cast(vfilesystem);
-        NanNewInstance(fuse->fsobj.Reset(NanNew(filesystem)2, argv) );
-        assert(NanNew(fuse->fsobj)->IsObject());
-        NanGet(assert(NanNew(fuse->fsobj), NanNew("init").ToLocalChecked())->IsFunction());
+        
+        //NanAssignPersistent(fuse->fsobj, NanNew(filesystem)->NewInstance(2, argv) );
+
+        fuse->fsobj.Reset( filesystem->NewInstance(2,argv) );
+        assert(Nan::New(fuse->fsobj)->IsObject());
+        assert(
+            Nan::Get( Nan::New(fuse->fsobj), 
+                Nan::New("init").ToLocalChecked()).ToLocalChecked()->IsFunction()
+        );
 
         uv_async_init(uv_default_loop(), &uv_async_handle, (uv_async_cb) FileSystem::DispatchOp);
         uv_thread_t fuse_thread;
         uv_thread_create(&fuse_thread, Fuse::RemoteMount, (void *) fuse);
 
 
-        NanReturnThis();
+        scope.Escape(currentInstance);
     }
 
 
@@ -217,7 +219,7 @@ namespace NodeFuse {
         HandleScope scope;
 
         Local<Object> currentInstance = info.This();
-        Fuse *fuse = NanObjectWrap::Unwrap<Fuse>(currentInstance);
+        Fuse *fuse = ObjectWrap::Unwrap<Fuse>(currentInstance);
 
         fuse_session_remove_chan(fuse->channel);
         fuse_remove_signal_handlers(fuse->session);

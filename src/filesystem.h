@@ -67,13 +67,13 @@ namespace NodeFuse {
     };
     class FileSystem {
         private:
-          static Persistent<FunctionTemplate> constructor_template;
+          static Persistent<Function> constructor;
         public:
             FileSystem();
             virtual ~FileSystem();
 
             static struct fuse_lowlevel_ops* GetOperations();
-            static void Initialize();
+            static void Initialize(Handle<Object> target);
             static void DispatchOp(uv_async_t* handle, 
                       int status);
 

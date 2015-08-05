@@ -8,7 +8,7 @@ namespace NodeFuse {
     class Fuse : public ObjectWrap {
         public:
             static void Initialize(Handle<Object> target);
-            Persistent<Object> fsobj;
+            Nan::Persistent<Object> fsobj;
 
             Fuse();
             virtual ~Fuse();
@@ -26,7 +26,7 @@ namespace NodeFuse {
             struct fuse_args* fargs;
             struct fuse_chan* channel;
             struct fuse_session* session;
-            static Persistent<FunctionTemplate> constructor_template;
+            static Nan::Persistent<Function> constructor;
     };
 }//namespace NodeFuse
 
