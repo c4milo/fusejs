@@ -17,7 +17,7 @@
   "repositories": [
     {
       "type": "git",
-      "url": "http://github.com/thejinx0r/fusejs.git"
+      "url": "http://github.com/c4milo/fusejs.git"
     }
   ],
   "devDependencies": {
