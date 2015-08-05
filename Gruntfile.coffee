@@ -16,7 +16,7 @@ module.exports = (grunt) ->
     gyp:
       fusejs: 
         options:
-          debug: true
+          debug: false
         command: 'rebuild'
 
     
