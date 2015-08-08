@@ -1,6 +1,6 @@
 {
   "name": "fusejs",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "contributors":[
     {
       "name": "Eric Yen",
@@ -30,6 +30,6 @@
   "license": "MPL-2.0",
   "main": "./fuse",
   "dependencies": {
-    "nan": "2.0.0"
+    "nan": "2.0.4"
   }
 }
