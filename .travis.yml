@@ -1,14 +1,20 @@
 sudo: false
 language: node_js
 env:
-  - PKG_CONFIG_PATH=$HOME/libck/lib/pkgconfig
+  - PKG_CONFIG_PATH=$HOME/libck/lib/pkgconfig CXX=g++-4.8
+
 addons:
   apt:
+    sources:
+    - ubuntu-toolchain-r-test
+
     packages:
     - libfuse-dev
     - fuse
     - build-essential
     - pkg-config
+    - gcc-4.8
+    - g++-4.8
 
 node_js:
   - "0.8"
@@ -26,11 +32,8 @@ notifications:
     on_failure: always  # options: [always|never|change] default: always
     on_start: false     # default: false
 
-matrix:
-  allow_failures:
-    - node_js: "iojs-3"
-
 before_install:
+  - $CXX --version
   - npm install npm
   - mv node_modules npm
   - LOCALNPM=`pwd`/npm/.bin/npm
