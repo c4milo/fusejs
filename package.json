@@ -31,6 +31,6 @@
   "license": "MPL-2.0",
   "main": "./fuse",
   "dependencies": {
-    "nan": "2.0.4"
+    "nan": "2.0.5"
   }
 }
