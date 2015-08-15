@@ -56,5 +56,6 @@ before_install:
   - echo $LOCALBUILD
   - ls `which node`
   - npm/.bin/npm install
+  - mkdir /tmp/mnt2
 
 install:
