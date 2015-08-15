@@ -5,7 +5,7 @@
 #include "bindings.h"
 #include "reply.h"
 #include "file_info.h"
-
+#include "filesystem.h"
 namespace NodeFuse {
     //stat struct symbols
 

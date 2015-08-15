@@ -4,7 +4,6 @@
 #ifndef SRC_BINDINGS_H_
 #define SRC_BINDINGS_H_
 #include "node_fuse.h"
-#include "filesystem.h"
 
 namespace NodeFuse {
     class Fuse : public ObjectWrap {
@@ -19,15 +18,16 @@ namespace NodeFuse {
             static NAN_METHOD( New );
             static NAN_METHOD( Mount );
             static void RemoteMount(void* args);
-            //static Handle<Value> Unmount(const Arguments& args);
+            static void Unmount(const Nan::FunctionCallbackInfo<v8::Value>& args);
 
         private:
             int multithreaded;
             int foreground;
             char* mountpoint;
+            uv_thread_t fuse_thread;
+            struct fuse_session* session;
             struct fuse_args* fargs;
             struct fuse_chan* channel;
-            struct fuse_session* session;
             static Nan::Persistent<Function> constructor;
     };
 }//namespace NodeFuse

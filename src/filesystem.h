@@ -42,11 +42,15 @@
 #define _FUSE_OPS_GETLK_       31
 #define _FUSE_OPS_SETLK_       32
 #define _FUSE_OPS_BMAP_        33
+#define _FUSE_UNMOUNT_         34
 #define _RING_SIZE_            32
 extern uv_async_t uv_async_handle;
 
+#include "bindings.h"
 
 namespace NodeFuse {
+    extern ck_ring_t *ck_ring;
+    extern ck_ring_buffer_t ck_ring_buffer[_RING_SIZE_];
     struct fuse_cmd
     {
       int8_t op;
@@ -77,6 +81,7 @@ namespace NodeFuse {
             virtual ~FileSystem();
 
             static struct fuse_lowlevel_ops* GetOperations();
+            static void Unmount(Fuse *fuse);
             static void Initialize(Handle<Object> target);
             static void DispatchOp(uv_async_t* handle, 
                       int status);

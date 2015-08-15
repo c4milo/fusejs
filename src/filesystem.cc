@@ -129,7 +129,7 @@ namespace NodeFuse {
                     break;
                 case _FUSE_OPS_SETLK_:
                     break;
-                case _FUSE_OPS_BMAP_:
+                case _FUSE_OPS_BMAP_:                
                     break;
             }
                 // free((void*)op->name);

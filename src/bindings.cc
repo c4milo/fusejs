@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #include "bindings.h"
+#include "filesystem.h"
 uv_async_t uv_async_handle;
 namespace NodeFuse {
     Nan::Persistent<Function> Fuse::constructor;
@@ -15,13 +16,15 @@ namespace NodeFuse {
 
         Nan::SetPrototypeMethod(t, "mount",
                                       Fuse::Mount);
-        //Nan::SetPrototypeMethod(t, "unmount",
-        //                              Fuse::Unmount);
+
+        Nan::SetPrototypeMethod(t, "unmount",
+                                     Fuse::Unmount);
 
         constructor.Reset(t->GetFunction());
 
         Nan::Set(target, Nan::New("fuse_version").ToLocalChecked(), Nan::New<Integer>(fuse_version()));
         Nan::Set(target, Nan::New("Fuse").ToLocalChecked(), t->GetFunction());
+
 
     }
 
@@ -95,10 +98,13 @@ namespace NodeFuse {
 
         //Continues executing if user unmounts the fs
         fuse_remove_signal_handlers(fuse->session);
-        fuse_unmount(fuse->mountpoint, fuse->channel);
         fuse_session_remove_chan(fuse->channel);
         fuse_session_destroy(fuse->session);
-        // fuse_opt_free_args(fuse->fargs);
+        fuse_unmount(fuse->mountpoint, fuse->channel);
+        fuse_opt_free_args(fuse->fargs);
+        uv_thread_join(&(fuse->fuse_thread));
+        //close the event loop
+        uv_close( (uv_handle_t*) &uv_async_handle, NULL );
 
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error starting fuse session loop: ", strerror(errno));
@@ -170,9 +176,6 @@ namespace NodeFuse {
             }
         }
 
-        //String::Utf8Value mountpoint(vmountpoint->ToString());
-        //fuse->mountpoint = *mountpoint;
-
         int ret = fuse_parse_cmdline(fuse->fargs, &fuse->mountpoint,
                                         &fuse->multithreaded, &fuse->foreground);
         if (ret == -1) {
@@ -208,8 +211,7 @@ namespace NodeFuse {
         );
 
         uv_async_init(uv_default_loop(), &uv_async_handle, (uv_async_cb) FileSystem::DispatchOp);
-        uv_thread_t fuse_thread;
-        uv_thread_create(&fuse_thread, Fuse::RemoteMount, (void *) fuse);
+         uv_thread_create(&(fuse->fuse_thread), Fuse::RemoteMount, (void *) fuse);
 
 
         scope.Escape(currentInstance);
@@ -217,18 +219,26 @@ namespace NodeFuse {
 
 
 
-    /*Handle<Value> Fuse::Unmount(const Arguments& info) {
-        HandleScope scope;
-
-        Local<Object> currentInstance = info.This();
+    void Fuse::Unmount(const Nan::FunctionCallbackInfo<v8::Value>& args) {
+        Nan::EscapableHandleScope scope;
+        Local<Object> currentInstance = args.This();
         Fuse *fuse = ObjectWrap::Unwrap<Fuse>(currentInstance);
+        // fuse_session_exit(fuse->session);
+        // printf("unmount called");
+        // fuse_session_remove_chan(fuse->channel);
+        // printf("unmount called");
+        // fuse_remove_signal_handlers(fuse->session);
+        // printf("unmount called");
+        // fuse_unmount(fuse->mountpoint, fuse->channel);
+        // printf("unmount called");
+        // fuse_session_remove_chan(fuse->channel);
+        // printf("unmount called");
+        // fuse_session_destroy(fuse->session);
 
-        fuse_session_remove_chan(fuse->channel);
-        fuse_remove_signal_handlers(fuse->session);
-        fuse_session_destroy(fuse->session);
-        fuse_unmount(fuse->mountpoint, fuse->channel);
+        fuse_session_exit(fuse->session);
 
-        return currentInstance;
-    }*/
+        scope.Escape(currentInstance);
+
+    }
 } //namespace NodeFuse
 
