@@ -1,20 +1,23 @@
 module.exports = function (grunt){
 
   // Project configuration.
-  src_files = ['src/*.cc'];
+
   grunt.initConfig({
     pkg: grunt.file.readJSON('package.json'),
     watch:{
       configFiles:{ 
-        files:{ 
-          [ 'Gruntfile.coffee' ]
-        }
+        files: [ 'Gruntfile.js' ],
         options:{ 
           reload: true        
         }
+      },
       scripts:{
-        files:['src/*.cc', 'src/*.h']
-        tasks:['gyp']
+          files:['src/*.cc', 'src/*.h'],
+          tasks:['gyp']
+      },
+      tests:{        
+          files:['test/*.js', 'examples/example.js'],
+          tasks:['mochaTest']
       }
     },
 
@@ -25,19 +28,29 @@ module.exports = function (grunt){
         },
         command: 'rebuild'
       }
+    },
+    
+    mochaTest: {
+      test: {
+        options: {
+          reporter: 'spec',
+          quiet: false, 
+          clearRequireCache: false // Optionally clear the require cache before running tests (defaults to false)
+        },
+        src: ['test/*.js']
+      }
     }
 
-    
-
-  
+  }
   );
 
   grunt.loadNpmTasks('grunt-node-gyp');
   grunt.loadNpmTasks('grunt-contrib-watch');
-  # grunt.loadNpmTasks('grunt-mocha-test');
-  # grunt.loadNpmTasks('grunt-contrib-copy');
-  # grunt.loadNpmTasks('grunt-node-gyp');
+  grunt.loadNpmTasks('grunt-mocha-test');
+  //grunt.loadNpmTasks('grunt-contrib-copy');
+  
 
-
-  # Default task(s).
+  //Default task(s).
   grunt.registerTask('default', [ 'gyp']);
+
+}
