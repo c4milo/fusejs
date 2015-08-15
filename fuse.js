@@ -321,7 +321,7 @@ var FileSystem = function() {
      *
      * Valid replies: reply.buffer() or fuse.err()
      **/
-    this.read = function() {
+    this.read = function(context, inode, len, offset, fileInfo, reply) {
         if(warn_not_implemented){
             console.log("read not implemented");
         }
@@ -335,14 +335,14 @@ var FileSystem = function() {
         reply.err(38);
     };
 
-    this.flush = function() {
+    this.flush = function(context, inode, fileInfo, reply) {
         if(warn_not_implemented){
             console.log("flush not implemented");
         }
-        reply.err(38);
+        reply.err(0);
     };
 
-    this.release = function() {
+    this.release = function(context, inode, fileInfo, reply) {
         if(warn_not_implemented){
             console.log("release not implemented");
         }
