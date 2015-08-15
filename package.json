@@ -27,8 +27,7 @@
     "node-gyp": "~2.0.2"
   },
   "scripts": {
-    "install": "node-gyp rebuild",
-    "test": "mocha"
+    "install": "node-gyp rebuild"
   },
   "license": "MPL-2.0",
   "main": "./fuse",
