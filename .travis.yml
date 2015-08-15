@@ -1,7 +1,7 @@
 sudo: false
 language: node_js
 env:
-  - PKG_CONFIG_PATH=$HOME/libck/lib/pkgconfig CXX=g++-4.8
+  - PKG_CONFIG_PATH=$HOME/libck/lib/pkgconfig CXX="ccache g++-4.8"
 
 addons:
   apt:
@@ -15,6 +15,8 @@ addons:
     - pkg-config
     - gcc-4.8
     - g++-4.8
+
+cache: ccache
 
 node_js:
   - "0.8"
