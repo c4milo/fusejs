@@ -29,11 +29,10 @@ var FileSystem = function() {
      *
      * There's no reply to this function.
      **/
-    this.destroy = function(reply) {
+    this.destroy = function() {
         if(warn_not_implemented){
             console.log("destroy not implemented");
         }
-        reply.err(38);
     };
 
     /**
@@ -357,7 +356,7 @@ var FileSystem = function() {
         reply.err(38);
     };
 
-    this.opendir = function() {
+    this.opendir = function(context, inode, fileInfo, reply) {
         if(warn_not_implemented){
             console.log("opendir not implemented");
         }
@@ -385,11 +384,23 @@ var FileSystem = function() {
         reply.err(38);
     };
 
-    this.statfs = function() {
+    this.statfs = function(context, inode, reply) {
         if(warn_not_implemented){
             console.log("statfs not implemented");
         }
-        reply.err(38);
+        reply.statfs( {
+            bsize: 65536,
+            iosize: 65536,
+            frsize: 65536,
+            blocks: 1000000,
+            bfree: 1000000,
+            bavail: 1000000,
+            files: 1000000,
+            ffree: 1000000,
+            favail: 1000000,
+            fsid: 1000000,
+            flag: 0
+        });
     };
 
     this.setxattr = function() {
@@ -424,7 +435,7 @@ var FileSystem = function() {
         if(warn_not_implemented){
             console.log("access not implemented");
         }
-        reply.err(38);
+        reply.err(0);
     };
 
     this.create = function() {
