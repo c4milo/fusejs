@@ -44,6 +44,7 @@ before_install:
   - PARENTNODE=$(dirname "$PARENTNODE")
   - npm/.bin/npm --version  
   - npm/.bin/npm install -g node-gyp-install
+  - npm/.bin/npm install -g mocha
   - node-gyp-install
   - wget http://concurrencykit.org/releases/ck-0.4.5.tar.gz
   - echo $PKG_CONFIG_PATH
