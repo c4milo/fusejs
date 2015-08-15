@@ -1,23 +1,31 @@
-module.exports = (grunt) ->
+module.exports = function (grunt){
 
-  # Project configuration.
-  src_files = ['src/*.cc']
-  grunt.initConfig(
-    pkg: grunt.file.readJSON('package.json')
-    watch:
-      configFiles: 
-        files: [ 'Gruntfile.coffee' ]
-        options: 
+  // Project configuration.
+  src_files = ['src/*.cc'];
+  grunt.initConfig({
+    pkg: grunt.file.readJSON('package.json'),
+    watch:{
+      configFiles:{ 
+        files:{ 
+          [ 'Gruntfile.coffee' ]
+        }
+        options:{ 
           reload: true        
-      scripts:
+        }
+      scripts:{
         files:['src/*.cc', 'src/*.h']
         tasks:['gyp']
+      }
+    },
 
-    gyp:
-      fusejs: 
-        options:
+    gyp:{
+      fusejs:{ 
+        options:{
           debug: false
+        },
         command: 'rebuild'
+      }
+    }
 
     
 
