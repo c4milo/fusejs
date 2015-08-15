@@ -58,7 +58,4 @@ before_install:
 
 install:
   - npm/.bin/npm install
-  - mkdir /tmp/mnt2
 
-script:
-  - sudo npm/.bin/npm test

@@ -28,7 +28,6 @@
   },
   "scripts": {
     "install": "node-gyp rebuild",
-    "test": "mocha"
   },
   "license": "MPL-2.0",
   "main": "./fuse",
