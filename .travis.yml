@@ -59,3 +59,7 @@ before_install:
 install:
   - npm/.bin/npm install
 
+script:
+  - ln -s `which node` /usr/bin/node
+  - sudo `nvm_ls`
+  - sudo mocha
