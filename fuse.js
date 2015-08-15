@@ -377,7 +377,7 @@ var FileSystem = function() {
         reply.err(38);
     };
 
-    this.fsyncdir = function() {
+    this.fsyncdir = function(context, inode,datasync, fileInfo, reply) {
         if(warn_not_implemented){
             console.log("fsyncdir not implemented");
         }
