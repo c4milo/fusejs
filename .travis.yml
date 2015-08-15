@@ -1,4 +1,4 @@
-sudo: false
+sudo: true
 language: node_js
 env:
   - PKG_CONFIG_PATH=$HOME/libck/lib/pkgconfig CXX="ccache g++-4.8"
@@ -55,7 +55,10 @@ before_install:
   - echo $PARENTNODE
   - echo $LOCALBUILD
   - ls `which node`
+
+install:
   - npm/.bin/npm install
   - mkdir /tmp/mnt2
 
-install:
+script:
+  - sudo npm/.bin/npm test
