@@ -157,7 +157,10 @@ namespace NodeFuse {
         context->Set( Nan::New<String>("uid").ToLocalChecked(), Nan::New<Integer>(ctx->uid));
         context->Set( Nan::New<String>("gid").ToLocalChecked(), Nan::New<Integer>(ctx->gid));
         context->Set( Nan::New<String>("pid").ToLocalChecked(), Nan::New<Integer>(ctx->pid));
+
+        #if FUSE_USE_VERSION > 27
         context->Set( Nan::New<String>("umask").ToLocalChecked(), Nan::New<Integer>(ctx->umask));
+        #endif
 
         return context;
     }
