@@ -1,6 +1,6 @@
 "use strict";
 const ExampleFS = require('../examples/example.js').ExampleFS;
-const fuse = require('../fuse').fuse
+const fuse = require('fusejs').fuse
 const pth = require('path');
 const assert = require("assert");
 const fs = require('fs');

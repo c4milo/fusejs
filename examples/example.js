@@ -41,7 +41,7 @@ const file = {
 	nlink: 1 //a file only has one link
 }
 
-const fusejs = require('../fuse') //require('fusejs')
+const fusejs = require('fusejs'); //require('fusejs');
 const FileSystem = fusejs.FileSystem;
 const PosixError = fusejs.PosixError;
 

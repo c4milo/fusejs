@@ -1,6 +1,6 @@
 "use strict";
 
-const fuse = require('../fuse').fuse;
+const fuse = require('fusejs').fuse;
 const ExampleFS = require('./example').ExampleFS;
 const  exec = require('child_process').exec;
 const os = require('os');
