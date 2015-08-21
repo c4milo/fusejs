@@ -11,7 +11,7 @@
 
 */
 "use strict";
-const now = Date.now()
+const now = Date.now();
 
 const root = {
 	inode:1, 
@@ -178,9 +178,5 @@ class ExampleFS extends fusejs.FileSystem{
 
 
 }
-
-setTimeout( function(){
-console.log("example timeout still working")
-},5000);
 
 module.exports.ExampleFS = ExampleFS;

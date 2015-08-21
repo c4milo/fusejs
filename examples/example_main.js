@@ -12,24 +12,8 @@ const m = fuse.mount({
     filesystem: ExampleFS,
     options: ["ExampleFS"].concat(process.argv.slice(2,process.argv.length))
 });
-console.log(m);
 
-console.log("after mount");
-function st(){
-	console.log("before readdir")
-	fs.readdir('/tmp/mnt2', function(err, files){
-		if(err){
-			console.log(err);
-			return;
-		}
-		console.log(files)
-	});
-}
-setTimeout(st, 1000);
-
-setTimeout(function(){console.log("timeout")}, 5000);
-
-console.log("timeout");
+// unmounting 
 // setTimeout(function(){
 // 	console.log("starting to unmount");
 // 	var command;
