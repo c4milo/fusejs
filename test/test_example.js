@@ -6,20 +6,18 @@ const assert = require("assert");
 const fs = require('fs');
 const os = require('os');
 const exec = require('child_process').exec;
-
+const expect = require('chai').expect;
 var mountpoint = "/tmp/mnt2";
-// fuse.mount({
-// 	filesystem: ExampleFS,
-// 	options: ["TestExampleFS","-o", "allow_other", mountpoint]
-// });
 
 describe('The Filesystem', function() {
 	before('should be mountable', function(done){		
-		fuse.mount({
-			filesystem: ExampleFS,
-			options: ["TestExampleFS","-o", "allow_other", mountpoint]
+		fs.mkdir(mountpoint, function(){
+			fuse.mount({
+				filesystem: ExampleFS,
+				options: ["TestExampleFS","-o", "allow_other", mountpoint]
+			});
+			setTimeout(done, 25); //wait a second before actually starting the tests
 		});
-		setTimeout(done, 25); //wait a second before actually starting the tests
 	});
 
     it('should have one folder called hello', function (done) {
@@ -73,6 +71,19 @@ describe('The Filesystem', function() {
     			done(data);
     			return;
     		});
+    	});
+
+    	it('should have proper file information', function(done){
+    		const path = pth.join(mountpoint,'hello','world.txt');
+    		const now = Date.now();
+    		const seconds_5 = 5000;
+
+    		fs.stat(path, function(err,stat){
+    			expect(stat.ctime.getTime()/1000).to.be.within(now - seconds_5, now + seconds_5);
+    			expect(stat.size).to.be.equal("hello world".length);
+    			done();
+    		});
+
     	});
 
     });

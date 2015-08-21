@@ -1,18 +1,18 @@
 {
   "name": "fusejs",
   "version": "1.1.0",
-  "contributors":[
+  "contributors": [
     {
       "name": "Eric Yen",
-      "url" : "http://github.com/thejinx0r",
+      "url": "http://github.com/thejinx0r",
       "email": "eric@ericyen.com"
     },
-    {    
+    {
       "name": "Camilo Aguilar",
       "url": "http://github.com/c4milo",
       "email": "camilo.aguilar@gmail.com"
     }
-  ], 
+  ],
   "description": "Low level Fuse bindings for NodeJS.",
   "repositories": [
     {
@@ -21,10 +21,11 @@
     }
   ],
   "devDependencies": {
+    "chai": "^3.2.0",
     "grunt-mocha-test": "^0.12.7",
     "mocha": "^2.2.5",
-    "should": "0.6.0",
-    "node-gyp": "~2.0.2"
+    "node-gyp": "~2.0.2",
+    "should": "0.6.0"
   },
   "scripts": {
     "install": "node-gyp rebuild"
