@@ -158,7 +158,8 @@ namespace NodeFuse {
         context->Set( Nan::New<String>("gid").ToLocalChecked(), Nan::New<Integer>(ctx->gid));
         context->Set( Nan::New<String>("pid").ToLocalChecked(), Nan::New<Integer>(ctx->pid));
 
-        #if FUSE_USE_VERSION > 27
+        #if FUSE_USE_VERSION > 28 && !__APPLE__
+
         context->Set( Nan::New<String>("umask").ToLocalChecked(), Nan::New<Integer>(ctx->umask));
         #endif
 

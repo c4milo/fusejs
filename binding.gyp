@@ -2,9 +2,13 @@
   "targets": [
         {
           "target_name": "fusejs",
-          "sources": [ "src/bindings.cc", "src/file_info.cc", "src/filesystem.cc", "src/node_fuse.cc", "src/reply.cc"],
+          "sources": [ "src/bindings.cc", 
+                        "src/file_info.cc", 
+                        "src/filesystem.cc", 
+                        "src/node_fuse.cc", 
+                        "src/reply.cc",                                                 
+                        ],
           "include_dirs": [
-            './ck/',
             '<!@(pkg-config fuse --cflags-only-I | sed s/-I//g)',
             "<!(node -e \"require('nan')\")"
           ],
@@ -14,7 +18,7 @@
           ],
           "link_settings": {
             "libraries": [
-              '<!@(pkg-config --libs fuse ck)'
+              '<!@(pkg-config --libs fuse)'
             ]
           }  
         }

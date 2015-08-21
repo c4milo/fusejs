@@ -4,30 +4,48 @@ const fuse = require('../fuse').fuse;
 const ExampleFS = require('./example').ExampleFS;
 const  exec = require('child_process').exec;
 const os = require('os');
+const fs = require('fs');
 
 console.log(process.argv.slice(2,process.argv.length));
 
-fuse.mount({
+const m = fuse.mount({
     filesystem: ExampleFS,
     options: ["ExampleFS"].concat(process.argv.slice(2,process.argv.length))
 });
+console.log(m);
 
-setTimeout(function(){
-	console.log("starting to unmount");
-	var command;
-	switch (os.type()){
-	    case 'Linux':
-	        command = `umount -f /tmp/mnt2`
-	        break;
-	    case 'Darwin':
-	        command = `diskutil umount force /tmp/mnt2`
-	        break;
-    }
-    exec(command,   function (error, stdout, stderr) {
-    	console.log('stdout: ' + stdout);
-    	console.log('stderr: ' + stderr);
-    	if (error !== null) {
-      		console.log('exec error: ' + error);
-    	}
+console.log("after mount");
+function st(){
+	console.log("before readdir")
+	fs.readdir('/tmp/mnt2', function(err, files){
+		if(err){
+			console.log(err);
+			return;
+		}
+		console.log(files)
 	});
-}, 1200);
+}
+setTimeout(st, 1000);
+
+setTimeout(function(){console.log("timeout")}, 5000);
+
+console.log("timeout");
+// setTimeout(function(){
+// 	console.log("starting to unmount");
+// 	var command;
+// 	switch (os.type()){
+// 	    case 'Linux':
+// 	        command = `umount -f /tmp/mnt2`
+// 	        break;
+// 	    case 'Darwin':
+// 	        command = `diskutil umount force /tmp/mnt2`
+// 	        break;
+//     }
+//     exec(command,   function (error, stdout, stderr) {
+//     	console.log('stdout: ' + stdout);
+//     	console.log('stderr: ' + stderr);
+//     	if (error !== null) {
+//       		console.log('exec error: ' + error);
+//     	}
+// 	});
+// }, 1200);

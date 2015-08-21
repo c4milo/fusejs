@@ -19,7 +19,7 @@ describe('The Filesystem', function() {
 			filesystem: ExampleFS,
 			options: ["TestExampleFS","-o", "allow_other", mountpoint]
 		});
-		setTimeout(done, 1000); //wait a second before actually starting the tests
+		setTimeout(done, 25); //wait a second before actually starting the tests
 	});
 
     it('should have one folder called hello', function (done) {

@@ -233,7 +233,8 @@ namespace NodeFuse {
     }
 
     NAN_GETTER(FileInfo::GetNonSeekable){     
-#if FUSE_USE_VERSION > 27
+
+#if FUSE_USE_VERSION > 27 && !__APPLE__
         FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
         info.GetReturnValue().Set(fileInfo->fi->nonseekable ? Nan::True() : Nan::False());
 #else
@@ -246,7 +247,7 @@ namespace NodeFuse {
         if (!value->IsBoolean()) {
             FUSEJS_THROW_EXCEPTION("Invalid value type: ", "a Boolean was expected");
         }
-#if FUSE_USE_VERSION > 27
+#if FUSE_USE_VERSION > 28 && !__APPLE__
         FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
         fileInfo->fi->nonseekable = value->IsTrue() ? 1 : 0;
 #endif

@@ -5,7 +5,6 @@
 #ifndef _SRC_FILESYSTEM_H_
 #define _SRC_FILESYSTEM_H_
 #include "node_fuse.h"
-#include "ck_ring.h"
 #include <stdlib.h>
 #include <stdint.h>
 #define _FUSE_OPS_LOOKUP_      0
@@ -42,15 +41,15 @@
 #define _FUSE_OPS_GETLK_       31
 #define _FUSE_OPS_SETLK_       32
 #define _FUSE_OPS_BMAP_        33
+#define _NUMBER_OF_FUSE_OPERATIONS_ 33
+
 #define _FUSE_UNMOUNT_         34
-#define _RING_SIZE_            32
+#define __RING_SIZE__          32768
 extern uv_async_t uv_async_handle;
 
 #include "bindings.h"
 
 namespace NodeFuse {
-    extern ck_ring_t *ck_ring;
-    extern ck_ring_buffer_t ck_ring_buffer[_RING_SIZE_];
     struct fuse_cmd
     {
       int8_t op;

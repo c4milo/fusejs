@@ -1,7 +1,6 @@
-sudo: true
 language: node_js
 env:
-  - PKG_CONFIG_PATH=$HOME/libck/lib/pkgconfig CXX="ccache g++-4.8"
+  - CXX="ccache g++-4.8 -std=c++11"
 
 addons:
   apt:
@@ -38,23 +37,10 @@ before_install:
   - $CXX --version
   - npm install npm
   - mv node_modules npm
-  - LOCALNPM=`pwd`/npm/.bin/npm
-  - LOCALBUILD=`pwd`
-  - PARENTNODE=$(dirname `which node`)
-  - PARENTNODE=$(dirname "$PARENTNODE")
   - npm/.bin/npm --version  
   - npm/.bin/npm install -g node-gyp-install
   - npm/.bin/npm install -g mocha
   - node-gyp-install
-  - wget http://concurrencykit.org/releases/ck-0.4.5.tar.gz
-  - echo $PKG_CONFIG_PATH
-  - tar -zxvf ck-0.4.5.tar.gz
-  - cd ck-0.4.5 && ./configure --prefix=$HOME/libck && make && make install
-  - cd ..
-  - BUILD_DIR=`pwd`
-  - echo $PARENTNODE
-  - echo $LOCALBUILD
-  - ls `which node`
 
 install:
   - npm/.bin/npm install

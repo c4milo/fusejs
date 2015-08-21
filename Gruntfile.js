@@ -9,11 +9,12 @@ module.exports = function (grunt){
         files: [ 'Gruntfile.js' ],
         options:{ 
           reload: true        
-        }
+        },
+        tasks:['gyp', 'mochaTest']
       },
       scripts:{
-          files:['src/*.cc', 'src/*.h'],
-          tasks:['gyp']
+          files:['src/*.cc', 'src/*.h', 'binding.gyp'],
+          tasks:['gyp', 'mochaTest']
       },
       tests:{        
           files:['test/*.js', 'examples/example.js'],

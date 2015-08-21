@@ -7,123 +7,189 @@
 #include "file_info.h"
 #include "bindings.h"
 #include "node_buffer.h"
+#include "mpsc_queue.h"
 
 namespace NodeFuse {
     Persistent<Function> FileSystem::constructor;
 
-    ck_ring_t *ck_ring;
-    ck_ring_buffer_t ck_ring_buffer[_RING_SIZE_];
+    // struct vrt_fuse_cmd_value
+    // {
+    //   struct vrt_value parent;
+    //   // struct fuse_cmd value;
+    //   int8_t op;
+    //   fuse_req_t req;
+    //   fuse_ino_t ino;
+    //   fuse_ino_t newino; //used for renaming files
+    //   size_t size;
+    //   off_t off;
+    //   dev_t dev;
+    //   mode_t mode;
+    //   const char* name;
+    //   const char* newname; //used for renaming files, and for symlinking
+    //   int to_set;
+    //   struct fuse_conn_info conn;
+    //   struct fuse_file_info fi;
+    //   struct stat attr;
+    //   void *userdata;
+    //   unsigned long nlookup;
+    //   #ifdef __APPLE__
+    //   uint32_t position;
+    //   #endif 
+    // };
 
+
+    // static struct vrt_value *
+    // vrt_fuse_cmd__new_value(struct vrt_value_type *type)
+    // {
+    //     struct vrt_fuse_cmd_value  *self = (struct vrt_fuse_cmd_value *) cork_new(struct vrt_fuse_cmd_value);
+    //     return &self->parent;
+    // }
+
+    // static void
+    // vrt_fuse_cmd__free_value(struct vrt_value_type *type, struct vrt_value *value)
+    // {
+    //     struct vrt_fuse_cmd_value  *self =
+    //         cork_container_of(value, struct vrt_fuse_cmd_value, parent);
+    //     free(self);
+    // }
+
+    // /* The following hash value is produced by the cork-hash utility function */
+    // // #define VRT_FUSE_CMD_TYPE 0x0f0ea3c9
+
+    // static struct vrt_value_type  _vrt_fuse_cmd_type  = {
+    //     vrt_fuse_cmd__new_value,
+    //     vrt_fuse_cmd__free_value
+    // };
+
+    // static struct vrt_value_type *
+    // vrt_fuse_cmd_type(void)
+    // {
+    //     return &_vrt_fuse_cmd_type;
+    // }
+
+
+
+
+    // static struct vrt_queue *ring_buffer; // =  vrt_queue_new("queue", vrt_fuse_cmd_type, __RING_SIZE__);
+    // static struct vrt_producer **producers;// = (struct vrt_producer *) malloc(sizeof(struct vrt_producer *) * _NUMBER_OF_FUSE_OPERATIONS_)
+    // static struct vrt_consumer *consumer;
     static struct fuse_lowlevel_ops fuse_ops = {};
+
+    static mpsc_queue_t<struct fuse_cmd> ring_buffer(__RING_SIZE__);
     
     void FileSystem::DispatchOp(uv_async_t* handle, int status)
     {
-        struct fuse_cmd *op = NULL; //(struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
+    //     struct vrt_fuse_cmd_value op; //(struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
 
-        while (ck_ring_dequeue_spmc(ck_ring, ck_ring_buffer, (void*) &op) == true){
-            switch(op->op){
+    //     struct vrt_value *vvalue;
+    //     struct vrt_fuse_cmd_value *value;
+        struct fuse_cmd *value;
+        int result;
+        while (   (result = ring_buffer.consume(&value)) != MPSC_QUEUE_EOF ){
+
+            switch(value->op){
                 case _FUSE_OPS_LOOKUP_:
-                    RemoteLookup(op->req, op->ino, op->name);
+                    RemoteLookup(value->req, value->ino, value->name);
                     break;
                 case _FUSE_OPS_GETATTR_:
-                    RemoteGetAttr(op->req, op->ino, op->fi);
+                    RemoteGetAttr(value->req, value->ino, value->fi);
                     break;
                 case _FUSE_OPS_OPEN_:
-                    RemoteOpen(op->req, op->ino, op->fi);
+                    RemoteOpen(value->req, value->ino, value->fi);
                     break;
                 case _FUSE_OPS_READ_:
-                    RemoteRead(op->req, op->ino, op->size, op->off, op->fi);
+                    RemoteRead(value->req, value->ino, value->size, value->off, value->fi);
                     break;
                 case _FUSE_OPS_READDIR_:
-                    RemoteReadDir(op->req, op->ino, op->size, op->off, op->fi);
+                    RemoteReadDir(value->req, value->ino, value->size, value->off, value->fi);
                     break;
                 case _FUSE_OPS_INIT_:
-                    RemoteInit(op->userdata, op->conn);
+                    RemoteInit(value->userdata, value->conn);
                     break;
                 case _FUSE_OPS_DESTROY_:
-                    RemoteDestroy(op->userdata);
+                    RemoteDestroy(value->userdata);
                     break;
                 case _FUSE_OPS_FORGET_:
-                    RemoteForget(op->req, op->ino, op->nlookup);
+                    RemoteForget(value->req, value->ino, value->nlookup);
                     break;
                 case _FUSE_OPS_SETATTR_:
-                    RemoteSetAttr(op->req, op->ino, op->attr, op->to_set, op->fi);
+                    RemoteSetAttr(value->req, value->ino, value->attr, value->to_set, value->fi);
                     break;
                 case _FUSE_OPS_READLINK_:
-                    RemoteReadLink(op->req, op->ino);
+                    RemoteReadLink(value->req, value->ino);
                     break;
                 case _FUSE_OPS_MKNOD_:
-                    RemoteMkNod(op->req, op->ino, op->name, op->mode, op-> dev);
+                    RemoteMkNod(value->req, value->ino, value->name, value->mode, value->dev);
                     break;
                 case _FUSE_OPS_MKDIR_:
-                    RemoteMkDir(op->req, op->ino, op->name,op->mode);
+                    RemoteMkDir(value->req, value->ino, value->name,value->mode);
                     break;
                 case _FUSE_OPS_UNLINK_:
-                    RemoteUnlink(op->req, op->ino, op->name);
+                    RemoteUnlink(value->req, value->ino, value->name);
                     break;
                 case _FUSE_OPS_RMDIR_:
-                    RemoteRmDir(op->req, op->ino, op->name);
+                    RemoteRmDir(value->req, value->ino, value->name);
                     break;
                 case _FUSE_OPS_SYMLINK_:
-                    RemoteSymLink(op->req, op->name, op->ino, op->newname);
+                    RemoteSymLink(value->req, value->name, value->ino, value->newname);
                     break;
                 case _FUSE_OPS_RENAME_:
-                    RemoteRename(op->req, op->ino, op->name, op->newino, op->newname);
+                    RemoteRename(value->req, value->ino, value->name, value->newino, value->newname);
                     break;
                 case _FUSE_OPS_LINK_:
-                    RemoteLink(op->req, op->ino, op->newino, op->name);
+                    RemoteLink(value->req, value->ino, value->newino, value->name);
                     break;
                 case _FUSE_OPS_WRITE_:
-                    RemoteWrite(op->req, op->ino, op->name, op->size, op->off, op->fi);
+                    RemoteWrite(value->req, value->ino, value->name, value->size, value->off, value->fi);
                     break;
                 case _FUSE_OPS_FLUSH_:
-                    RemoteFlush(op->req, op->ino, op->fi);
+                    RemoteFlush(value->req, value->ino, value->fi);
                     break;
                 case _FUSE_OPS_RELEASE_:
-                    RemoteRelease(op->req, op->ino, op->fi);
+                    RemoteRelease(value->req, value->ino, value->fi);
                     break;
                 case _FUSE_OPS_FSYNC_:
-                    RemoteFSync(op->req, op->ino, op->to_set, op->fi);
+                    RemoteFSync(value->req, value->ino, value->to_set, value->fi);
                     break;
                 case _FUSE_OPS_OPENDIR_:
-                    RemoteOpenDir(op->req, op->ino, op->fi);
+                    RemoteOpenDir(value->req, value->ino, value->fi);
                     break;
                 case _FUSE_OPS_RELEASEDIR_:
-                    RemoteReleaseDir(op->req, op->ino, op->fi);
+                    RemoteReleaseDir(value->req, value->ino, value->fi);
                     break;
                 case _FUSE_OPS_FSYNCDIR_:
-                    RemoteFSyncDir(op->req, op->ino, op->to_set, op->fi);
+                    RemoteFSyncDir(value->req, value->ino, value->to_set, value->fi);
                     break;
                 case _FUSE_OPS_STATFS_:
-                    RemoteStatFs(op->req, op->ino);
+                    RemoteStatFs(value->req, value->ino);
                     break;
                 case _FUSE_OPS_SETXATTR_:
-                    RemoteSetXAttr(op->req, op->ino,op->name, op->newname, op->size, op->to_set
+                    RemoteSetXAttr(value->req, value->ino,value->name, value->newname, value->size, value->to_set
                             #ifdef __APPLE__
-                                              ,op->position
+                                              ,value->position
                             #endif
                         );
 
                     break;
                 case _FUSE_OPS_GETXATTR_:
-                    RemoteGetXAttr(op->req, op-> ino, op->name, op->size
+                    RemoteGetXAttr(value->req, value->ino, value->name, value->size
                             #ifdef __APPLE__
-                                              ,op-> position
+                                              ,value->position
                             #endif
                         );
 
                     break;
                 case _FUSE_OPS_LISTXATTR_:
-                    RemoteListXAttr(op->req, op->ino, op->size);
+                    RemoteListXAttr(value->req, value->ino, value->size);
                     break;
                 case _FUSE_OPS_REMOVEXATTR_:
-                    RemoteRemoveXAttr(op->req, op->ino, op->name);
+                    RemoteRemoveXAttr(value->req, value->ino, value->name);
                     break;
                 case _FUSE_OPS_ACCESS_:
-                    RemoteAccess(op->req, op->ino, op->to_set);
+                    RemoteAccess(value->req, value->ino, value->to_set);
                     break;
                 case _FUSE_OPS_CREATE_:
-                    RemoteCreate(op->req, op->ino, op->name, op->mode, op->fi);
+                    RemoteCreate(value->req, value->ino, value->name, value->mode, value->fi);
                     break;
                 case _FUSE_OPS_GETLK_:
                     break;
@@ -132,19 +198,24 @@ namespace NodeFuse {
                 case _FUSE_OPS_BMAP_:                
                     break;
             }
-                // free((void*)op->name);
-                // free((void*)op->newname);
-              // free(op->userdata);
-            
-            free(op);
         }
+        
     }
 
 
     void FileSystem::Initialize(Handle<Object> target) {
 
-        ck_ring = (ck_ring_t *) malloc(sizeof(ck_ring_t));
-        ck_ring_init(ck_ring, _RING_SIZE_);
+        // ring_buffer =  vrt_queue_new("queue", vrt_fuse_cmd_type(), __RING_SIZE__);
+        
+        // producers = (struct vrt_producer **) malloc(sizeof(struct vrt_producer *) * 1);
+        // int i;
+        // for( i = 0; i < 1; ++i){
+        //     producers[i] = vrt_producer_new("producer",1, ring_buffer);
+        //     producers[i]->yield = vrt_yield_strategy_hybrid();
+        // }
+        // consumer = vrt_consumer_new("consumer",  ring_buffer);
+        // consumer->yield =  vrt_yield_strategy_hybrid();
+
 
         fuse_ops.lookup     = FileSystem::Lookup;
         fuse_ops.getattr    = FileSystem::GetAttr;
@@ -230,14 +301,19 @@ namespace NodeFuse {
 
     void FileSystem::Init(void* userdata,
                           struct fuse_conn_info* conn) {
-        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
-        op->op = _FUSE_OPS_INIT_;
-        op->userdata =  userdata;
-        memcpy( &(op->conn), conn, sizeof(struct fuse_conn_info));
-        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
-            printf("ckring was full while trying to enqueue init");
+
+        struct fuse_cmd *value;
+
+        if( ring_buffer.producer_claim_next(&value) != 0 ){
+            printf("ring buffer was full while trying to enqueue init\n");
             return;
         }
+        value->op = _FUSE_OPS_INIT_;
+        value->userdata =  userdata;
+        if(conn != NULL){
+            memcpy( &(value->conn), conn, sizeof(struct fuse_conn_info));
+        }
+        ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_INIT_*/]);
         uv_async_send(&uv_async_handle);
 
     }
@@ -272,14 +348,18 @@ namespace NodeFuse {
         }
     }
     void FileSystem::Destroy(void* userdata) {
-        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
 
-        op->op = _FUSE_OPS_DESTROY_;
-        op->userdata =  userdata;        
-        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
-            printf("ckring was full while trying to enqueue init");
+        struct fuse_cmd *value;
+
+        if( ring_buffer.producer_claim_next(&value) != 0){
+            printf("ring buffer was full while trying to enqueue destroy");
             return;
         }
+
+        value->op = _FUSE_OPS_DESTROY_;
+        value->userdata =  userdata;        
+
+        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_DESTROY_*/]);
         uv_async_send(&uv_async_handle);
     }
 
@@ -302,15 +382,20 @@ namespace NodeFuse {
     void FileSystem::Lookup(fuse_req_t req,
                             fuse_ino_t parent,
                             const char* name) {
-        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
-        op->op = _FUSE_OPS_LOOKUP_;
-        op->req = req;
-        op->ino = parent;
-        op->name = name;
-        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
-            printf("ckring was full while trying to enqueue lookup at inode %d - with child %s\n", (int) parent,name);
+        struct fuse_cmd *value;
+
+        if( ring_buffer.producer_claim_next(&value) != 0){
+            printf("ring buffer was full while trying to enqueue lookup at inode %d - with child %s\n", (int) parent,name);
             return;
         }
+
+
+        value->op = _FUSE_OPS_LOOKUP_;
+        value->req = req;
+        value->ino = parent;
+        value->name = name;
+
+        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_LOOKUP_*/]);
         uv_async_send(&uv_async_handle);
 
     }
@@ -348,15 +433,19 @@ namespace NodeFuse {
     void FileSystem::Forget(fuse_req_t req,
                             fuse_ino_t ino,
                             unsigned long nlookup) {
-        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
-        op->op = _FUSE_OPS_FORGET_;
-        op->req = req;
-        op->ino = ino;
-        op->nlookup = nlookup;
-        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
-            printf("ckring was full while trying to enqueue forget at inode %d\n", (int)ino);
+        struct fuse_cmd *value;
+
+        if( ring_buffer.producer_claim_next(&value) != 0){
+            printf("ring buffer was full while trying to enqueue forget at inode %d\n", (int)ino);
             return;
         }
+
+        value->op = _FUSE_OPS_FORGET_;
+        value->req = req;
+        value->ino = ino;
+        value->nlookup = nlookup;
+
+        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_FORGET_*/]);
         uv_async_send(&uv_async_handle);
 
     }
@@ -392,18 +481,22 @@ namespace NodeFuse {
     void FileSystem::GetAttr(fuse_req_t req,
                              fuse_ino_t ino,
                              struct fuse_file_info* fi) {
-        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
-        op->op = _FUSE_OPS_GETATTR_;
-        op->req = req;
-        op->ino = ino;
-        if(fi != NULL){
-            memcpy( (void *) &(op->fi),  fi, sizeof(struct fuse_file_info));
-        }
-        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
-            printf("ckring was full while trying to enqueue getattr at inode %d\n", (int) ino);
+        struct fuse_cmd *value;
+
+        if( ring_buffer.producer_claim_next(&value) != 0){
+            printf("ring buffer was full while trying to enqueue getattr at inode %d\n", (int) ino);
             return;
         }
 
+        value->op = _FUSE_OPS_GETATTR_;
+        value->req = req;
+        value->ino = ino;
+        // value->fi = fuse_file_info;
+        if(fi != NULL){
+            memcpy( (void *) &(value->fi),  fi, sizeof(struct fuse_file_info));
+        }
+
+        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_GETATTR_*/ ]);
         uv_async_send(&uv_async_handle);
 
     }
@@ -444,20 +537,25 @@ namespace NodeFuse {
                              int to_set,
                              struct fuse_file_info* fi) {
 
-        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
-        op->op = _FUSE_OPS_SETATTR_;
-        op->req = req;
-        op->ino = ino;
-        memcpy( (void*) &(op->attr), attr, sizeof(struct stat) );
-        op->to_set = to_set;
-        if(fi != NULL){
-            memcpy( (void*) &(op->fi), fi, sizeof(struct fuse_file_info));
-        }
-        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
-            printf("ckring was full while trying to enqueue setattr at inode %d\n", (int) ino);
+        struct fuse_cmd *value;
+
+        if( ring_buffer.producer_claim_next(&value) != 0){
+            printf("ring buffer was full while trying to enqueue setattr at inode %d\n", (int) ino);
             return;
         }
 
+
+        value->op = _FUSE_OPS_SETATTR_;
+        value->req = req;
+        value->ino = ino;
+        memcpy( (void*) &(value->attr), attr, sizeof(struct stat) );
+        value->to_set = to_set;
+        if(fi != NULL){
+            memcpy( (void*) &(value->fi), fi, sizeof(struct fuse_file_info));
+        }
+
+
+        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_SETATTR_*/]);
         uv_async_send(&uv_async_handle);
 
     }
@@ -501,15 +599,18 @@ namespace NodeFuse {
     }
 
     void FileSystem::ReadLink(fuse_req_t req, fuse_ino_t ino) {
-        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
-        op->op = _FUSE_OPS_READLINK_;
-        op->req = req;
-        op->ino = ino;
-        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
-            printf("ckring was full while trying to enqueue setattr at inode %d\n", (int) ino);
+        struct fuse_cmd *value;
+
+        if( ring_buffer.producer_claim_next(&value) != 0){
+            printf("ring buffer was full while trying to enqueue setattr at inode %d\n", (int) ino);
             return;
         }
 
+        value->op = _FUSE_OPS_READLINK_;
+        value->req = req;
+        value->ino = ino;
+
+        ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_READLINK_*/ ]);
         uv_async_send(&uv_async_handle);
     }
     void FileSystem::RemoteReadLink(fuse_req_t req, fuse_ino_t ino) {
@@ -544,18 +645,22 @@ namespace NodeFuse {
                            const char* name,
                            mode_t mode,
                            dev_t rdev) {
-        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
-        op->op = _FUSE_OPS_MKNOD_;
-        op->req = req;
-        op->ino= parent;
-        op->name = name;
-        op->mode = mode;
-        op->dev = rdev;
-        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
-            printf("ckring was full while trying to enqueue mknod with parent %d and child %s\n", (int) parent, name);
+        struct fuse_cmd *value;
+
+        if( ring_buffer.producer_claim_next(&value) != 0){
+            printf("ring buffer was full while trying to enqueue mknod with parent %d and child %s\n", (int) parent, name);
             return;
         }
 
+
+        value->op = _FUSE_OPS_MKNOD_;
+        value->req = req;
+        value->ino= parent;
+        value->name = name;
+        value->mode = mode;
+        value->dev = rdev;
+
+        ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_MKNOD_*/ ]);
         uv_async_send(&uv_async_handle);
 
 
@@ -606,17 +711,20 @@ namespace NodeFuse {
                            const char* name,
                            mode_t mode) {
 
-        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
-        op->op = _FUSE_OPS_MKDIR_;
-        op->req = req;
-        op->ino = parent;
-        op->name = name;
-        op->mode = mode;
-        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
-            printf("ckring was full while trying to enqueue mkdir with parent %d and name %s\n", (int) parent, name);
+        struct fuse_cmd *value;
+
+        if( ring_buffer.producer_claim_next(&value) != 0){
+            printf("ring buffer was full while trying to enqueue mkdir with parent %d and name %s\n", (int) parent, name);
             return;
         }
 
+        value->op = _FUSE_OPS_MKDIR_;
+        value->req = req;
+        value->ino = parent;
+        value->name = name;
+        value->mode = mode;
+
+        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_MKDIR_*/ ]);
         uv_async_send(&uv_async_handle);
 
     }
@@ -661,16 +769,19 @@ namespace NodeFuse {
                             fuse_ino_t parent,
                             const char* name) {
 
-        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
-        op->op = _FUSE_OPS_UNLINK_;
-        op->req = req;
-        op->ino = parent;
-        op->name = name;
-        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
-            printf("ckring was full while trying to unlink %s from parent %d \n",  name, (int) parent);
+        struct fuse_cmd *value;
+
+        if( ring_buffer.producer_claim_next(&value) != 0){
+            printf("ring buffer was full while trying to unlink %s from parent %d \n",  name, (int) parent);
             return;
         }
 
+        value->op = _FUSE_OPS_UNLINK_;
+        value->req = req;
+        value->ino = parent;
+        value->name = name;
+
+        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_UNLINK_*/]);
         uv_async_send(&uv_async_handle);
 
     }
@@ -710,16 +821,20 @@ namespace NodeFuse {
     void FileSystem::RmDir(fuse_req_t req,
                            fuse_ino_t parent,
                            const char* name) {
-        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
-        op->op = _FUSE_OPS_RMDIR_;
-        op->req = req;
-        op->ino = parent;
-        op->name = name;
-        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
-            printf("ckring was full while trying to unlink folder %s from parent %d \n",  name, (int) parent);
+        struct fuse_cmd *value;
+
+        if( ring_buffer.producer_claim_next(&value) != 0){
+            printf("ring buffer was full while trying to unlink folder %s from parent %d \n",  name, (int) parent);
             return;
         }
 
+
+        value->op = _FUSE_OPS_RMDIR_;
+        value->req = req;
+        value->ino = parent;
+        value->name = name;
+
+        ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_RMDIR_*/ ]);
         uv_async_send(&uv_async_handle);
 
     }
@@ -759,16 +874,20 @@ namespace NodeFuse {
                              const char* link,
                              fuse_ino_t parent,
                              const char* name) {
-        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
-        op->op = _FUSE_OPS_SYMLINK_;
-        op->name = link;
-        op->ino = parent;
-        op->newname = name;
-        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
-            printf("ckring was full while trying to symlink from %s to %s with parent inode %d \n",  name, link, (int) parent);
+        struct fuse_cmd *value;
+
+        if( ring_buffer.producer_claim_next(&value) != 0){
+            printf("ring buffer was full while trying to symlink from %s to %s with parent inode %d \n",  name, link, (int) parent);
             return;
         }
 
+        value->op = _FUSE_OPS_SYMLINK_;
+        value->name = link;
+        value->ino = parent;
+        value->newname = name;
+
+
+        ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_SYMLINK_*/ ]);
         uv_async_send(&uv_async_handle);
 
     }
@@ -810,18 +929,22 @@ namespace NodeFuse {
                                 const char *name,
                                 fuse_ino_t newparent,
                                 const char *newname){
-        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
-        op->op = _FUSE_OPS_RENAME_;
-        op->req = req;
-        op->ino = parent;
-        op->newino = newparent;
-        op->name = name;
-        op->newname = newname;
-        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
-            printf("ckring was full while trying to rename file %s from parent %d \n",  name, (int) parent);
+        struct fuse_cmd *value;
+
+        if( ring_buffer.producer_claim_next(&value) != 0){
+            printf("ring buffer was full while trying to rename file %s from parent %d \n",  name, (int) parent);
             return;
         }
 
+
+        value->op = _FUSE_OPS_RENAME_;
+        value->req = req;
+        value->ino = parent;
+        value->newino = newparent;
+        value->name = name;
+        value->newname = newname;
+
+        ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_RENAME_*/ ]);
         uv_async_send(&uv_async_handle);
 
     }
@@ -866,17 +989,21 @@ namespace NodeFuse {
                           fuse_ino_t newparent,
                           const char* newname) 
     {
-        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
-        op->op = _FUSE_OPS_LINK_;
-        op->req = req;
-        op->ino = ino;
-        op->newino = newparent;
-        op->name = newname;
-        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
-            printf("ckring was full while trying to link inode %d to new parent parent %d with newname %s\n",  (int) ino, (int) newparent, newname);
+        struct fuse_cmd *value;
+
+        if( ring_buffer.producer_claim_next(&value) != 0){
+            printf("ring buffer was full while trying to link inode %d to new parent parent %d with newname %s\n",  (int) ino, (int) newparent, newname);
             return;
         }
 
+
+        value->op = _FUSE_OPS_LINK_;
+        value->req = req;
+        value->ino = ino;
+        value->newino = newparent;
+        value->name = newname;
+
+        ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_LINK_*/ ]);
         uv_async_send(&uv_async_handle);
     }
 
@@ -916,17 +1043,22 @@ namespace NodeFuse {
     void FileSystem::Open(fuse_req_t req,
                           fuse_ino_t ino,
                           struct fuse_file_info* fi) {
-        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
-        op->op = _FUSE_OPS_OPEN_;
-        op->req = req;
-        op->ino = ino;
-        if(fi != NULL){
-            memcpy( (void*) &(op->fi), fi, sizeof(struct fuse_file_info));
-        }
-        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
-            printf("ckring was full while trying to enqueue open at inode %d\n", (int) ino);
+        struct fuse_cmd *value;
+
+        if( ring_buffer.producer_claim_next(&value) != 0){
+            printf("ring buffer was full while trying to enqueue open at inode %d\n", (int) ino);
             return;
         }
+
+
+        value->op = _FUSE_OPS_OPEN_;
+        value->req = req;
+        value->ino = ino;
+        if(fi != NULL){
+            memcpy( (void*) &(value->fi), fi, sizeof(struct fuse_file_info));
+        }
+
+        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_OPEN_*/]);
         uv_async_send(&uv_async_handle);
 
     }
@@ -974,19 +1106,24 @@ namespace NodeFuse {
                           size_t size,
                           off_t off,
                           struct fuse_file_info* fi) {
-        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
-        op->op = _FUSE_OPS_READ_;
-        op->req = req;
-        op->ino = ino;
-        op->off = off;
-        op->size = size;
-        if(fi != NULL){
-            memcpy( (void*) &(op->fi), fi, sizeof(struct fuse_file_info));
-        }
-        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
-            printf("ckring was full while trying to enqueue read at inode %d\n", (int) ino);
+        struct fuse_cmd *value;
+
+        if( ring_buffer.producer_claim_next(&value) != 0){
+            printf("ring buffer was full while trying to enqueue read at inode %d\n", (int) ino);
             return;
         }
+
+
+        value->op = _FUSE_OPS_READ_;
+        value->req = req;
+        value->ino = ino;
+        value->off = off;
+        value->size = size;
+        if(fi != NULL){
+            memcpy( (void*) &(value->fi), fi, sizeof(struct fuse_file_info));
+        }
+
+        ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_READ_*/ ]);
         uv_async_send(&uv_async_handle);
 
 
@@ -1041,22 +1178,28 @@ namespace NodeFuse {
                            size_t size,
                            off_t off,
                            struct fuse_file_info* fi) {
-        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
-        op->op = _FUSE_OPS_WRITE_;
-        op->req = req;
-        op->ino = ino;
-        op->off = off;
-        op->size = size;
-        op->name = (char *)malloc(size);
-        memcpy((void *)op->name, buf, size);
+        struct fuse_cmd *value;
 
-        if(fi != NULL){
-            memcpy( (void*) &(op->fi), fi, sizeof(struct fuse_file_info));
-        }
-        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
-            printf("ckring was full while trying to enqueue write at inode %d\n", (int) ino);
+        if( ring_buffer.producer_claim_next(&value) != 0){
+            printf("ring buffer was full while trying to enqueue write at inode %d\n", (int) ino);
             return;
         }
+
+        
+
+        value->op = _FUSE_OPS_WRITE_;
+        value->req = req;
+        value->ino = ino;
+        value->off = off;
+        value->size = size;
+        value->name = (char *)malloc(size);
+        memcpy((void *)value->name, buf, size);
+
+        if(fi != NULL){
+            memcpy( (void*) &(value->fi), fi, sizeof(struct fuse_file_info));
+        }
+
+        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_WRITE_*/]);
         uv_async_send(&uv_async_handle);
 
 
@@ -1110,17 +1253,21 @@ namespace NodeFuse {
     void FileSystem::Flush(fuse_req_t req,
                            fuse_ino_t ino,
                            struct fuse_file_info* fi) {
-        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
-        op->op = _FUSE_OPS_FLUSH_;
-        op->req = req;
-        op->ino = ino;
-        if(fi != NULL){
-            memcpy( (void*) &(op->fi), fi, sizeof(struct fuse_file_info));
-        }
-        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
-            printf("ckring was full while trying to enqueue write at inode %d\n", (int) ino);
+        struct fuse_cmd *value;
+
+        if( ring_buffer.producer_claim_next(&value) != 0){
+            printf("ring buffer was full while trying to enqueue write at inode %d\n", (int) ino);
             return;
         }
+
+        value->op = _FUSE_OPS_FLUSH_;
+        value->req = req;
+        value->ino = ino;
+        if(fi != NULL){
+            memcpy( (void*) &(value->fi), fi, sizeof(struct fuse_file_info));
+        }
+
+        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_FLUSH_*/]);
         uv_async_send(&uv_async_handle);
 
     }
@@ -1166,17 +1313,22 @@ namespace NodeFuse {
                              fuse_ino_t ino,
                              struct fuse_file_info* fi) {
 
-        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
-        op->op = _FUSE_OPS_RELEASE_;
-        op->req = req;
-        op->ino = ino;
-        if(fi != NULL){
-            memcpy( (void*) &(op->fi), fi, sizeof(struct fuse_file_info));
-        }
-        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
-            printf("ckring was full while trying to release inode %d\n", (int) ino);
+        struct fuse_cmd *value;
+
+        if( ring_buffer.producer_claim_next(&value) != 0){
+            printf("ring buffer was full while trying to release inode %d\n", (int) ino);
             return;
         }
+
+        
+        value->op = _FUSE_OPS_RELEASE_;
+        value->req = req;
+        value->ino = ino;
+        if(fi != NULL){
+            memcpy( (void*) &(value->fi), fi, sizeof(struct fuse_file_info));
+        }
+
+        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_RELEASE_*/]);
         uv_async_send(&uv_async_handle);
 
     }
@@ -1221,20 +1373,23 @@ namespace NodeFuse {
                            fuse_ino_t ino,
                            int datasync_,
                            struct fuse_file_info* fi) {
-        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
-        op->op = _FUSE_OPS_FSYNC_;
-        op->req = req;
-        op->ino = ino;
-        op->to_set = datasync_;
-        if(fi != NULL){
-            memcpy( (void*) &(op->fi), fi, sizeof(struct fuse_file_info));
-        }
 
-        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
-            printf("ckring was full while trying to fsync file %d\n",  (int) ino);
+        struct fuse_cmd *value;
+
+        if( ring_buffer.producer_claim_next(&value) != 0){
+            printf("ring buffer was full while trying to fsync file %d\n",  (int) ino);
             return;
         }
 
+        value->op = _FUSE_OPS_FSYNC_;
+        value->req = req;
+        value->ino = ino;
+        value->to_set = datasync_;
+        if(fi != NULL){
+            memcpy( (void*) &(value->fi), fi, sizeof(struct fuse_file_info));
+        }
+
+        ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_FSYNC_*/]);
         uv_async_send(&uv_async_handle);
 
     }
@@ -1281,19 +1436,22 @@ namespace NodeFuse {
     void FileSystem::OpenDir(fuse_req_t req,
                              fuse_ino_t ino,
                              struct fuse_file_info* fi) {
-        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
-        op->op = _FUSE_OPS_OPENDIR_;
-        op->req = req;
-        op->ino = ino;
-        if(fi != NULL){
-            memcpy( (void*) &(op->fi), fi, sizeof(struct fuse_file_info));
-        }
 
-        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
-            printf("ckring was full while trying to opendir with inode %d \n",  (int)ino);
+        struct fuse_cmd *value;
+
+        if( ring_buffer.producer_claim_next(&value) != 0){
+            printf("ring buffer was full while trying to opendir with inode %d \n",  (int)ino);
             return;
         }
 
+        value->op = _FUSE_OPS_OPENDIR_;
+        value->req = req;
+        value->ino = ino;
+        if(fi != NULL){
+            memcpy( (void*) &(value->fi), fi, sizeof(struct fuse_file_info));
+        }
+
+        ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_OPENDIR_*/ ]);
         uv_async_send(&uv_async_handle);
     }
 
@@ -1339,19 +1497,24 @@ namespace NodeFuse {
                              off_t off,
                              struct fuse_file_info* fi) {
 
-        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
-        op->op = _FUSE_OPS_READDIR_;
-        op->req = req;
-        op->ino = ino;
-        op->size = size_;
-        op->off = off;
-        if(fi != NULL){
-            memcpy( (void*) &(op->fi), fi, sizeof(struct fuse_file_info));
-        }
-        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
-            printf("ckring was full while trying to enqueue readdir at inode %d\n", (uint8_t) ino);
+        struct fuse_cmd *value;
+
+        if( ring_buffer.producer_claim_next(&value) != 0){
+            printf("ring buffer was full while trying to enqueue readdir at inode %d\n", (uint8_t) ino);
             return;
         }
+
+
+        value->op = _FUSE_OPS_READDIR_;
+        value->req = req;
+        value->ino = ino;
+        value->size = size_;
+        value->off = off;
+        if(fi != NULL){
+            memcpy( (void*) &(value->fi), fi, sizeof(struct fuse_file_info));
+        }
+
+        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_READDIR_*/]);
         uv_async_send(&uv_async_handle);
     }
     void FileSystem::RemoteReadDir(fuse_req_t req,
@@ -1401,19 +1564,25 @@ namespace NodeFuse {
     void FileSystem::ReleaseDir(fuse_req_t req,
                                 fuse_ino_t ino,
                                 struct fuse_file_info* fi) {
-        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
-        op->op = _FUSE_OPS_RELEASEDIR_;
-        op->req = req;
-        op->ino = ino;
-        if(fi != NULL){
-            memcpy( (void*) &(op->fi), fi, sizeof(struct fuse_file_info));
-        }
 
-        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
-            printf("ckring was full while trying to releasedir with inode %d \n",  (int)ino);
+        struct fuse_cmd *value;
+
+        if( ring_buffer.producer_claim_next(&value) != 0){
+            printf("ring buffer was full while trying to releasedir with inode %d \n",  (int)ino);
             return;
         }
 
+        
+
+        value->op = _FUSE_OPS_RELEASEDIR_;
+        value->req = req;
+        value->ino = ino;
+        if(fi != NULL){
+            memcpy( (void*) &(value->fi), fi, sizeof(struct fuse_file_info));
+        }
+
+
+        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_RELEASEDIR_*/]);
         uv_async_send(&uv_async_handle);
 
     }
@@ -1458,20 +1627,24 @@ namespace NodeFuse {
                               fuse_ino_t ino,
                               int datasync_,
                               struct fuse_file_info* fi) {
-        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
-        op->op = _FUSE_OPS_FSYNCDIR_;
-        op->req = req;
-        op->ino = ino;
-        op->to_set = datasync_;
-        if(fi != NULL){
-            memcpy( (void*) &(op->fi), fi, sizeof(struct fuse_file_info));
-        }
 
-        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
-            printf("ckring was full while trying to fsync dir %d\n",  (int) ino);
+        struct fuse_cmd *value;
+
+        if( ring_buffer.producer_claim_next(&value) != 0){
+            printf("ring buffer was full while trying to fsync dir %d\n",  (int) ino);
             return;
         }
 
+        
+        value->op = _FUSE_OPS_FSYNCDIR_;
+        value->req = req;
+        value->ino = ino;
+        value->to_set = datasync_;
+        if(fi != NULL){
+            memcpy( (void*) &(value->fi), fi, sizeof(struct fuse_file_info));
+        }
+
+        ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_FSYNCDIR_*/ ]);
         uv_async_send(&uv_async_handle);
     }
     void FileSystem::RemoteFSyncDir(fuse_req_t req,
@@ -1515,14 +1688,18 @@ namespace NodeFuse {
     }
 
     void FileSystem::StatFs(fuse_req_t req, fuse_ino_t ino) {
-        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
-        op->op = _FUSE_OPS_STATFS_;
-        op->req = req;
-        op->ino = ino;
-        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
-            printf("ckring was full while trying to statfs inode %d\n", (int) ino);
+        struct fuse_cmd *value;
+
+        if( ring_buffer.producer_claim_next(&value) != 0){
+            printf("ring buffer was full while trying to statfs inode %d\n", (int) ino);
             return;
         }
+
+        value->op = _FUSE_OPS_STATFS_;
+        value->req = req;
+        value->ino = ino;
+
+        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_STATFS_*/]);
         uv_async_send(&uv_async_handle);
 
     }
@@ -1565,22 +1742,27 @@ namespace NodeFuse {
                 #else
                                   int flags_) {
                 #endif
-        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
-        op->op = _FUSE_OPS_SETXATTR_;
-        op->req = req;
-        op->name = name_;
-        op->newname = value_;
-        op->size = size_;
-        op->to_set = flags_;
-        #ifdef __APPLE__
-        op->position = position_;
-        #endif
 
-        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
-            printf("ckring was full while trying to setxattr file %s from parent %d \n",  name_, (int) ino);
+        struct fuse_cmd *value;
+
+        if( ring_buffer.producer_claim_next(&value) != 0){
+            printf("ring buffer was full while trying to setxattr file %s from parent %d \n",  name_, (int) ino);
             return;
         }
 
+
+
+        value->op = _FUSE_OPS_SETXATTR_;
+        value->req = req;
+        value->name = name_;
+        value->newname = value_;
+        value->size = size_;
+        value->to_set = flags_;
+        #ifdef __APPLE__
+        value->position = position_;
+        #endif
+
+        ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_SETXATTR_*/]);
         uv_async_send(&uv_async_handle);
 
     }
@@ -1652,21 +1834,24 @@ namespace NodeFuse {
             #else
                               ) {
             #endif
-    struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
-    op->op = _FUSE_OPS_GETXATTR_;
-    op->req = req;
-    op->ino = ino;
-    op->name = name_;
-    op->size = size_;
-    #ifdef __APPLE__
-    op->position = position_;
-    #endif
+    struct fuse_cmd *value;
 
-    if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
-        printf("ckring was full while trying to getxattr for inode %d\n",  (int) ino);
+    if( ring_buffer.producer_claim_next(&value) != 0){
+    printf("ring buffer was full while trying to getxattr for inode %d\n",  (int) ino);
         return;
     }
 
+    value->op = _FUSE_OPS_GETXATTR_;
+    value->req = req;
+    value->ino = ino;
+    value->name = name_;
+    value->size = size_;
+    #ifdef __APPLE__
+    value->position = position_;
+    #endif
+
+
+    ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_GETXATTR_*/]);
     uv_async_send(&uv_async_handle);
 
     }
@@ -1680,7 +1865,7 @@ namespace NodeFuse {
                               ) {
             #endif
 
-        Nan::HandleScope scope;;
+        Nan::HandleScope scope;
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
 
@@ -1726,15 +1911,19 @@ namespace NodeFuse {
                                fuse_ino_t ino,
                                size_t size_) {
 
-        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
-        op->op = _FUSE_OPS_LISTXATTR_;
-        op->req = req;
-        op->ino = ino;
-        op->size = size_;
-        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
-            printf("ckring was full while trying to enqueue write at inode %d\n", (int) ino);
+        struct fuse_cmd *value;
+
+        if( ring_buffer.producer_claim_next(&value) != 0){
+            printf("ring buffer was full while trying to enqueue write at inode %d\n", (int) ino);
             return;
         }
+
+
+        value->op = _FUSE_OPS_LISTXATTR_;
+        value->req = req;
+        value->ino = ino;
+        value->size = size_;
+        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_LISTXATTR_*/]);
         uv_async_send(&uv_async_handle);
 
     }
@@ -1771,15 +1960,18 @@ namespace NodeFuse {
     void FileSystem::RemoveXAttr(fuse_req_t req,
                                  fuse_ino_t ino,
                                  const char* name_) {
-        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
-        op->op = _FUSE_OPS_REMOVEXATTR_;
-        op->req = req;
-        op->ino = ino;
-        op->name = name_;
-        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
-            printf("ckring was full while trying to enqueue write at inode %d\n", (int) ino);
+        struct fuse_cmd *value;
+
+        if( ring_buffer.producer_claim_next(&value) != 0){
+            printf("ring buffer was full while trying to enqueue write at inode %d\n", (int) ino);
             return;
         }
+
+        value->op = _FUSE_OPS_REMOVEXATTR_;
+        value->req = req;
+        value->ino = ino;
+        value->name = name_;
+        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_REMOVEXATTR_*/]);
         uv_async_send(&uv_async_handle);
     }
 
@@ -1815,17 +2007,21 @@ namespace NodeFuse {
     void FileSystem::Access(fuse_req_t req,
                             fuse_ino_t ino,
                             int mask_) {
-        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
-        op->op = _FUSE_OPS_ACCESS_;
-        op->req = req;
-        op->ino = ino;
-        op->to_set = mask_;
 
-        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
-            printf("ckring was full while trying to access %d\n", (int) ino);
+        struct fuse_cmd *value;
+
+        if( ring_buffer.producer_claim_next(&value) != 0){
+            printf("ring buffer was full while trying to access %d\n", (int) ino);
             return;
         }
 
+
+        value->op = _FUSE_OPS_ACCESS_;
+        value->req = req;
+        value->ino = ino;
+        value->to_set = mask_;
+
+        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_ACCESS_*/]);
         uv_async_send(&uv_async_handle);
 
     }
@@ -1866,19 +2062,23 @@ namespace NodeFuse {
                             const char* name,
                             mode_t mode,
                             struct fuse_file_info* fi) {
-        struct fuse_cmd *op = (struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
-        op->op = _FUSE_OPS_CREATE_;
-        op->req = req;
-        op->ino = parent;
-        op->name = name;
-        op->mode = mode;
-        if(fi != NULL){
-            memcpy( (void*) &(op->fi), fi, sizeof(struct fuse_file_info));
-        }
-        if (ck_ring_enqueue_spmc(ck_ring, ck_ring_buffer, (void *) op) == false) {
-            printf("ckring was full while trying to enqueue write at inode %d\n", (int) parent);
+        struct fuse_cmd *value;
+
+        if( ring_buffer.producer_claim_next(&value) != 0){
+            printf("ring buffer was full while trying to enqueue write at inode %d\n", (int) parent);
             return;
         }
+
+        value->op = _FUSE_OPS_CREATE_;
+        value->req = req;
+        value->ino = parent;
+        value->name = name;
+        value->mode = mode;
+        if(fi != NULL){
+            memcpy( (void*) &(value->fi), fi, sizeof(struct fuse_file_info));
+        }
+
+        ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_CREATE_*/ ]);
         uv_async_send(&uv_async_handle);
 
     }
