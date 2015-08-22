@@ -12,7 +12,7 @@
 #include <string.h>
 #include <nan.h>
 
-#define NODE_FUSE_VERSION "0.1.0"
+#define NODE_FUSE_VERSION "1.2.0"
 
 using namespace v8;
 using namespace node;
