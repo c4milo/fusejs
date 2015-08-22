@@ -44,7 +44,7 @@
 #define _NUMBER_OF_FUSE_OPERATIONS_ 33
 
 #define _FUSE_UNMOUNT_         34
-#define __RING_SIZE__          32768
+#define __RING_SIZE__          1024
 extern uv_async_t uv_async_handle;
 
 #include "bindings.h"

@@ -34,7 +34,7 @@ public:
 		/* 
 		This function returns the next item to be consumed
 		*/
-		if( tail != (head+1) ){
+		if(!( tail == (head+1) || (head==ring_mask && tail==0) )){
 			*value = &(data[++head]);
 			// uint _tail = tail;
 			// uint _claimed = claimed;
@@ -46,8 +46,9 @@ public:
 	}
 
 	uint producer_claim_next(T **value){
-		uint idx = next_to_be_claimed++;
-		idx = idx & ring_mask; //this is quicker than doing a module if the ring_size is a power of 2
+		uint idx = next_to_be_claimed; 
+		++next_to_be_claimed;
+		next_to_be_claimed &= ring_mask; //this is quicker than doing a module if the ring_size is a power of 2
 		if(idx != head){
 			++claimed;
 			*value = &(data[idx]);
