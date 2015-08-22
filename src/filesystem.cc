@@ -198,9 +198,7 @@ namespace NodeFuse {
                     break;
                 case _FUSE_OPS_MULTI_FORGET_:
                     #if FUSE_USE_VERSION > 28
-                    #ifndef __APPLE__
                     RemoteMultiForget(value->req, value->size, static_cast<struct fuse_forget_data *>(value->userdata) );
-                    #endif
                     #endif
                     break;
 
@@ -546,7 +544,7 @@ namespace NodeFuse {
 
         Nan::TryCatch try_catch;
 
-        forget->Call(fsobj, 3, argv);
+        forget->Call(fsobj, 4, argv);
 
         if (try_catch.HasCaught()) {
             Nan::FatalException(try_catch);

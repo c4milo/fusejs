@@ -74,6 +74,11 @@ public:
 			}
 
 		}
+
+		// _tail = tail;
+		// printf("publish claimed %u -- tail %u\n", 
+		// 		_claimed, _tail);
+
 		return 0;
 
 	}
