@@ -48,9 +48,7 @@ public:
 	}
 
 	uint producer_claim_next(T **value){
-		uint idx = next_to_be_claimed; 
-		++next_to_be_claimed;
-		next_to_be_claimed &= ring_mask; //this is quicker than doing a module if the ring_size is a power of 2
+		uint idx = next_to_be_claimed++; 
 		if(idx != head){
 			++claimed;
 			*value = &(data[idx]);
@@ -64,8 +62,9 @@ public:
 		return MPSC_QUEUE_FULL;
 	}
 	uint producer_publish(){
-		if( --claimed == 0){
-			int idx = next_to_be_claimed;
+		uint _claimed = --claimed;
+		if( _claimed == 0){
+			uint idx = next_to_be_claimed;
 			tail = idx;
 		}
 		return 0;
@@ -74,7 +73,7 @@ public:
 private:
 	T *data;
 	std::atomic<uint> claimed;
-	std::atomic<uint> next_to_be_claimed;
+	std::atomic<uint8_t> next_to_be_claimed;
 	std::atomic<uint> tail; 
 	uint head;
 	uint ring_size;
