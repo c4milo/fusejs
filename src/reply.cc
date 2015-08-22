@@ -39,6 +39,7 @@ namespace NodeFuse {
         Nan::SetPrototypeMethod(tpl, "create", Reply::Create);
         Nan::SetPrototypeMethod(tpl, "xattr", Reply::XAttributes);
         Nan::SetPrototypeMethod(tpl, "addDirEntry", Reply::AddDirEntry);
+        Nan::SetPrototypeMethod(tpl, "none", Reply::None);
 
         constructor.Reset(tpl->GetFunction());
     }
@@ -404,6 +405,14 @@ namespace NodeFuse {
         }
 
     }
+
+    void Reply::None(const Nan::FunctionCallbackInfo<v8::Value>& args) {
+        Nan::EscapableHandleScope scope;
+        Local<Object> replyObj = args.This();
+        Reply* reply = ObjectWrap::Unwrap<Reply>(replyObj);       
+        fuse_reply_none(reply->request); 
+    }
+
 
     void Reply::BMap(const Nan::FunctionCallbackInfo<v8::Value>& args){
         Nan::HandleScope scope;;

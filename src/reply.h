@@ -31,6 +31,7 @@ namespace NodeFuse {
             static NAN_METHOD(Lock);
             static NAN_METHOD(BMap);
             static NAN_METHOD(AddDirEntry);
+            static NAN_METHOD(None);
 
         private:
             fuse_req_t request;
