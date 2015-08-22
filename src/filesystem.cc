@@ -497,7 +497,6 @@ namespace NodeFuse {
             Nan::FatalException(try_catch);
         }
 
-        fuse_reply_none(req);
         //scope.Close(Undefined());
 
     }
@@ -527,7 +526,7 @@ namespace NodeFuse {
     void FileSystem::RemoteForget(fuse_req_t req,
                             fuse_ino_t ino,
                             unsigned long nlookup) {
-        // Nan::HandleScope scope;;
+        Nan::HandleScope scope;;
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
         Local<Value> vforget = fsobj->Get(Nan::New<String>("forget").ToLocalChecked());
