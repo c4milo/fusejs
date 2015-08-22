@@ -314,7 +314,7 @@ namespace NodeFuse {
             memcpy( &(value->conn), conn, sizeof(struct fuse_conn_info));
         }
         ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_INIT_*/]);
-        uv_async_send(&uv_async_handle);
+        // uv_async_send(&uv_async_handle);
 
     }
     void FileSystem::RemoteInit(void* userdata,
@@ -360,7 +360,7 @@ namespace NodeFuse {
         value->userdata =  userdata;        
 
         ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_DESTROY_*/]);
-        uv_async_send(&uv_async_handle);
+        // uv_async_send(&uv_async_handle);
     }
 
     void FileSystem::RemoteDestroy(void* userdata) {
@@ -396,7 +396,7 @@ namespace NodeFuse {
         value->name = name;
 
         ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_LOOKUP_*/]);
-        uv_async_send(&uv_async_handle);
+        // uv_async_send(&uv_async_handle);
 
     }
 
@@ -446,7 +446,7 @@ namespace NodeFuse {
         value->nlookup = nlookup;
 
         ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_FORGET_*/]);
-        uv_async_send(&uv_async_handle);
+        // uv_async_send(&uv_async_handle);
 
     }
 
@@ -497,7 +497,7 @@ namespace NodeFuse {
         }
 
         ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_GETATTR_*/ ]);
-        uv_async_send(&uv_async_handle);
+        // uv_async_send(&uv_async_handle);
 
     }
     void FileSystem::RemoteGetAttr(fuse_req_t req,
@@ -556,7 +556,7 @@ namespace NodeFuse {
 
 
         ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_SETATTR_*/]);
-        uv_async_send(&uv_async_handle);
+        // uv_async_send(&uv_async_handle);
 
     }
     void FileSystem::RemoteSetAttr(fuse_req_t req,
@@ -611,7 +611,7 @@ namespace NodeFuse {
         value->ino = ino;
 
         ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_READLINK_*/ ]);
-        uv_async_send(&uv_async_handle);
+        // uv_async_send(&uv_async_handle);
     }
     void FileSystem::RemoteReadLink(fuse_req_t req, fuse_ino_t ino) {
         Nan::HandleScope scope;;
@@ -661,7 +661,7 @@ namespace NodeFuse {
         value->dev = rdev;
 
         ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_MKNOD_*/ ]);
-        uv_async_send(&uv_async_handle);
+        // uv_async_send(&uv_async_handle);
 
 
 
@@ -725,7 +725,7 @@ namespace NodeFuse {
         value->mode = mode;
 
         ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_MKDIR_*/ ]);
-        uv_async_send(&uv_async_handle);
+        // uv_async_send(&uv_async_handle);
 
     }
     void FileSystem::RemoteMkDir(fuse_req_t req,
@@ -782,7 +782,7 @@ namespace NodeFuse {
         value->name = name;
 
         ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_UNLINK_*/]);
-        uv_async_send(&uv_async_handle);
+        // uv_async_send(&uv_async_handle);
 
     }
     void FileSystem::RemoteUnlink(fuse_req_t req,
@@ -835,7 +835,7 @@ namespace NodeFuse {
         value->name = name;
 
         ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_RMDIR_*/ ]);
-        uv_async_send(&uv_async_handle);
+        // uv_async_send(&uv_async_handle);
 
     }
     void FileSystem::RemoteRmDir(fuse_req_t req,
@@ -888,7 +888,7 @@ namespace NodeFuse {
 
 
         ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_SYMLINK_*/ ]);
-        uv_async_send(&uv_async_handle);
+        // uv_async_send(&uv_async_handle);
 
     }
 
@@ -945,7 +945,7 @@ namespace NodeFuse {
         value->newname = newname;
 
         ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_RENAME_*/ ]);
-        uv_async_send(&uv_async_handle);
+        // uv_async_send(&uv_async_handle);
 
     }
 
@@ -1004,7 +1004,7 @@ namespace NodeFuse {
         value->name = newname;
 
         ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_LINK_*/ ]);
-        uv_async_send(&uv_async_handle);
+        // uv_async_send(&uv_async_handle);
     }
 
     void FileSystem::RemoteLink(fuse_req_t req,
@@ -1059,7 +1059,7 @@ namespace NodeFuse {
         }
 
         ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_OPEN_*/]);
-        uv_async_send(&uv_async_handle);
+        // uv_async_send(&uv_async_handle);
 
     }
     void FileSystem::RemoteOpen(fuse_req_t req,
@@ -1124,7 +1124,7 @@ namespace NodeFuse {
         }
 
         ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_READ_*/ ]);
-        uv_async_send(&uv_async_handle);
+        // uv_async_send(&uv_async_handle);
 
 
     }
@@ -1200,7 +1200,7 @@ namespace NodeFuse {
         }
 
         ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_WRITE_*/]);
-        uv_async_send(&uv_async_handle);
+        // uv_async_send(&uv_async_handle);
 
 
     }
@@ -1268,7 +1268,7 @@ namespace NodeFuse {
         }
 
         ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_FLUSH_*/]);
-        uv_async_send(&uv_async_handle);
+        // uv_async_send(&uv_async_handle);
 
     }
     void FileSystem::RemoteFlush(fuse_req_t req,
@@ -1329,7 +1329,7 @@ namespace NodeFuse {
         }
 
         ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_RELEASE_*/]);
-        uv_async_send(&uv_async_handle);
+        // uv_async_send(&uv_async_handle);
 
     }
     void FileSystem::RemoteRelease(fuse_req_t req,
@@ -1390,7 +1390,7 @@ namespace NodeFuse {
         }
 
         ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_FSYNC_*/]);
-        uv_async_send(&uv_async_handle);
+        // uv_async_send(&uv_async_handle);
 
     }
 
@@ -1452,7 +1452,7 @@ namespace NodeFuse {
         }
 
         ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_OPENDIR_*/ ]);
-        uv_async_send(&uv_async_handle);
+        // uv_async_send(&uv_async_handle);
     }
 
     void FileSystem::RemoteOpenDir(fuse_req_t req,
@@ -1515,7 +1515,7 @@ namespace NodeFuse {
         }
 
         ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_READDIR_*/]);
-        uv_async_send(&uv_async_handle);
+        // uv_async_send(&uv_async_handle);
     }
     void FileSystem::RemoteReadDir(fuse_req_t req,
                              fuse_ino_t ino,
@@ -1583,7 +1583,7 @@ namespace NodeFuse {
 
 
         ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_RELEASEDIR_*/]);
-        uv_async_send(&uv_async_handle);
+        // uv_async_send(&uv_async_handle);
 
     }
     void FileSystem::RemoteReleaseDir(fuse_req_t req,
@@ -1645,7 +1645,7 @@ namespace NodeFuse {
         }
 
         ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_FSYNCDIR_*/ ]);
-        uv_async_send(&uv_async_handle);
+        // uv_async_send(&uv_async_handle);
     }
     void FileSystem::RemoteFSyncDir(fuse_req_t req,
                               fuse_ino_t ino,
@@ -1700,7 +1700,7 @@ namespace NodeFuse {
         value->ino = ino;
 
         ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_STATFS_*/]);
-        uv_async_send(&uv_async_handle);
+        // uv_async_send(&uv_async_handle);
 
     }
     void FileSystem::RemoteStatFs(fuse_req_t req, fuse_ino_t ino) {
@@ -1763,7 +1763,7 @@ namespace NodeFuse {
         #endif
 
         ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_SETXATTR_*/]);
-        uv_async_send(&uv_async_handle);
+        // uv_async_send(&uv_async_handle);
 
     }
     void FileSystem::RemoteSetXAttr(fuse_req_t req,
@@ -1852,7 +1852,7 @@ namespace NodeFuse {
 
 
     ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_GETXATTR_*/]);
-    uv_async_send(&uv_async_handle);
+    // uv_async_send(&uv_async_handle);
 
     }
     void FileSystem::RemoteGetXAttr(fuse_req_t req,
@@ -1924,7 +1924,7 @@ namespace NodeFuse {
         value->ino = ino;
         value->size = size_;
         ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_LISTXATTR_*/]);
-        uv_async_send(&uv_async_handle);
+        // uv_async_send(&uv_async_handle);
 
     }
 
@@ -1972,7 +1972,7 @@ namespace NodeFuse {
         value->ino = ino;
         value->name = name_;
         ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_REMOVEXATTR_*/]);
-        uv_async_send(&uv_async_handle);
+        // uv_async_send(&uv_async_handle);
     }
 
     void FileSystem::RemoteRemoveXAttr(fuse_req_t req,
@@ -2022,7 +2022,7 @@ namespace NodeFuse {
         value->to_set = mask_;
 
         ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_ACCESS_*/]);
-        uv_async_send(&uv_async_handle);
+        // uv_async_send(&uv_async_handle);
 
     }
 
@@ -2079,7 +2079,7 @@ namespace NodeFuse {
         }
 
         ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_CREATE_*/ ]);
-        uv_async_send(&uv_async_handle);
+        // uv_async_send(&uv_async_handle);
 
     }
     void FileSystem::RemoteCreate(fuse_req_t req,

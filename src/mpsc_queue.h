@@ -63,9 +63,16 @@ public:
 	}
 	uint producer_publish(){
 		uint _claimed = --claimed;
+		uint _tail = tail;		
 		if( _claimed == 0){
 			uint idx = next_to_be_claimed;
 			tail = idx;
+
+			// if empty, wake up consumer thread;
+			if( ( _tail == (head+1) || (head==ring_mask && _tail==0) )){
+				uv_async_send(&uv_async_handle);
+			}
+
 		}
 		return 0;
 

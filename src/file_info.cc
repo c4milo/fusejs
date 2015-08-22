@@ -260,18 +260,18 @@ namespace NodeFuse {
             Nan::ThrowTypeError("Invalid value type: a Number was expected");        
         }
 
-        fileInfo->fi->fh = Nan::To<int>(value).FromJust();
+        fileInfo->fi->fh = Nan::To<uint32_t>(value).FromJust();
     }
 
     NAN_GETTER(FileInfo::GetFileHandle){
         FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
 
-        info.GetReturnValue().Set(Nan::New<Integer>(  static_cast<uint32_t>(fileInfo->fi->fh) ));
+        info.GetReturnValue().Set(Nan::New<Integer>(  (uint32_t) (fileInfo->fi->fh) ));
     }
 
     NAN_GETTER(FileInfo::GetLockOwner){
         FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
 
-        info.GetReturnValue().Set(Nan::New<Integer>(  static_cast<uint32_t>(fileInfo->fi->lock_owner) ));
+        info.GetReturnValue().Set(Nan::New<Integer>(  (uint32_t) (fileInfo->fi->lock_owner) ));
     }
 } //ends namespace NodeFuse
