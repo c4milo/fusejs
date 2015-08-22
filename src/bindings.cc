@@ -22,7 +22,7 @@ namespace NodeFuse {
 
         constructor.Reset(t->GetFunction());
 
-        Nan::Set(target, Nan::New("fuse_version").ToLocalChecked(), Nan::New<Integer>(fuse_version()));
+        Nan::Set(target, Nan::New("fuse_version").ToLocalChecked(), Nan::New<Integer>( static_cast<uint32_t>(fuse_version())) );
         Nan::Set(target, Nan::New("Fuse").ToLocalChecked(), t->GetFunction());
 
 
@@ -157,7 +157,7 @@ namespace NodeFuse {
 
         //If no mountpoint is provided, show usage.
         if (argc < 1) {
-            Nan::Set(options, Nan::New<Integer>(1), Nan::New<String>("--help").ToLocalChecked());
+            Nan::Set(options, Nan::New<Integer>( static_cast<uint32_t>(1) ), Nan::New<String>("--help").ToLocalChecked());
             argc++;
         }
 
@@ -168,7 +168,7 @@ namespace NodeFuse {
         memcpy( fuse->fargs, &fargs, sizeof(fargs) );   
 
         for (int i = 0; i < argc; i++) {
-            v8::String::Utf8Value option(Nan::Get(options, Nan::New<Integer>(i)).ToLocalChecked()->ToString() );
+            v8::String::Utf8Value option(Nan::Get(options, Nan::New<Integer>( static_cast<uint32_t>(i)) ).ToLocalChecked()->ToString() );
             char *fopt = strdup(*option);
             if (fuse_opt_add_arg(fuse->fargs, (const char *) fopt) == -1) {
                 FUSEJS_THROW_EXCEPTION("Unable to allocate memory, fuse_opt_add_arg failed: ", strerror(errno));
