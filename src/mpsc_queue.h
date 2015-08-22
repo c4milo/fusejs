@@ -34,8 +34,10 @@ public:
 		/* 
 		This function returns the next item to be consumed
 		*/
-		if(!( tail == (head+1) || (head==ring_mask && tail==0) )){
-			*value = &(data[++head]);
+		uint _tail = tail;
+		if(!( _tail == (head+1) || (head==ring_mask && _tail==0) )){
+			head = (head + 1 ) & ring_mask;
+			*value = &(data[head]);
 			// uint _tail = tail;
 			// uint _claimed = claimed;
 			// printf("consumed head %lu -- claimed %lu -- tail %lu\n", 
