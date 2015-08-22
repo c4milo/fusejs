@@ -1,10 +1,7 @@
 #!/usr/bin/env node
-var fuse = require('../fuse').fuse;
-
-var Loopback = require('./loopback');
-
 /**
- * The following options are parsed for process.argv:
+ * The following options are parsed from the command line arguments:
+ * 'folder to mirror' //the first argument should be the folder to mirror
  * '-f' foreground
  * '-d' debug
  * '-odebug' foreground, but keep the debug option
@@ -18,11 +15,15 @@ var Loopback = require('./loopback');
  * any custom options for a given filesystem.
  **/
 
-// /dev/hda1       /mnt/WinXP      ntfs-3g      quiet,defaults,locale=en_US.utf8,umask=0,noexec
+const fuse = require('fusejs').fuse
 
-//node examples/loopback_main.js ~/loopback -ofsname=ext4js -orw -d
-
+// setup the directories
+var loopback = require('./loopback.js');
+const LoopbackFS = loopback.LoopbackFS;
+loopback.setLoopback( process.argv[1] );
+ 
 fuse.mount({
-    filesystem: Loopback,
-    options: process.argv
-});
+	filesystem: LoopbackFS,
+	options: ['LoopbackFS'].concat(process.argv.slice(2,process.argv.length))
+})
+

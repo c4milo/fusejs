@@ -9,16 +9,19 @@ module.exports = function (grunt){
         files: [ 'Gruntfile.js' ],
         options:{ 
           reload: true        
-        },
-        tasks:['gyp', 'mochaTest']
+        }
       },
       scripts:{
           files:['src/*.cc', 'src/*.h', 'binding.gyp'],
           tasks:['gyp', 'mochaTest']
       },
-      tests:{        
-          files:['test/*.js', 'examples/example.js'],
-          tasks:['mochaTest']
+      example_test:{        
+          files:['test/test_example.js', 'examples/example.js'],
+          tasks:['mochaTest:example']
+      },
+      loopback_test:{
+        files: ['test/test_loopback.js', 'examples/loopback.js'],
+        tasks: ['mochaTest:loopback']
       }
     },
 
@@ -32,13 +35,24 @@ module.exports = function (grunt){
     },
     
     mochaTest: {
-      test: {
+      example: {
         options: {
           reporter: 'spec',
           quiet: false, 
-          clearRequireCache: false // Optionally clear the require cache before running tests (defaults to false)
+          clearRequireCache: true,
+          ui: 'bdd'
         },
-        src: ['test/*.js']
+        src: ['test/test_example.js']
+      },
+      loopback:{
+        options: {
+          reporter: 'spec',
+          quiet: false, 
+          clearRequireCache: true,
+          ui: 'bdd',
+          timeout: 5000
+        },
+        src: ['test/test_loopback.js']        
       }
     }
 

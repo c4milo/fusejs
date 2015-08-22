@@ -1,304 +1,182 @@
 /**
  * Loopback filesystem
  **/
-var FileSystem = require('fusejs').FileSystem;
-var PosixError = require('fusejs').PosixError;
 
-var util = require('util');
+"use strict";
+const FileSystem = require('fusejs').FileSystem;
+const PosixError = require('fusejs').PosixError;
+const pth = require('path');
+const fs = require('fs');
+// since the inodes need to be unique, 
+// we need to keep track of the inodes and it's associated path
+const pathToInode = new Map(); 
+const inodeToPath = new Map();
+inodeToPath.set( 1, '/');
+var next_largest_inode = 2;
 
-var Loopback = function(fuse, options) {
-    this.fuse = fuse;
-    this.options = options;
+// variable to store the loopback folder
+// this will be set later
+var loopbackFolder = ""; 
 
-    //console.log(options);
-    FileSystem.call(this);
-};
+class LoopbackFS extends FileSystem {
+    lookup(context, parentInode, name, reply){
 
-util.inherits(Loopback, FileSystem);
+        // get the parent path
+        const parent = inodeToPath.get(parentInode);
 
-(function() {
-    this.init = function(connInfo) {
-        console.log(connInfo);
-        console.log('Initializing Loopback filesystem!!');
-        console.log(this.options);
-    };
-
-    this.destroy = function() {
-        console.log('Cleaning up filesystem...');
-    };
-
-    this.lookup = function(context, parent, name, reply) {
-        console.log('Lookup!');
-        console.log(context);
-        console.log('Name -> ' + name);
-        var entry = {
-            inode: 1234,
-            generation: 2,
-            attr: {
-                dev: 234881026,
-                ino: 13420595,
-                mode: 33188,
-                nlink: 1,
-                uid: 501,
-                gid: 20,
-                rdev: 0,
-                size: 11,
-                blksize: 4096,
-                blocks: 8,
-                atime: 1331780451475, //Date.now();
-                mtime: 1331780451475, //Date.now();
-                ctime: 1331780451475, //Date.now();
-            },
-            attr_timeout: 30, //in seconds
-            entry_timeout: 60 //in seconds
-        };
-
-        reply.entry(entry);
-        //reply.err(PosixError.ENOENT);
-    };
-
-    this.forget = function(context, inode, nlookup) {
-        console.log('Forget was called!!');
-    };
-
-    this.getattr = function(context, inode, reply) {
-        console.log('Getattr was called!!');
-        console.log(context);
-        console.log(inode);
-
-        var hello = "Hello World!\n";
-        //stat object
-        var attrs = {
-            //dev: 0,
-            ino: 1,
-            mode: 16877,
-            nlink: 1,
-            //uid: 501,
-            //gid: 20,
-            //rdev: 0,
-            size: hello.length,
-            //blksize: 4096,
-            //blocks: 8,
-            //atime: 1331780451475, //Date.now();
-            //mtime: 1331780451475, //Date.now();
-            //ctime: 1331780451475, //Date.now();
-        };
-        reply.attr(attrs, 1000);
-        //reply.err(PosixError.EIO);
-    };
-
-    this.setattr = function(context, inode, attrs, reply) {
-        console.log('Setattr was called!!');
-        console.log(attrs);
-
-        //reply.attr(attrs, 1000);
-        reply.err(PosixError.EIO);
-    };
-
-    this.readlink = function(context, inode, reply) {
-        console.log('Readlink was called!');
-        //reply.readlink('eso');
-        reply.err(PosixError.EIO);
-    };
-
-    this.mknod = function(context, parent, name, mode, rdev, reply) {
-        console.log('Mknod was called!');
-        reply.err(PosixError.ENOENT);
-        //reply.entry(entry);
-    };
-
-    this.mkdir = function(context, parent, name, mode, reply) {
-        console.log('Mkdir was called!');
-        reply.err(PosixError.EIO);
-        //reply.entry(entry);
-    };
-
-    this.unlink = function(context, parent, name, reply) {
-        console.log('Unlink was called!');
-        reply.err(PosixError.EIO);
-    };
-
-    this.rmdir = function(context, parent, name, reply) {
-        console.log('Rmdir was called!');
-        reply.err(0);
-    };
-
-    this.symlink = function(context, parent, link, name, reply) {
-        console.log('Symlink was called!');
-        reply.err(0);
-        //reply.entry(entry);
-    };
-
-    this.rename = function(context, parent, name, newParent, newName, reply) {
-        console.log('Rename was called!');
-        reply.err(0);
-        //reply.err(PosixError.EIO);
-    };
-
-    this.link = function(context, inode, newParent, newName, reply) {
-        console.log('Link was called!');
-        reply.err(PosixError.EIO);
-        //reply.entry(entry);
-    };
-
-    this.open = function(context, inode, fileInfo, reply) {
-        console.log('Open was called!');
-        //reply.err(0);
-        reply.open(fileInfo);
-    };
-
-    this.read = function(context, inode, size, offset, fileInfo, reply) {
-        console.log('Read was called!');
-        reply.buffer(new Buffer('hellow world'));
-        //reply.err(0);
-    };
-
-    this.write = function(context, inode, buffer, offset, fileInfo, reply) {
-        console.log('Write was called!');
-        console.log('Writing ' + buffer);
-        reply.write(buffer.length);
-        //reply.err(0);
-    };
-
-    this.flush = function(context, inode, fileInfo, reply) {
-        console.log('Flush was called!');
-        //console.log(fileInfo);
-        reply.err(0);
-    };
-
-    this.release = function(context, inode, fileInfo, reply) {
-        console.log('Release was called!');
-        reply.err(0);
-    };
-
-    //if datasync is true then only user data is flushed, not metadata
-    this.fsync = function(context, inode, datasync, fileInfo, reply) {
-        console.log('Fsync was called!');
-        console.log('datasync -> ' + datasync);
-        reply.err(0);
-    };
-
-    this.opendir = function(context, inode, fileInfo, reply) {
-        console.log('Opendir was called!');
-        //reply.err(0);
-        reply.open(fileInfo);
-    };
-
-    this.readdir = function(context, inode, size, offset, fileInfo, reply) {
-        console.log('Readdir was called!');
-        console.log('Readdir Size ---> ' + size);
-        var entries = ['.', '..', 'dir1', 'dir2'];
-        console.log(entries);
-        for (var i = 0, len = entries.length; i < len; i++) {
-          var attrs = {};
-          attrs.inode = i;
-          reply.addDirEntry(entries[i], size, attrs, offset + i);
+        // make sure it exists
+        if( !parent ){
+            reply.err(PosixError.ENOENT);
+            return;
         }
 
-        //signals end of entries, this is required or
-        //it will block the user
-        reply.buffer(new Buffer(''));
-    };
+        // get the full folder path
+        const localPath = pth.join(parent,name);
+        const path = pth.join(loopbackFolder, parent, name);
 
-    this.releasedir = function(context, inode, fileInfo, reply) {
-        console.log('Releasedir was called!');
-        console.log(fileInfo);
+        // get the file information 
+        fs.stat( path, function(err, stat){
+            if(err){
+                reply.err(-err.errno);
+                return;
+            }
+
+            // check to see if the path has been visited before.
+            // if not, add it to the map
+            var inode = 0;
+            if( ! pathToInode.has(localPath) ){
+                inode = next_largest_inode;
+                pathToInode[localPath] = inode;
+                inodeToPath[inode] = localPath;
+                next_largest_inode++;
+            }else{
+                inode = pathToInode.get(localPath);
+            }
+
+            stat.inode = stat.ino;
+            const entry = {
+                inode, 
+                attr: stat,
+                generation: 1 //some filesystems rely on this generation number, such as the  Network Filesystem
+            };
+
+        });
+
+    }
+
+    getattr(context, inode, reply){
+        const path = inodeToPath.get(inode);
+        if(path){
+            fs.stat(path, function(err,stat){
+                if(err){
+                    reply.err(-err.errno);
+                    return;
+                }
+                reply.attr(stat,5); //5, timeout value, in seconds, for the validity of this inode. so 5 seconds
+            });
+
+        }else{
+            reply.err(PosixError.ENOENT); 
+        }
+        return;
+    }
+    releasedir(context, inode, fileInfo, reply){
+        // console.log('Releasedir was called!');
+        // console.log(fileInfo);
         reply.err(0);
-    };
+    }
 
-    //if datasync is true then only directory contents is flushed, not metadata
-    this.fsyncdir = function(context, inode, datasync, fileInfo, reply) {
-        console.log('FsyncDir was called!');
-        console.log('datasync -> ' + datasync);
+    opendir(context, inode, fileInfo, reply){
+        reply.open(fileInfo);
+    }
+
+
+    readdir(context, inode, requestedSize, offset, fileInfo, reply){
+        //http://fuse.sourceforge.net/doxygen/structfuse__lowlevel__ops.html#af1ef8e59e0cb0b02dc0e406898aeaa51
+        
+        /*
+        Read directory
+        Send a buffer filled using reply.addDirEntry. Send an empty buffer on end of stream.
+        fileInfo.fh will contain the value set by the opendir method, or will be undefined if the opendir method didn't set any value.
+        Returning a directory entry from readdir() does not affect its lookup count.
+        Valid replies: reply.addDirEntry reply.buffer, reply.err
+        */
+
+        /*
+        size is the maximum memory size of the buffer for the underlying fuse
+        filesystem. currently this cannot be determined a priori
+        */
+
+        const folder = inodeToPath.get(inode);
+        if(!folder){
+            reply.err(PosixError.ENOENT);
+            return;
+        }        
+
+        const path = pth.join(loopbackFolder, folder);
+        fs.readdir(path, function(err, files){
+
+            if(err){
+                reply.err(-err.errno);
+                return;
+            }
+
+            const size = Math.max( requestedSize , files.length * 256);
+            for( let file of files){
+                let attr = fs.lstatSync(pth.join(path, file));
+                attr.atime = attr.atime.getTime();
+                attr.mtime = attr.mtime.getTime();
+                attr.ctime = attr.ctime.getTime();
+                attr.inode = attr.ino;
+                attr.birthtime = attr.birthtime.getTime();
+
+                // keep track of new inodes
+                if( !inodeToPath.has(attr.ino)){                    
+                    inodeToPath.set(attr.ino, pth.join(folder, file));
+                }
+                reply.addDirEntry(file, size, attr , offset);   
+            }
+            reply.buffer(new Buffer(0), requestedSize)
+
+        });
+
+    }
+
+    open(context, inode, fileInfo, reply){
+        if(inode == 3)
+        {   
+            reply.open(fileInfo);       
+            return;
+        }
+        if(inode < 3){
+            reply.err(PosixError.EISDIR);
+            return;
+        }
+
+        reply.err(PosixError.ENOENT);
+
+    }
+
+    read(context, inode, len, offset, fileInfo, reply){
+        if(inode == 3){
+            const length = file_content.length
+            const content = file_content.substr(offset,Math.min(length, offset + len));
+            reply.buffer(new Buffer(content), content.length);
+            return;
+        }
+
+        reply.err(PosixError.ENOENT);
+        return;
+    }
+
+    release(context, inode, fileInfo, reply){
         reply.err(0);
-    };
+    }
 
-    this.statfs = function(context, inode, reply) {
-        console.log('Statfs was called!');
+};
 
-        var statvfs = {
-            bsize: 1024, /* file system block size */
-            frsize: 0, /* fragment size */
-            blocks: 0, /* size of fs in f_frsize units */
-            bfree: 0, /* # free blocks */
-            bavail: 0, /* # free blocks for unprivileged users */
-            files: 5, /* # inodes */
-            ffree: 2, /* # free inodes */
-            favail: 2, /* # free inodes for unprivileged users */
-            fsid: 4294967295, /* file system ID */
-            flag: 0, /* mount flags */
-            namemax: 1.7976931348623157e+308 /* maximum filename length */
-        };
+function setLoopback(folder){
+    loopbackFolder = folder;
+}
 
-        reply.statfs(statvfs);
-    };
-
-    this.setxattr = function(context, inode, name, value, size, flags, position, reply) {
-        console.log('SetXAttr was called!');
-        console.log('Attr name -> ' + name);
-        reply.err(0);
-    };
-
-    this.getxattr = function(context, inode, name, size, position, reply) {
-        console.log('GetXAttr was called!');
-        console.log('Extended attribute name -> ' + name);
-        reply.err(0);
-        //reply.xattr(1024); //needed buffer size
-    };
-
-    this.listxattr = function(context, inode, size, reply) {
-        console.log('ListXAttr was called!');
-        console.log(size);
-        reply.err(0);
-        //reply.buffer(new Buffer('list,of,extended,attributes'));
-        //reply.xattr(1024);
-    };
-
-    this.removexattr = function(context, inode, name, reply) {
-        console.log('RemoveXAttr was called!');
-        console.log(name);
-        reply.err(0);
-    };
-
-    this.access = function(context, inode, mask, reply) {
-        console.log('Access was called!');
-        reply.err(0);
-    };
-
-    this.create = function(context, parent, name, mode, fileInfo, reply) {
-        console.log('Create was called!');
-        console.log('Create -> ' + name);
-        //reply.create({});
-        reply.err(0);
-    };
-
-    this.getlk = function(context, inode, fileInfo, lock, reply) {
-        console.log('GetLock was called!');
-        console.log('Lock -> ' + lock);
-        //reply.lock(lock);
-        reply.err(0);
-    };
-
-    this.setlk = function(context, inode, fileInfo, lock, sleep, reply) {
-        console.log('SetLock was called!!');
-        console.log('Lock -> ' + lock);
-        console.log('sleep -> ' + sleep);
-        reply.err(0);
-    };
-
-    this.bmap = function(context, inode, blocksize, index, reply) {
-        console.log('BMap was called!');
-        //reply.err(0);
-        reply.bmap(12344);
-    };
-
-    this.ioctl = function() {
-
-    };
-
-    this.poll = function() {
-
-    };
-}).call(Loopback.prototype);
-
-module.exports = Loopback;
+module.exports = {LoopbackFS, setLoopback};
