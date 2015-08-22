@@ -6,6 +6,7 @@
 #include "reply.h"
 #include "file_info.h"
 #include "bindings.h"
+#include "forget_data.h"
 #include "node_buffer.h"
 #include "mpsc_queue.h"
 
@@ -73,7 +74,7 @@ namespace NodeFuse {
     // static struct vrt_queue *ring_buffer; // =  vrt_queue_new("queue", vrt_fuse_cmd_type, __RING_SIZE__);
     // static struct vrt_producer **producers;// = (struct vrt_producer *) malloc(sizeof(struct vrt_producer *) * _NUMBER_OF_FUSE_OPERATIONS_)
     // static struct vrt_consumer *consumer;
-    static struct fuse_lowlevel_ops fuse_ops = {};
+    static struct fuse_lowlevel_ops fuse_ops;
 
     static mpsc_queue_t<struct fuse_cmd> ring_buffer(__RING_SIZE__);
     
@@ -195,6 +196,14 @@ namespace NodeFuse {
                     break;
                 case _FUSE_OPS_SETLK_:
                     break;
+                case _FUSE_OPS_MULTI_FORGET_:
+                    #if FUSE_USE_VERSION > 28
+                    #ifndef __APPLE__
+                    RemoteMultiForget(value->req, value->size, static_cast<struct fuse_forget_data *>(value->userdata) );
+                    #endif
+                    #endif
+                    break;
+
                 case _FUSE_OPS_BMAP_:                
                     break;
             }
@@ -243,6 +252,9 @@ namespace NodeFuse {
         fuse_ops.releasedir = FileSystem::ReleaseDir;
         fuse_ops.fsyncdir   = FileSystem::FSyncDir;
         fuse_ops.statfs     = FileSystem::StatFs;
+        #if FUSE_USE_VERSION > 28
+        fuse_ops.forget_multi = FileSystem::MultiForget; 
+        #endif
         // fuse_ops.setxattr   = FileSystem::SetXAttr;
         // fuse_ops.getxattr   = FileSystem::GetXAttr;
         // fuse_ops.listxattr  = FileSystem::ListXAttr;
@@ -430,6 +442,68 @@ namespace NodeFuse {
         //scope.Close(Undefined());
 
     }
+
+    #if FUSE_USE_VERSION > 28
+    void FileSystem::MultiForget(fuse_req_t req,
+                        size_t count,
+                        struct fuse_forget_data *forget){
+        struct fuse_cmd *value;
+
+        if( ring_buffer.producer_claim_next(&value) != 0){
+            printf("ring buffer was full while trying to enqueue multi forget\n");
+            return;
+        }
+
+        value->op = _FUSE_OPS_MULTI_FORGET_;
+        value->req = req;
+        value->size = count;
+        value->userdata = (void *) forget;
+
+        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_FORGET_*/]);
+        // uv_async_send(&uv_async_handle);
+
+    }
+    void FileSystem::RemoteMultiForget(fuse_req_t req,
+                            size_t count,
+                            struct fuse_forget_data *forget_all) {
+        Nan::HandleScope scope;;
+        Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        Local<Object> fsobj = Nan::New(fuse->fsobj);
+        Local<Value> vforget = fsobj->Get(Nan::New<String>("multiforget").ToLocalChecked());
+        Local<Function> forget = Local<Function>::Cast(vforget);
+
+        Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
+        Local<Array> data = Nan::New<Array>(count);
+
+        for( uint i = 0; i < count; i++){
+            ForgetData *forget_data = new ForgetData();
+            // forget_data->fd = &( forget_all[i] );
+            Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(forget_data->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
+            data->Set(i, infoObj);
+        }
+
+        Reply* reply = new Reply();
+        reply->request = req;
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
+        reply->Wrap(replyObj);
+
+        Local<Value> argv[3] = {context, data, replyObj};
+
+        Nan::TryCatch try_catch;
+
+        forget->Call(fsobj, 3, argv);
+
+        if (try_catch.HasCaught()) {
+            Nan::FatalException(try_catch);
+        }
+
+        fuse_reply_none(req);
+        //scope.Close(Undefined());
+
+    }
+    #endif //FUSE_USE_VERSION
+
+
     void FileSystem::Forget(fuse_req_t req,
                             fuse_ino_t ino,
                             unsigned long nlookup) {
@@ -453,7 +527,7 @@ namespace NodeFuse {
     void FileSystem::RemoteForget(fuse_req_t req,
                             fuse_ino_t ino,
                             unsigned long nlookup) {
-        Nan::HandleScope scope;;
+        // Nan::HandleScope scope;;
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
         Local<Value> vforget = fsobj->Get(Nan::New<String>("forget").ToLocalChecked());
@@ -463,7 +537,13 @@ namespace NodeFuse {
         Local<Number> inode = Nan::New<Number>(ino);
         Local<Integer> nlookup_ = Nan::New<Integer>( (int) nlookup);
 
-        Local<Value> argv[3] = {context, inode, nlookup_};
+        Reply* reply = new Reply();
+        reply->request = req;
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
+        reply->Wrap(replyObj);
+
+
+        Local<Value> argv[4] = {context, inode, nlookup_, replyObj};
 
         Nan::TryCatch try_catch;
 
@@ -473,7 +553,7 @@ namespace NodeFuse {
             Nan::FatalException(try_catch);
         }
 
-        fuse_reply_none(req);
+        // fuse_reply_none(req);
         //scope.Close(Undefined());
 
     }

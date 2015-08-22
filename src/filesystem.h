@@ -7,43 +7,45 @@
 #include "node_fuse.h"
 #include <stdlib.h>
 #include <stdint.h>
-#define _FUSE_OPS_LOOKUP_      0
-#define _FUSE_OPS_GETATTR_     1
-#define _FUSE_OPS_OPEN_        2
-#define _FUSE_OPS_READ_        3
-#define _FUSE_OPS_READDIR_     4
-#define _FUSE_OPS_INIT_        5
-#define _FUSE_OPS_DESTROY_     6
-#define _FUSE_OPS_FORGET_      7
-#define _FUSE_OPS_SETATTR_     8
-#define _FUSE_OPS_READLINK_    9
-#define _FUSE_OPS_MKNOD_       10
-#define _FUSE_OPS_MKDIR_       11
-#define _FUSE_OPS_UNLINK_      12
-#define _FUSE_OPS_RMDIR_       13
-#define _FUSE_OPS_SYMLINK_     14
-#define _FUSE_OPS_RENAME_      15
-#define _FUSE_OPS_LINK_        16
-#define _FUSE_OPS_WRITE_       17
-#define _FUSE_OPS_FLUSH_       18
-#define _FUSE_OPS_RELEASE_     19
-#define _FUSE_OPS_FSYNC_       20
-#define _FUSE_OPS_OPENDIR_     21
-#define _FUSE_OPS_RELEASEDIR_  22
-#define _FUSE_OPS_FSYNCDIR_    23
-#define _FUSE_OPS_STATFS_      24
-#define _FUSE_OPS_SETXATTR_    25
-#define _FUSE_OPS_GETXATTR_    26
-#define _FUSE_OPS_LISTXATTR_   27
-#define _FUSE_OPS_REMOVEXATTR_ 28
-#define _FUSE_OPS_ACCESS_      29
-#define _FUSE_OPS_CREATE_      30
-#define _FUSE_OPS_GETLK_       31
-#define _FUSE_OPS_SETLK_       32
-#define _FUSE_OPS_BMAP_        33
-#define _NUMBER_OF_FUSE_OPERATIONS_ 33
+#define _FUSE_OPS_LOOKUP_         0
+#define _FUSE_OPS_GETATTR_        1
+#define _FUSE_OPS_OPEN_           2
+#define _FUSE_OPS_READ_           3
+#define _FUSE_OPS_READDIR_        4
+#define _FUSE_OPS_INIT_           5
+#define _FUSE_OPS_DESTROY_        6
+#define _FUSE_OPS_FORGET_         7
+#define _FUSE_OPS_SETATTR_        8
+#define _FUSE_OPS_READLINK_       9
+#define _FUSE_OPS_MKNOD_          10
+#define _FUSE_OPS_MKDIR_          11
+#define _FUSE_OPS_UNLINK_         12
+#define _FUSE_OPS_RMDIR_          13
+#define _FUSE_OPS_SYMLINK_        14
+#define _FUSE_OPS_RENAME_         15
+#define _FUSE_OPS_LINK_           16
+#define _FUSE_OPS_WRITE_          17
+#define _FUSE_OPS_FLUSH_          18
+#define _FUSE_OPS_RELEASE_        19
+#define _FUSE_OPS_FSYNC_          20
+#define _FUSE_OPS_OPENDIR_        21
+#define _FUSE_OPS_RELEASEDIR_     22
+#define _FUSE_OPS_FSYNCDIR_       23
+#define _FUSE_OPS_STATFS_         24
+#define _FUSE_OPS_SETXATTR_       25
+#define _FUSE_OPS_GETXATTR_       26
+#define _FUSE_OPS_LISTXATTR_      27
+#define _FUSE_OPS_REMOVEXATTR_    28
+#define _FUSE_OPS_ACCESS_         29
+#define _FUSE_OPS_CREATE_         30
+#define _FUSE_OPS_GETLK_          31
+#define _FUSE_OPS_SETLK_          32
+#define _FUSE_OPS_BMAP_           33
+#define _FUSE_OPS_BMAP_           33
+#define _FUSE_OPS_MULTI_FORGET_   34
 
-#define _FUSE_UNMOUNT_         34
+#define _NUMBER_OF_FUSE_OPERATIONS_ 34
+
 #define __RING_SIZE__          256
 extern uv_async_t uv_async_handle;
 
@@ -94,6 +96,11 @@ namespace NodeFuse {
             static void Forget(fuse_req_t req,
                                 fuse_ino_t ino,
                                 unsigned long nlookup);
+            #if FUSE_USE_VERSION > 28
+            static void MultiForget(fuse_req_t req,
+                                size_t count,
+                                struct fuse_forget_data *forget_all);
+            #endif 
             static void GetAttr(fuse_req_t req,
                                 fuse_ino_t ino,
                                 struct fuse_file_info* fi);
@@ -243,6 +250,12 @@ namespace NodeFuse {
             static void RemoteForget(fuse_req_t req,
                                 fuse_ino_t ino,
                                 unsigned long nlookup);
+            #if FUSE_USE_VERSION > 28
+            static void RemoteMultiForget(fuse_req_t req,
+                                size_t count,
+                                struct fuse_forget_data *forget_all);
+            #endif
+
             static void RemoteGetAttr(fuse_req_t req,
                                 fuse_ino_t ino,
                                 struct fuse_file_info fi);

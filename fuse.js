@@ -73,11 +73,26 @@ var FileSystem = function() {
      * @param {Number} nlookup The number of lookups to forget.
      *
      **/
-    this.forget = function(context, inode, nlookup) {
+    this.forget = function(context, inode, nlookup,reply) {
         if(warn_not_implemented){
             console.log("forget not implemented");
         }
+        reply.none();
     };
+
+    /**
+    *
+    * like forget, except batched. 
+    * here forget_data is an object with 2 fields: inode and nlookup 
+    *
+    **/
+    this.multiforget = function(context, forget_data, reply){
+        if(warn_not_implemented){
+            console.log("forget not implemented");
+        }
+        reply.none();
+
+    }
 
     /**
      * Get file attributes

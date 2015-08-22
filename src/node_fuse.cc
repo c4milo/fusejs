@@ -6,6 +6,7 @@
 #include "reply.h"
 #include "file_info.h"
 #include "filesystem.h"
+#include "forget_data.h"
 namespace NodeFuse {
     //stat struct symbols
 
@@ -17,6 +18,12 @@ namespace NodeFuse {
         Reply::Initialize(target);
         FileInfo::Initialize(target);
 
+        #if FUSE_USE_VERSION > 28
+        #ifndef __APPLE__
+        ForgetData::Initialize(target);
+        #endif 
+        #endif
+        
         Nan::Set(target ,
             Nan::New<String>("version").ToLocalChecked(),
             Nan::New<String>(NODE_FUSE_VERSION).ToLocalChecked());

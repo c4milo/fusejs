@@ -13,7 +13,7 @@ module.exports = function (grunt){
       },
       scripts:{
           files:['src/*.cc', 'src/*.h', 'binding.gyp'],
-          tasks:['gyp', 'mochaTest']
+          tasks:['gyp','mochaTest']
       },
       example_test:{        
           files:['test/test_example.js', 'examples/example.js'],

@@ -41,6 +41,10 @@ before_install:
   - npm/.bin/npm install -g node-gyp-install
   - npm/.bin/npm install -g mocha
   - node-gyp-install
+  - wget http://downloads.sourceforge.net/project/fuse/fuse-2.X/2.9.4/fuse-2.9.4.tar.gz
+  - tar xf fuse-2.9.4.tar.gz
+  - mkdir include
+  - cp fuse-2.9.4/include/*.h include
 
 install:
   - npm/.bin/npm install
