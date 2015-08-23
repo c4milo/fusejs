@@ -40,22 +40,25 @@ public:
 			*value = &(data[head]);
 			// uint _tail = tail;
 			// uint _claimed = claimed;
-			// printf("consumed head %lu -- claimed %lu -- tail %lu\n", 
-			// 	head, _claimed, _tail);
+			// uint _next = next_to_be_claimed;
+			// printf("consumed head %u -- claimed %u -- tail %u -- next %u\n", 
+			//	head, _claimed, _tail,_next);
 			return 0;
 		}
 		return MPSC_QUEUE_EOF;
 	}
 
 	uint producer_claim_next(T **value){
-		uint idx = next_to_be_claimed++; 
+		uint idx = next_to_be_claimed++;
+		next_to_be_claimed.fetch_and(ring_mask); 
 		if(idx != head){
-			++claimed;
+			claimed++;	
 			*value = &(data[idx]);
 			// uint _tail = tail;
 			// uint _claimed = claimed;
-			// printf("claimed idx %lu -- claimed %lu -- tail %lu\n", 
-			// 	idx, _claimed, _tail);
+			// uint _next = next_to_be_claimed;
+			// printf("claimed idx %lu -- claimed %lu -- tail %u -- next %u\n", 
+			// 	idx, _claimed, _tail, _next);
 
 			return 0;
 		}
@@ -64,9 +67,11 @@ public:
 	uint producer_publish(){
 		uint _claimed = --claimed;
 		uint _tail = tail;		
+		_tail = _tail & ring_mask;
+		uint idx;
 		if( _claimed == 0){
-			uint idx = next_to_be_claimed;
-			tail = idx;
+			idx = next_to_be_claimed;
+			tail = idx & ring_mask ;
 
 			// if empty, wake up consumer thread;
 			if( ( _tail == (head+1) || (head==ring_mask && _tail==0) )){
@@ -76,8 +81,9 @@ public:
 		}
 
 		// _tail = tail;
-		// printf("publish claimed %u -- tail %u\n", 
-		// 		_claimed, _tail);
+		// uint _next = next_to_be_claimed;
+		// printf("publish claimed %u -- tail %u -- next %u\n", 
+		// 		_claimed, _tail, _next);
 
 		return 0;
 
@@ -85,11 +91,12 @@ public:
 private:
 	T *data;
 	std::atomic<uint> claimed;
-	std::atomic<uint8_t> next_to_be_claimed;
+	std::atomic<uint> next_to_be_claimed;
 	std::atomic<uint> tail; 
 	uint head;
 	uint ring_size;
 	uint ring_mask;
 	uint mask; 
-
+	mpsc_queue_t(const mpsc_queue_t&) = delete;
+	void operator=(const mpsc_queue_t&) = delete;
 };
