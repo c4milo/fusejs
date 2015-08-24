@@ -1,6 +1,8 @@
-#include <atomic>
 #define MPSC_QUEUE_EOF 1
 #define MPSC_QUEUE_FULL 2
+
+#include <atomic>
+#include <thread>
 
 /* 
  
@@ -26,10 +28,15 @@ public:
 		claimed = 0;
 		next_to_be_claimed = 1;
 		head = 1;
+		tail = 0;
 		this->ring_size = ring_size;
 		ring_mask = ring_size - 1;
 
 	}
+	~mpsc_queue_t(){
+		free(data);
+	}
+
 	uint consume(T **value){
 		/* 
 		This function returns the next item to be consumed
@@ -38,11 +45,11 @@ public:
 		if(!( _head == (tail+1) || (tail==ring_mask && _head==0) )){
 			tail = (tail + 1 ) & ring_mask;
 			*value = &(data[tail]);
-			// uint _head = head;
-			// uint _claimed = claimed;
-			// uint _next = next_to_be_claimed;
-			// printf("consumed tail %u -- claimed %u -- head %u -- next %u\n", 
-			//	tail, _claimed, _head,_next);
+			uint _head = head;
+			uint _claimed = claimed;
+			uint _next = next_to_be_claimed;
+			printf("consumed tail %u -- claimed %u -- head %u -- next %u\n", 
+				tail, _claimed, _head,_next);
 			return 0;
 		}
 		return MPSC_QUEUE_EOF;
@@ -50,15 +57,23 @@ public:
 
 	uint producer_claim_next(T **value){
 		uint idx = next_to_be_claimed++;
+		if( idx == tail){
+			do{
+				uv_async_send(&uv_async_handle);
+				std::this_thread::yield();
+				idx = next_to_be_claimed++;
+			} while (idx == tail);
+		}
+
 		next_to_be_claimed.fetch_and(ring_mask); 
 		if(idx != tail){
 			claimed++;	
 			*value = &(data[idx]);
-			// uint _head = head;
-			// uint _claimed = claimed;
-			// uint _next = next_to_be_claimed;
-			// printf("claimed idx %lu -- claimed %lu -- head %u -- next %u\n", 
-			// 	idx, _claimed, _head, _next);
+			uint _head = head;
+			uint _claimed = claimed;
+			uint _next = next_to_be_claimed;
+			printf("claimed idx %lu -- claimed %lu -- head %u -- next %u\n", 
+				idx, _claimed, _head, _next);
 
 			return 0;
 		}
@@ -80,10 +95,10 @@ public:
 
 		}
 
-		// _head = head;
-		// uint _next = next_to_be_claimed;
-		// printf("publish claimed %u -- head %u -- next %u\n", 
-		// 		_claimed, _head, _next);
+		_head = head;
+		uint _next = next_to_be_claimed;
+		printf("publish claimed %u -- head %u -- next %u\n", 
+				_claimed, _head, _next);
 
 		return 0;
 
@@ -93,7 +108,7 @@ private:
 	std::atomic<uint> claimed;
 	std::atomic<uint> next_to_be_claimed;
 	std::atomic<uint> head; 
-	uint tail;
+	volatile uint tail;
 	uint ring_size;
 	uint ring_mask;
 	uint mask; 
