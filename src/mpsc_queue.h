@@ -7,8 +7,8 @@
 This is a very simple MPSC queue using a ring_buffer.
 This is meant to be used in conjunction with fusejs
 
-head points to the object before 
-tail points to the object after
+tail points to the object before 
+head points to the object after
 */
 
 template <typename T>
@@ -25,7 +25,7 @@ public:
 
 		claimed = 0;
 		next_to_be_claimed = 1;
-		tail = 1;
+		head = 1;
 		this->ring_size = ring_size;
 		ring_mask = ring_size - 1;
 
@@ -34,15 +34,15 @@ public:
 		/* 
 		This function returns the next item to be consumed
 		*/
-		uint _tail = tail;
-		if(!( _tail == (head+1) || (head==ring_mask && _tail==0) )){
-			head = (head + 1 ) & ring_mask;
-			*value = &(data[head]);
-			// uint _tail = tail;
+		uint _head = head;
+		if(!( _head == (tail+1) || (tail==ring_mask && _head==0) )){
+			tail = (tail + 1 ) & ring_mask;
+			*value = &(data[tail]);
+			// uint _head = head;
 			// uint _claimed = claimed;
 			// uint _next = next_to_be_claimed;
-			// printf("consumed head %u -- claimed %u -- tail %u -- next %u\n", 
-			//	head, _claimed, _tail,_next);
+			// printf("consumed tail %u -- claimed %u -- head %u -- next %u\n", 
+			//	tail, _claimed, _head,_next);
 			return 0;
 		}
 		return MPSC_QUEUE_EOF;
@@ -51,14 +51,14 @@ public:
 	uint producer_claim_next(T **value){
 		uint idx = next_to_be_claimed++;
 		next_to_be_claimed.fetch_and(ring_mask); 
-		if(idx != head){
+		if(idx != tail){
 			claimed++;	
 			*value = &(data[idx]);
-			// uint _tail = tail;
+			// uint _head = head;
 			// uint _claimed = claimed;
 			// uint _next = next_to_be_claimed;
-			// printf("claimed idx %lu -- claimed %lu -- tail %u -- next %u\n", 
-			// 	idx, _claimed, _tail, _next);
+			// printf("claimed idx %lu -- claimed %lu -- head %u -- next %u\n", 
+			// 	idx, _claimed, _head, _next);
 
 			return 0;
 		}
@@ -66,24 +66,24 @@ public:
 	}
 	uint producer_publish(){
 		uint _claimed = --claimed;
-		uint _tail = tail;		
-		_tail = _tail & ring_mask;
+		uint _head = head;		
+		_head = _head & ring_mask;
 		uint idx;
 		if( _claimed == 0){
 			idx = next_to_be_claimed;
-			tail = idx & ring_mask ;
+			head = idx & ring_mask ;
 
 			// if empty, wake up consumer thread;
-			if( ( _tail == (head+1) || (head==ring_mask && _tail==0) )){
+			if( ( _head == (tail+1) || (tail==ring_mask && _head==0) )){
 				uv_async_send(&uv_async_handle);
 			}
 
 		}
 
-		// _tail = tail;
+		// _head = head;
 		// uint _next = next_to_be_claimed;
-		// printf("publish claimed %u -- tail %u -- next %u\n", 
-		// 		_claimed, _tail, _next);
+		// printf("publish claimed %u -- head %u -- next %u\n", 
+		// 		_claimed, _head, _next);
 
 		return 0;
 
@@ -92,8 +92,8 @@ private:
 	T *data;
 	std::atomic<uint> claimed;
 	std::atomic<uint> next_to_be_claimed;
-	std::atomic<uint> tail; 
-	uint head;
+	std::atomic<uint> head; 
+	uint tail;
 	uint ring_size;
 	uint ring_mask;
 	uint mask; 
