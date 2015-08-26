@@ -85,7 +85,7 @@ namespace NodeFuse {
     //     struct vrt_value *vvalue;
     //     struct vrt_fuse_cmd_value *value;
         struct fuse_cmd *value;
-        int result;
+        volatile int result;
         while (   (result = ring_buffer.consume(&value)) != MPSC_QUEUE_EOF ){
 
             switch(value->op){
@@ -313,8 +313,8 @@ namespace NodeFuse {
                           struct fuse_conn_info* conn) {
 
         struct fuse_cmd *value;
-
-        if( ring_buffer.producer_claim_next(&value) != 0 ){
+        int64_t idx;
+        if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL ){
             printf("ring buffer was full while trying to enqueue init\n");
             return;
         }
@@ -323,7 +323,7 @@ namespace NodeFuse {
         if(conn != NULL){
             memcpy( &(value->conn), conn, sizeof(struct fuse_conn_info));
         }
-        ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_INIT_*/]);
+        ring_buffer.producer_publish(idx);//(producers[ 0/*_FUSE_OPS_INIT_*/]);
         // uv_async_send(&uv_async_handle);
 
     }
@@ -360,8 +360,8 @@ namespace NodeFuse {
     void FileSystem::Destroy(void* userdata) {
 
         struct fuse_cmd *value;
-
-        if( ring_buffer.producer_claim_next(&value) != 0){
+        int64_t idx;
+        if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
             printf("ring buffer was full while trying to enqueue destroy");
             return;
         }
@@ -369,7 +369,7 @@ namespace NodeFuse {
         value->op = _FUSE_OPS_DESTROY_;
         value->userdata =  userdata;        
 
-        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_DESTROY_*/]);
+        ring_buffer.producer_publish(idx);//(producers[  0/*_FUSE_OPS_DESTROY_*/]);
         // uv_async_send(&uv_async_handle);
     }
 
@@ -393,8 +393,8 @@ namespace NodeFuse {
                             fuse_ino_t parent,
                             const char* name) {
         struct fuse_cmd *value;
-
-        if( ring_buffer.producer_claim_next(&value) != 0){
+        int64_t idx;
+        if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
             printf("ring buffer was full while trying to enqueue lookup at inode %d - with child %s\n", (int) parent,name);
             return;
         }
@@ -405,7 +405,7 @@ namespace NodeFuse {
         value->ino = parent;
         value->name = name;
 
-        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_LOOKUP_*/]);
+        ring_buffer.producer_publish(idx);//(producers[  0/*_FUSE_OPS_LOOKUP_*/]);
         // uv_async_send(&uv_async_handle);
 
     }
@@ -422,7 +422,7 @@ namespace NodeFuse {
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Number> parentInode = Nan::New<Number>(parent);
         Local<String> entryName = Nan::New<String>(name).ToLocalChecked();
-
+        // free(name);
         Reply* reply = new Reply();
         reply->request = req;
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
@@ -446,8 +446,8 @@ namespace NodeFuse {
                         size_t count,
                         struct fuse_forget_data *forget){
         struct fuse_cmd *value;
-
-        if( ring_buffer.producer_claim_next(&value) != 0){
+        int64_t idx;
+        if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
             printf("ring buffer was full while trying to enqueue multi forget\n");
             return;
         }
@@ -457,7 +457,7 @@ namespace NodeFuse {
         value->size = count;
         value->userdata = (void *) forget;
 
-        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_FORGET_*/]);
+        ring_buffer.producer_publish(idx);//(producers[  0/*_FUSE_OPS_FORGET_*/]);
         // uv_async_send(&uv_async_handle);
 
     }
@@ -505,8 +505,8 @@ namespace NodeFuse {
                             fuse_ino_t ino,
                             unsigned long nlookup) {
         struct fuse_cmd *value;
-
-        if( ring_buffer.producer_claim_next(&value) != 0){
+        int64_t idx;
+        if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
             printf("ring buffer was full while trying to enqueue forget at inode %d\n", (int)ino);
             return;
         }
@@ -516,7 +516,7 @@ namespace NodeFuse {
         value->ino = ino;
         value->nlookup = nlookup;
 
-        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_FORGET_*/]);
+        ring_buffer.producer_publish(idx);//(producers[  0/*_FUSE_OPS_FORGET_*/]);
         // uv_async_send(&uv_async_handle);
 
     }
@@ -559,8 +559,8 @@ namespace NodeFuse {
                              fuse_ino_t ino,
                              struct fuse_file_info* fi) {
         struct fuse_cmd *value;
-
-        if( ring_buffer.producer_claim_next(&value) != 0){
+        int64_t idx;
+        if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
             printf("ring buffer was full while trying to enqueue getattr at inode %d\n", (int) ino);
             return;
         }
@@ -573,7 +573,7 @@ namespace NodeFuse {
             memcpy( (void *) &(value->fi),  fi, sizeof(struct fuse_file_info));
         }
 
-        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_GETATTR_*/ ]);
+        ring_buffer.producer_publish(idx);//(producers[  0/*_FUSE_OPS_GETATTR_*/ ]);
         // uv_async_send(&uv_async_handle);
 
     }
@@ -615,8 +615,8 @@ namespace NodeFuse {
                              struct fuse_file_info* fi) {
 
         struct fuse_cmd *value;
-
-        if( ring_buffer.producer_claim_next(&value) != 0){
+        int64_t idx;
+        if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
             printf("ring buffer was full while trying to enqueue setattr at inode %d\n", (int) ino);
             return;
         }
@@ -632,7 +632,7 @@ namespace NodeFuse {
         }
 
 
-        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_SETATTR_*/]);
+        ring_buffer.producer_publish(idx);//(producers[  0/*_FUSE_OPS_SETATTR_*/]);
         // uv_async_send(&uv_async_handle);
 
     }
@@ -677,8 +677,8 @@ namespace NodeFuse {
 
     void FileSystem::ReadLink(fuse_req_t req, fuse_ino_t ino) {
         struct fuse_cmd *value;
-
-        if( ring_buffer.producer_claim_next(&value) != 0){
+        int64_t idx;
+        if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
             printf("ring buffer was full while trying to enqueue setattr at inode %d\n", (int) ino);
             return;
         }
@@ -687,7 +687,7 @@ namespace NodeFuse {
         value->req = req;
         value->ino = ino;
 
-        ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_READLINK_*/ ]);
+        ring_buffer.producer_publish(idx);//(producers[ 0/*_FUSE_OPS_READLINK_*/ ]);
         // uv_async_send(&uv_async_handle);
     }
     void FileSystem::RemoteReadLink(fuse_req_t req, fuse_ino_t ino) {
@@ -723,8 +723,8 @@ namespace NodeFuse {
                            mode_t mode,
                            dev_t rdev) {
         struct fuse_cmd *value;
-
-        if( ring_buffer.producer_claim_next(&value) != 0){
+        int64_t idx;
+        if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
             printf("ring buffer was full while trying to enqueue mknod with parent %d and child %s\n", (int) parent, name);
             return;
         }
@@ -737,7 +737,7 @@ namespace NodeFuse {
         value->mode = mode;
         value->dev = rdev;
 
-        ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_MKNOD_*/ ]);
+        ring_buffer.producer_publish(idx);//(producers[ 0/*_FUSE_OPS_MKNOD_*/ ]);
         // uv_async_send(&uv_async_handle);
 
 
@@ -789,8 +789,8 @@ namespace NodeFuse {
                            mode_t mode) {
 
         struct fuse_cmd *value;
-
-        if( ring_buffer.producer_claim_next(&value) != 0){
+        int64_t idx;
+        if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
             printf("ring buffer was full while trying to enqueue mkdir with parent %d and name %s\n", (int) parent, name);
             return;
         }
@@ -801,7 +801,7 @@ namespace NodeFuse {
         value->name = name;
         value->mode = mode;
 
-        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_MKDIR_*/ ]);
+        ring_buffer.producer_publish(idx);//(producers[  0/*_FUSE_OPS_MKDIR_*/ ]);
         // uv_async_send(&uv_async_handle);
 
     }
@@ -847,8 +847,8 @@ namespace NodeFuse {
                             const char* name) {
 
         struct fuse_cmd *value;
-
-        if( ring_buffer.producer_claim_next(&value) != 0){
+        int64_t idx;
+        if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
             printf("ring buffer was full while trying to unlink %s from parent %d \n",  name, (int) parent);
             return;
         }
@@ -858,7 +858,7 @@ namespace NodeFuse {
         value->ino = parent;
         value->name = name;
 
-        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_UNLINK_*/]);
+        ring_buffer.producer_publish(idx);//(producers[  0/*_FUSE_OPS_UNLINK_*/]);
         // uv_async_send(&uv_async_handle);
 
     }
@@ -899,8 +899,8 @@ namespace NodeFuse {
                            fuse_ino_t parent,
                            const char* name) {
         struct fuse_cmd *value;
-
-        if( ring_buffer.producer_claim_next(&value) != 0){
+        int64_t idx;
+        if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
             printf("ring buffer was full while trying to unlink folder %s from parent %d \n",  name, (int) parent);
             return;
         }
@@ -911,7 +911,7 @@ namespace NodeFuse {
         value->ino = parent;
         value->name = name;
 
-        ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_RMDIR_*/ ]);
+        ring_buffer.producer_publish(idx);//(producers[ 0/*_FUSE_OPS_RMDIR_*/ ]);
         // uv_async_send(&uv_async_handle);
 
     }
@@ -952,8 +952,8 @@ namespace NodeFuse {
                              fuse_ino_t parent,
                              const char* name) {
         struct fuse_cmd *value;
-
-        if( ring_buffer.producer_claim_next(&value) != 0){
+        int64_t idx;
+        if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
             printf("ring buffer was full while trying to symlink from %s to %s with parent inode %d \n",  name, link, (int) parent);
             return;
         }
@@ -964,7 +964,7 @@ namespace NodeFuse {
         value->newname = name;
 
 
-        ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_SYMLINK_*/ ]);
+        ring_buffer.producer_publish(idx);//(producers[ 0/*_FUSE_OPS_SYMLINK_*/ ]);
         // uv_async_send(&uv_async_handle);
 
     }
@@ -1007,8 +1007,8 @@ namespace NodeFuse {
                                 fuse_ino_t newparent,
                                 const char *newname){
         struct fuse_cmd *value;
-
-        if( ring_buffer.producer_claim_next(&value) != 0){
+        int64_t idx;
+        if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
             printf("ring buffer was full while trying to rename file %s from parent %d \n",  name, (int) parent);
             return;
         }
@@ -1021,7 +1021,7 @@ namespace NodeFuse {
         value->name = name;
         value->newname = newname;
 
-        ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_RENAME_*/ ]);
+        ring_buffer.producer_publish(idx);//(producers[ 0/*_FUSE_OPS_RENAME_*/ ]);
         // uv_async_send(&uv_async_handle);
 
     }
@@ -1067,8 +1067,8 @@ namespace NodeFuse {
                           const char* newname) 
     {
         struct fuse_cmd *value;
-
-        if( ring_buffer.producer_claim_next(&value) != 0){
+        int64_t idx;
+        if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
             printf("ring buffer was full while trying to link inode %d to new parent parent %d with newname %s\n",  (int) ino, (int) newparent, newname);
             return;
         }
@@ -1080,7 +1080,7 @@ namespace NodeFuse {
         value->newino = newparent;
         value->name = newname;
 
-        ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_LINK_*/ ]);
+        ring_buffer.producer_publish(idx);//(producers[ 0/*_FUSE_OPS_LINK_*/ ]);
         // uv_async_send(&uv_async_handle);
     }
 
@@ -1121,8 +1121,8 @@ namespace NodeFuse {
                           fuse_ino_t ino,
                           struct fuse_file_info* fi) {
         struct fuse_cmd *value;
-
-        if( ring_buffer.producer_claim_next(&value) != 0){
+        int64_t idx;
+        if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
             printf("ring buffer was full while trying to enqueue open at inode %d\n", (int) ino);
             return;
         }
@@ -1135,7 +1135,7 @@ namespace NodeFuse {
             memcpy( (void*) &(value->fi), fi, sizeof(struct fuse_file_info));
         }
 
-        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_OPEN_*/]);
+        ring_buffer.producer_publish(idx);//(producers[  0/*_FUSE_OPS_OPEN_*/]);
         // uv_async_send(&uv_async_handle);
 
     }
@@ -1184,8 +1184,8 @@ namespace NodeFuse {
                           off_t off,
                           struct fuse_file_info* fi) {
         struct fuse_cmd *value;
-
-        if( ring_buffer.producer_claim_next(&value) != 0){
+        int64_t idx;
+        if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
             printf("ring buffer was full while trying to enqueue read at inode %d\n", (int) ino);
             return;
         }
@@ -1200,7 +1200,7 @@ namespace NodeFuse {
             memcpy( (void*) &(value->fi), fi, sizeof(struct fuse_file_info));
         }
 
-        ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_READ_*/ ]);
+        ring_buffer.producer_publish(idx);//(producers[ 0/*_FUSE_OPS_READ_*/ ]);
         // uv_async_send(&uv_async_handle);
 
 
@@ -1256,8 +1256,8 @@ namespace NodeFuse {
                            off_t off,
                            struct fuse_file_info* fi) {
         struct fuse_cmd *value;
-
-        if( ring_buffer.producer_claim_next(&value) != 0){
+        int64_t idx;
+        if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
             printf("ring buffer was full while trying to enqueue write at inode %d\n", (int) ino);
             return;
         }
@@ -1276,7 +1276,7 @@ namespace NodeFuse {
             memcpy( (void*) &(value->fi), fi, sizeof(struct fuse_file_info));
         }
 
-        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_WRITE_*/]);
+        ring_buffer.producer_publish(idx);//(producers[  0/*_FUSE_OPS_WRITE_*/]);
         // uv_async_send(&uv_async_handle);
 
 
@@ -1331,8 +1331,8 @@ namespace NodeFuse {
                            fuse_ino_t ino,
                            struct fuse_file_info* fi) {
         struct fuse_cmd *value;
-
-        if( ring_buffer.producer_claim_next(&value) != 0){
+        int64_t idx;
+        if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
             printf("ring buffer was full while trying to enqueue write at inode %d\n", (int) ino);
             return;
         }
@@ -1344,7 +1344,7 @@ namespace NodeFuse {
             memcpy( (void*) &(value->fi), fi, sizeof(struct fuse_file_info));
         }
 
-        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_FLUSH_*/]);
+        ring_buffer.producer_publish(idx);//(producers[  0/*_FUSE_OPS_FLUSH_*/]);
         // uv_async_send(&uv_async_handle);
 
     }
@@ -1391,8 +1391,8 @@ namespace NodeFuse {
                              struct fuse_file_info* fi) {
 
         struct fuse_cmd *value;
-
-        if( ring_buffer.producer_claim_next(&value) != 0){
+        int64_t idx;
+        if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
             printf("ring buffer was full while trying to release inode %d\n", (int) ino);
             return;
         }
@@ -1405,7 +1405,7 @@ namespace NodeFuse {
             memcpy( (void*) &(value->fi), fi, sizeof(struct fuse_file_info));
         }
 
-        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_RELEASE_*/]);
+        ring_buffer.producer_publish(idx);//(producers[  0/*_FUSE_OPS_RELEASE_*/]);
         // uv_async_send(&uv_async_handle);
 
     }
@@ -1452,8 +1452,8 @@ namespace NodeFuse {
                            struct fuse_file_info* fi) {
 
         struct fuse_cmd *value;
-
-        if( ring_buffer.producer_claim_next(&value) != 0){
+        int64_t idx;
+        if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
             printf("ring buffer was full while trying to fsync file %d\n",  (int) ino);
             return;
         }
@@ -1466,7 +1466,7 @@ namespace NodeFuse {
             memcpy( (void*) &(value->fi), fi, sizeof(struct fuse_file_info));
         }
 
-        ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_FSYNC_*/]);
+        ring_buffer.producer_publish(idx);//(producers[ 0/*_FUSE_OPS_FSYNC_*/]);
         // uv_async_send(&uv_async_handle);
 
     }
@@ -1515,8 +1515,8 @@ namespace NodeFuse {
                              struct fuse_file_info* fi) {
 
         struct fuse_cmd *value;
-
-        if( ring_buffer.producer_claim_next(&value) != 0){
+        int64_t idx;
+        if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
             printf("ring buffer was full while trying to opendir with inode %d \n",  (int)ino);
             return;
         }
@@ -1528,7 +1528,7 @@ namespace NodeFuse {
             memcpy( (void*) &(value->fi), fi, sizeof(struct fuse_file_info));
         }
 
-        ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_OPENDIR_*/ ]);
+        ring_buffer.producer_publish(idx);//(producers[ 0/*_FUSE_OPS_OPENDIR_*/ ]);
         // uv_async_send(&uv_async_handle);
     }
 
@@ -1575,8 +1575,8 @@ namespace NodeFuse {
                              struct fuse_file_info* fi) {
 
         struct fuse_cmd *value;
-
-        if( ring_buffer.producer_claim_next(&value) != 0){
+        int64_t idx;
+        if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
             printf("ring buffer was full while trying to enqueue readdir at inode %d\n", (uint8_t) ino);
             return;
         }
@@ -1591,7 +1591,7 @@ namespace NodeFuse {
             memcpy( (void*) &(value->fi), fi, sizeof(struct fuse_file_info));
         }
 
-        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_READDIR_*/]);
+        ring_buffer.producer_publish(idx);//(producers[  0/*_FUSE_OPS_READDIR_*/]);
         // uv_async_send(&uv_async_handle);
     }
     void FileSystem::RemoteReadDir(fuse_req_t req,
@@ -1643,8 +1643,8 @@ namespace NodeFuse {
                                 struct fuse_file_info* fi) {
 
         struct fuse_cmd *value;
-
-        if( ring_buffer.producer_claim_next(&value) != 0){
+        int64_t idx;
+        if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
             printf("ring buffer was full while trying to releasedir with inode %d \n",  (int)ino);
             return;
         }
@@ -1659,7 +1659,7 @@ namespace NodeFuse {
         }
 
 
-        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_RELEASEDIR_*/]);
+        ring_buffer.producer_publish(idx);//(producers[  0/*_FUSE_OPS_RELEASEDIR_*/]);
         // uv_async_send(&uv_async_handle);
 
     }
@@ -1706,8 +1706,8 @@ namespace NodeFuse {
                               struct fuse_file_info* fi) {
 
         struct fuse_cmd *value;
-
-        if( ring_buffer.producer_claim_next(&value) != 0){
+        int64_t idx;
+        if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
             printf("ring buffer was full while trying to fsync dir %d\n",  (int) ino);
             return;
         }
@@ -1721,7 +1721,7 @@ namespace NodeFuse {
             memcpy( (void*) &(value->fi), fi, sizeof(struct fuse_file_info));
         }
 
-        ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_FSYNCDIR_*/ ]);
+        ring_buffer.producer_publish(idx);//(producers[ 0/*_FUSE_OPS_FSYNCDIR_*/ ]);
         // uv_async_send(&uv_async_handle);
     }
     void FileSystem::RemoteFSyncDir(fuse_req_t req,
@@ -1766,8 +1766,8 @@ namespace NodeFuse {
 
     void FileSystem::StatFs(fuse_req_t req, fuse_ino_t ino) {
         struct fuse_cmd *value;
-
-        if( ring_buffer.producer_claim_next(&value) != 0){
+        int64_t idx;
+        if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
             printf("ring buffer was full while trying to statfs inode %d\n", (int) ino);
             return;
         }
@@ -1776,7 +1776,7 @@ namespace NodeFuse {
         value->req = req;
         value->ino = ino;
 
-        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_STATFS_*/]);
+        ring_buffer.producer_publish(idx);//(producers[  0/*_FUSE_OPS_STATFS_*/]);
         // uv_async_send(&uv_async_handle);
 
     }
@@ -1821,8 +1821,8 @@ namespace NodeFuse {
                 #endif
 
         struct fuse_cmd *value;
-
-        if( ring_buffer.producer_claim_next(&value) != 0){
+        int64_t idx;
+        if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
             printf("ring buffer was full while trying to setxattr file %s from parent %d \n",  name_, (int) ino);
             return;
         }
@@ -1839,7 +1839,7 @@ namespace NodeFuse {
         value->position = position_;
         #endif
 
-        ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_SETXATTR_*/]);
+        ring_buffer.producer_publish(idx);//(producers[ 0/*_FUSE_OPS_SETXATTR_*/]);
         // uv_async_send(&uv_async_handle);
 
     }
@@ -1912,8 +1912,8 @@ namespace NodeFuse {
                               ) {
             #endif
     struct fuse_cmd *value;
-
-    if( ring_buffer.producer_claim_next(&value) != 0){
+    int64_t idx;
+    if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
     printf("ring buffer was full while trying to getxattr for inode %d\n",  (int) ino);
         return;
     }
@@ -1928,7 +1928,7 @@ namespace NodeFuse {
     #endif
 
 
-    ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_GETXATTR_*/]);
+    ring_buffer.producer_publish(idx);//(producers[  0/*_FUSE_OPS_GETXATTR_*/]);
     // uv_async_send(&uv_async_handle);
 
     }
@@ -1989,8 +1989,8 @@ namespace NodeFuse {
                                size_t size_) {
 
         struct fuse_cmd *value;
-
-        if( ring_buffer.producer_claim_next(&value) != 0){
+        int64_t idx;
+        if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
             printf("ring buffer was full while trying to enqueue write at inode %d\n", (int) ino);
             return;
         }
@@ -2000,7 +2000,7 @@ namespace NodeFuse {
         value->req = req;
         value->ino = ino;
         value->size = size_;
-        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_LISTXATTR_*/]);
+        ring_buffer.producer_publish(idx);//(producers[  0/*_FUSE_OPS_LISTXATTR_*/]);
         // uv_async_send(&uv_async_handle);
 
     }
@@ -2038,8 +2038,8 @@ namespace NodeFuse {
                                  fuse_ino_t ino,
                                  const char* name_) {
         struct fuse_cmd *value;
-
-        if( ring_buffer.producer_claim_next(&value) != 0){
+        int64_t idx;
+        if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
             printf("ring buffer was full while trying to enqueue write at inode %d\n", (int) ino);
             return;
         }
@@ -2048,7 +2048,7 @@ namespace NodeFuse {
         value->req = req;
         value->ino = ino;
         value->name = name_;
-        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_REMOVEXATTR_*/]);
+        ring_buffer.producer_publish(idx);//(producers[  0/*_FUSE_OPS_REMOVEXATTR_*/]);
         // uv_async_send(&uv_async_handle);
     }
 
@@ -2086,8 +2086,8 @@ namespace NodeFuse {
                             int mask_) {
 
         struct fuse_cmd *value;
-
-        if( ring_buffer.producer_claim_next(&value) != 0){
+        int64_t idx;
+        if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
             printf("ring buffer was full while trying to access %d\n", (int) ino);
             return;
         }
@@ -2098,7 +2098,7 @@ namespace NodeFuse {
         value->ino = ino;
         value->to_set = mask_;
 
-        ring_buffer.producer_publish();//(producers[  0/*_FUSE_OPS_ACCESS_*/]);
+        ring_buffer.producer_publish(idx);//(producers[  0/*_FUSE_OPS_ACCESS_*/]);
         // uv_async_send(&uv_async_handle);
 
     }
@@ -2140,8 +2140,8 @@ namespace NodeFuse {
                             mode_t mode,
                             struct fuse_file_info* fi) {
         struct fuse_cmd *value;
-
-        if( ring_buffer.producer_claim_next(&value) != 0){
+        int64_t idx;
+        if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
             printf("ring buffer was full while trying to enqueue write at inode %d\n", (int) parent);
             return;
         }
@@ -2155,7 +2155,7 @@ namespace NodeFuse {
             memcpy( (void*) &(value->fi), fi, sizeof(struct fuse_file_info));
         }
 
-        ring_buffer.producer_publish();//(producers[ 0/*_FUSE_OPS_CREATE_*/ ]);
+        ring_buffer.producer_publish(idx);//(producers[ 0/*_FUSE_OPS_CREATE_*/ ]);
         // uv_async_send(&uv_async_handle);
 
     }
