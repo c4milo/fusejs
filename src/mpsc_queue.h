@@ -3,6 +3,7 @@
 
 #include <atomic>
 #include <thread>
+#include <chrono>
 
 /* 
  
@@ -47,11 +48,15 @@ public:
 		if( _head != _tail  ){
 			tail = ( tail + 1) & ring_mask; 
 			*value = &(data[_tail]);
-			// volatile uint _head = head;
-			// volatile uint _claimed = claimed;
-			// volatile uint _next = next_to_be_claimed;
-			// printf("consumed tail %u -- claimed %u -- head %u -- next %u-- thread id %u\n", 
-			// 	_tail, _claimed, _head,_next,std::this_thread::get_id());
+
+			#ifdef DEBUG
+			volatile uint _head = head;
+			volatile uint _claimed = claimed;
+			volatile uint _next = next_to_be_claimed;
+			printf("consumed tail %u -- claimed %u -- head %u -- next %u-- thread id %u\n", 
+				_tail, _claimed, _head,_next,std::this_thread::get_id());
+			#endif
+
 			return 0;
 		}
 		return MPSC_QUEUE_EOF;
@@ -61,25 +66,32 @@ public:
 
 		volatile uint _tail;
 		uint idx;
-		// idx_ptr = (uint) &idx;
-
 
 		do
 		{
-		    _tail =  tail;
-		    idx = next_to_be_claimed;
-		    _tail = _tail & ring_mask;
-		    idx = idx & ring_mask;
-		    if ( ( (_tail) & ring_mask ) ==
-		        ( (idx+1) & ring_mask ) )
-		    {
-		        // the queue is full
-		        uv_async_send(&uv_async_handle);
-		        std::this_thread::yield();
-		        return producer_claim_next(value);
-		    }
+			_tail =  tail;
+			idx = next_to_be_claimed;
+			_tail = _tail & ring_mask;
+			idx = idx & ring_mask;
+			if ( ( (_tail) & ring_mask ) ==
+				( (idx+1) & ring_mask ) )
+			{
 
-		} while ( !std::atomic_compare_exchange_strong(&next_to_be_claimed, &idx, (idx+1) & ring_mask ));
+		        // the queue is full		      
+
+		        // wait until the queue empties
+
+				while( (_tail & ring_mask ) == ((idx+1) & ring_mask )){
+					uv_async_send(&uv_async_handle);
+					std::this_thread::yield();
+					std::this_thread::sleep_for(std::chrono::milliseconds(500));
+					_tail =  tail;
+					_tail = _tail & ring_mask;
+
+				}
+
+			} 
+		}while ( !std::atomic_compare_exchange_strong(&next_to_be_claimed, &idx, (idx+1) & ring_mask ));
 		//!next_to_be_claimed.compare_exchange_strong(  (uint) idx, (uint)(idx + 1) ,std::memory_order_seq_cst,std::memory_order_seq_cst) );
 		// if( tail == idx){
 		// 	do{
@@ -93,50 +105,52 @@ public:
 
 		// next_to_be_claimed.fetch_and(ring_mask); 
 
-		volatile uint _head = head;
+		#ifdef DEBUG
 		uint _claimed =  claimed.fetch_add(1) + 1;
-		// if( (idx < _head) && (idx > tail)){
-		// 	return producer_claim_next(value);
-		// }
+		#else
+		claimed.fetch_add(1);
+		#endif
+
 		*value = &(data[idx]);
-		// volatile uint _next = next_to_be_claimed;
-		// printf("claimed idx %lu -- claimed %lu -- head %u -- next %u -- thread_id %u\n", 
-		// 	idx, _claimed, _head, _next,std::this_thread::get_id());
+
+		#ifdef DEBUG
+		volatile uint _head = head;
+		volatile uint _next = next_to_be_claimed;
+		printf("claimed idx %lu -- claimed %lu -- head %u -- next %u -- thread_id %u\n", 
+			idx, _claimed, _head, _next,std::this_thread::get_id());
+		#endif
+
 		// while(!std::atomic_compare_exchange_strong(&claimed, &_claimed, (_claimed+1)&ring_mask));
 		return (int64_t) idx;
-		// return MPSC_QUEUE_FULL;
 	}
 	uint producer_publish(volatile int64_t _idx){
 		uint _claimed = claimed.fetch_sub(1) - 1;
 		volatile uint _head = head;		
-		uint idx = _idx; 
 		uint next = next_to_be_claimed;
 
-		// while(!std::atomic_compare_exchange_strong(&claimed, &_claimed, (_claimed-1)&ring_mask));
+		// set a new head when the number claimed is 0
+
 		if( _claimed == 0){
 			if( _head != next){
 				head = next;
 				//while(!std::atomic_compare_exchange_strong(&head, &next, (next+1)&ring_mask)  );
 			}
-			// else if(_head > idx){
-			// 	while(!std::atomic_compare_exchange_strong(&head, &idx, (idx+1)&ring_mask)  );
-			// } 
 
-			// while( !head.compare_exchange_strong( (uint *) &idx, idx + 1,std::memory_order_seq_cst,std::memory_order_seq_cst ) );
-	
+
 			uv_async_send(&uv_async_handle);
 
 
-			// if empty, wake up consumer thread;
-			// if( ( _head == (tail+1) || (tail==ring_mask && _head==0) )){
-			// }
 
 		}
 
+		#ifdef DEBUG
+		uint idx = _idx; 
 		_head = head;
 		volatile uint _next = next_to_be_claimed;
-		// printf("publish idx %u -- claimed %u -- head %u -- next %u -- thread id %u\n", 
-		// 		idx, _claimed , _head, _next, std::this_thread::get_id());
+		printf("publish idx %u -- claimed %u -- head %u -- next %u -- thread id %u\n", 
+			idx, _claimed , _head, _next, std::this_thread::get_id());
+		#endif
+
 		std::this_thread::yield();		        
 
 		return 0;
