@@ -14,7 +14,14 @@
             '<!@(pkg-config fuse --cflags-only-I | sed s/-I//g)',
             "<!(node -e \"require('nan')\")"
           ],
-          'cflags_cc': ['-Wall', '-g', '-Warray-bounds', '-fpermissive'],
+          "cflags_cc": [ 
+            "-std=c++11",
+            "-Wall", "-Warray-bounds", 
+            "-fpermissive"
+          ],
+          "xcode_settings": {
+             "OTHER_CFLAGS": [ "-std=c++11", "-stdlib=libc++","-mmacosx-version-min=10.7" ]
+           },
           "defines": [
           '_FILE_OFFSET_BITS=64', 'FUSE_USE_VERSION=30'
           ],
