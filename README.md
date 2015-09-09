@@ -8,7 +8,7 @@ Even though most of the Fuse functions are already binded, this module has not
 been used in production. Use it at your own risk. 
 
 ## How it works
-Fuse low level API is inherently asynchronous, therefore, there is no need for libuv thread pool. Mouting a FuseJS drive does not need the "-s" flag to run single threaded fuse. Fuse-mulithreaded is included for free, which can lead to a significant performance increase to when accessing your filesystem!
+Fuse low level API is inherently asynchronous, therefore, there is no need for libuv thread pool. 
 
 FuseJS workflow looks like:
 
