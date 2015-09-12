@@ -4,6 +4,7 @@
 #include <atomic>
 #include <thread>
 #include <chrono>
+#include <mutex>
 
 /* 
  
@@ -63,6 +64,7 @@ public:
 	}
 
 	int64_t producer_claim_next(T **value){
+		mutex_lock.lock();
 
 		volatile uint _tail;
 		uint idx;
@@ -73,6 +75,7 @@ public:
 			idx = next_to_be_claimed;
 			_tail = _tail & ring_mask;
 			idx = idx & ring_mask;
+
 			if ( ( (_tail) & ring_mask ) ==
 				( (idx+1) & ring_mask ) )
 			{
@@ -116,14 +119,16 @@ public:
 		#ifdef DEBUG
 		volatile uint _head = head;
 		volatile uint _next = next_to_be_claimed;
-		printf("claimed idx %lu -- claimed %lu -- head %u -- next %u -- thread_id %u\n", 
-			idx, _claimed, _head, _next,std::this_thread::get_id());
+		printf("claimed idx %lu -- claimed %lu -- head %u -- next %u -- tail %u -- thread_id %u\n", 
+			idx, _claimed, _head, _next, tail, std::this_thread::get_id());
 		#endif
 
 		// while(!std::atomic_compare_exchange_strong(&claimed, &_claimed, (_claimed+1)&ring_mask));
+		mutex_lock.unlock();
 		return (int64_t) idx;
 	}
 	uint producer_publish(volatile int64_t _idx){
+		mutex_lock.lock();
 		uint _claimed = claimed.fetch_sub(1) - 1;
 		volatile uint _head = head;		
 		uint next = next_to_be_claimed;
@@ -147,17 +152,18 @@ public:
 		uint idx = _idx; 
 		_head = head;
 		volatile uint _next = next_to_be_claimed;
-		printf("publish idx %u -- claimed %u -- head %u -- next %u -- thread id %u\n", 
-			idx, _claimed , _head, _next, std::this_thread::get_id());
+		printf("publish idx %u -- claimed %u -- head %u -- next %u -- tail %u -- thread id %u\n", 
+			idx, _claimed , _head, _next, tail, std::this_thread::get_id());
 		#endif
 
 		std::this_thread::yield();		        
-
+		mutex_lock.unlock();
 		return 0;
 
 	}
 private:
 	T *data;
+	std::mutex mutex_lock;
 	std::atomic<uint> claimed;
 	std::atomic<uint> next_to_be_claimed;
 	std::atomic<uint> head; 
