@@ -295,7 +295,9 @@ namespace NodeFuse {
         fuse_ops.fsyncdir   = FileSystem::FSyncDir;
         fuse_ops.statfs     = FileSystem::StatFs;
         #if FUSE_USE_VERSION > 28
+        #ifndef __APPLE__
         fuse_ops.forget_multi = FileSystem::MultiForget; 
+        #endif
         #endif
         // fuse_ops.setxattr   = FileSystem::SetXAttr;
         // fuse_ops.getxattr   = FileSystem::GetXAttr;
