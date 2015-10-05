@@ -201,7 +201,7 @@ namespace NodeFuse {
         FileInfo* fileInfo = ObjectWrap::Unwrap<FileInfo>(fiobj);
 
         int ret = -1;
-        ret = fuse_reply_open(reply->request, fileInfo->fi);
+        ret = fuse_reply_open(reply->request, &(fileInfo->fi));
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
         }
@@ -343,7 +343,7 @@ namespace NodeFuse {
 
         FileInfo* fileInfo = ObjectWrap::Unwrap<FileInfo>(fiobj);
 
-        ret = fuse_reply_create(reply->request, &entry, fileInfo->fi);
+        ret = fuse_reply_create(reply->request, &entry, &(fileInfo->fi));
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
         }

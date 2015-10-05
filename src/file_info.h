@@ -24,7 +24,7 @@ namespace NodeFuse {
 
             FileInfo();
             virtual ~FileInfo();
-            struct fuse_file_info *fi;
+            struct fuse_file_info fi;
             static Nan::Persistent<v8::Function> constructor;
             static Nan::Persistent<v8::FunctionTemplate> constructor_template;
             static NAN_METHOD(New);
