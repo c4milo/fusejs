@@ -77,9 +77,9 @@ namespace NodeFuse {
 
     FileInfo::FileInfo() : ObjectWrap() {}
     FileInfo::~FileInfo() {
-        // if(fi != nullptr)
+        // if(this->fi != nullptr)
         // {
-        //     free(fi);
+        //     free(this->fi);
         // }
         
     }
@@ -126,7 +126,7 @@ namespace NodeFuse {
            O_EVTONLY       descriptor requested for event notifications only
         */
 
-        int flags = fileInfo->fi->flags;
+        int flags = fileInfo->fi.flags;
 
         switch( flags & 3){
             case 0:
@@ -192,12 +192,12 @@ namespace NodeFuse {
 
     NAN_GETTER(FileInfo::GetWritePage){
         FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
-        info.GetReturnValue().Set(fileInfo->fi->writepage ? Nan::True() : Nan::False());
+        info.GetReturnValue().Set(fileInfo->fi.writepage ? Nan::True() : Nan::False());
     }
 
     NAN_GETTER(FileInfo::GetDirectIO){//(Local<String> property, const AccessorInfo& info) {
         FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
-        info.GetReturnValue().Set(fileInfo->fi->direct_io ? Nan::True() : Nan::False());
+        info.GetReturnValue().Set(fileInfo->fi.direct_io ? Nan::True() : Nan::False());
     }
 
     NAN_SETTER(FileInfo::SetDirectIO){
@@ -208,12 +208,12 @@ namespace NodeFuse {
             // FUSEJS_THROW_EXCEPTION("Invalid value type: ", "a Boolean was expected");
         }
 
-        fileInfo->fi->direct_io = value->IsTrue() ? 1 : 0;
+        fileInfo->fi.direct_io = value->IsTrue() ? 1 : 0;
     }
 
     NAN_GETTER(FileInfo::GetKeepCache){
         FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
-        info.GetReturnValue().Set(fileInfo->fi->keep_cache ? Nan::True() : Nan::False());
+        info.GetReturnValue().Set(fileInfo->fi.keep_cache ? Nan::True() : Nan::False());
     }
 
     NAN_SETTER(FileInfo::SetKeepCache){
@@ -224,19 +224,19 @@ namespace NodeFuse {
             // FUSEJS_THROW_EXCEPTION("Invalid value type: ", "a Boolean was expected");
         }
 
-        fileInfo->fi->keep_cache = value->IsTrue() ? 1 : 0;
+        fileInfo->fi.keep_cache = value->IsTrue() ? 1 : 0;
     }
 
     NAN_GETTER(FileInfo::GetFlush){
         FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
-        info.GetReturnValue().Set( fileInfo->fi->flush ? Nan::True() : Nan::False());
+        info.GetReturnValue().Set( fileInfo->fi.flush ? Nan::True() : Nan::False());
     }
 
     NAN_GETTER(FileInfo::GetNonSeekable){     
 
 #if FUSE_USE_VERSION > 27 && !__APPLE__
         FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
-        info.GetReturnValue().Set(fileInfo->fi->nonseekable ? Nan::True() : Nan::False());
+        info.GetReturnValue().Set(fileInfo->fi.nonseekable ? Nan::True() : Nan::False());
 #else
         info.GetReturnValue().Set(Nan::False());
 #endif
@@ -249,7 +249,7 @@ namespace NodeFuse {
         }
 #if FUSE_USE_VERSION > 28 && !__APPLE__
         FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
-        fileInfo->fi->nonseekable = value->IsTrue() ? 1 : 0;
+        fileInfo->fi.nonseekable = value->IsTrue() ? 1 : 0;
 #endif
     }
 
@@ -260,18 +260,18 @@ namespace NodeFuse {
             Nan::ThrowTypeError("Invalid value type: a Number was expected");        
         }
 
-        fileInfo->fi->fh = Nan::To<uint32_t>(value).FromJust();
+        fileInfo->fi.fh = Nan::To<uint32_t>(value).FromJust();
     }
 
     NAN_GETTER(FileInfo::GetFileHandle){
         FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
 
-        info.GetReturnValue().Set(Nan::New<Integer>(  (uint32_t) (fileInfo->fi->fh) ));
+        info.GetReturnValue().Set(Nan::New<Integer>(  (uint32_t) (fileInfo->fi.fh) ));
     }
 
     NAN_GETTER(FileInfo::GetLockOwner){
         FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
 
-        info.GetReturnValue().Set(Nan::New<Integer>(  (uint32_t) (fileInfo->fi->lock_owner) ));
+        info.GetReturnValue().Set(Nan::New<Integer>(  (uint32_t) (fileInfo->fi.lock_owner) ));
     }
 } //ends namespace NodeFuse
