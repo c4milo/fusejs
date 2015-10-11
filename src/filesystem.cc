@@ -1347,7 +1347,8 @@ namespace NodeFuse {
         Local<Number> offset = Nan::New<Number>(off);
 
         Local<Object> buffer = Nan::NewBuffer((char*) buf, size).ToLocalChecked();
-        free((void *)buf);
+        // free will be called implicitly when buffer is garbage collected
+        // free((void *)buf);
         FileInfo* info = new FileInfo();
 
         info->fi = fi;
