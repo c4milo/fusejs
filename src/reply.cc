@@ -40,7 +40,7 @@ namespace NodeFuse {
         Nan::SetPrototypeMethod(tpl, "xattr", Reply::XAttributes);
         Nan::SetPrototypeMethod(tpl, "addDirEntry", Reply::AddDirEntry);
         Nan::SetPrototypeMethod(tpl, "none", Reply::None);
-
+        Nan::SetAccessor(tpl->InstanceTemplate(), Nan::New("hasReplied").ToLocalChecked(), Reply::hasReplied);
         constructor.Reset(tpl->GetFunction());
     }
 
@@ -50,6 +50,7 @@ namespace NodeFuse {
         dentry_size = 0;
         dentry_offset = 0;
         dentry_buffer = NULL;
+        b_hasReplied = false;
     }
 
     Reply::~Reply() {
@@ -84,6 +85,8 @@ namespace NodeFuse {
         }
 
         ret = fuse_reply_entry(reply->request, &entry);
+        reply->b_hasReplied = true;
+
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
         }
@@ -125,6 +128,8 @@ namespace NodeFuse {
         }
 
         ret = fuse_reply_attr(reply->request, &statbuff, timeout);
+        reply->b_hasReplied = true;
+
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
         }
@@ -152,6 +157,8 @@ namespace NodeFuse {
 
         int ret = -1;
         ret = fuse_reply_readlink(reply->request, (const char*) *link);
+        reply->b_hasReplied = true;
+        
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
         }
@@ -176,6 +183,8 @@ namespace NodeFuse {
 
         int ret = -1;
         ret = fuse_reply_err(reply->request, arg->Int32Value());
+        reply->b_hasReplied = true;
+        
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
         }
@@ -202,6 +211,7 @@ namespace NodeFuse {
 
         int ret = -1;
         ret = fuse_reply_open(reply->request, &(fileInfo->fi));
+        reply->b_hasReplied = true;
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
         }
@@ -236,14 +246,19 @@ namespace NodeFuse {
             Local<Object> buffer = args[0]->ToObject();
             const char* data = Buffer::Data(buffer);
             ret = fuse_reply_buf( reply->request, data, size);
+            reply->b_hasReplied = true;
         }else{
 
             if (reply->dentry_offset < reply->dentry_acc_size){
                 // fprintf(stderr, "reply buf less than %6d, %6d, \t%6d\n", (int) reply->dentry_offset, (int) reply->dentry_acc_size, (int) MIN(reply->dentry_acc_size - reply->dentry_offset,size));
                 ret = fuse_reply_buf(reply->request, reply->dentry_buffer + reply->dentry_offset, MIN(reply->dentry_acc_size - reply->dentry_offset,size) );
+                
+                /* even though it's not finished when we reached here, fuse will make a new request wuth a new reply */
+                reply->b_hasReplied = true;                
             }else{
                 // fprintf(stderr, "reply buf done\n");
                 ret = fuse_reply_buf(reply->request, NULL, 0 );
+                reply->b_hasReplied = true;
             }
 
         }
@@ -273,6 +288,8 @@ namespace NodeFuse {
 
         int ret = -1;
         ret = fuse_reply_write(reply->request, arg->IntegerValue());
+        reply->b_hasReplied = true;
+        
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
         }
@@ -305,6 +322,7 @@ namespace NodeFuse {
         }
 
         ret = fuse_reply_statfs(reply->request, &buf);
+        reply->b_hasReplied = true;
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
         }
@@ -344,6 +362,7 @@ namespace NodeFuse {
         FileInfo* fileInfo = ObjectWrap::Unwrap<FileInfo>(fiobj);
 
         ret = fuse_reply_create(reply->request, &entry, &(fileInfo->fi));
+        reply->b_hasReplied = true;
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
         }
@@ -368,6 +387,7 @@ namespace NodeFuse {
 
         int ret = -1;
         ret = fuse_reply_xattr(reply->request, arg->Int32Value());
+        reply->b_hasReplied = true;
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
         }
@@ -400,6 +420,7 @@ namespace NodeFuse {
         }
 
         ret = fuse_reply_lock(reply->request, &lock);
+        reply->b_hasReplied = true;
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
         }
@@ -411,6 +432,7 @@ namespace NodeFuse {
         Local<Object> replyObj = args.This();
         Reply* reply = ObjectWrap::Unwrap<Reply>(replyObj);       
         fuse_reply_none(reply->request); 
+        reply->b_hasReplied = true;
     }
 
 
@@ -432,6 +454,7 @@ namespace NodeFuse {
 
         int ret = -1;
         ret = fuse_reply_bmap(reply->request, arg->IntegerValue());
+        reply->b_hasReplied = true;
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
         }
@@ -499,4 +522,10 @@ namespace NodeFuse {
         // scope.Escape(Nan::New<Number>( (int) len2) );
         args.GetReturnValue().Set(Nan::New<Number>( (int) len2));
     }
+    
+    NAN_GETTER(Reply::hasReplied){
+        Reply *reply = ObjectWrap::Unwrap<Reply>(info.This());
+        info.GetReturnValue().Set(reply->b_hasReplied ? Nan::True() : Nan::False());
+    }
+
 } //ends namespace NodeFuse

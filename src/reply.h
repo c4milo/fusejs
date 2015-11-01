@@ -32,6 +32,8 @@ namespace NodeFuse {
             static NAN_METHOD(BMap);
             static NAN_METHOD(AddDirEntry);
             static NAN_METHOD(None);
+            static NAN_GETTER(hasReplied);
+
 
         private:
             fuse_req_t request;
@@ -41,6 +43,7 @@ namespace NodeFuse {
             size_t dentry_size;
             char* dentry_buffer;
             static Nan::Persistent<Function> constructor;
+            bool b_hasReplied;
     };
 } //namespace NodeFuse
 
