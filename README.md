@@ -2,19 +2,19 @@
 [![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/c4milo/fusejs?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Build Status](https://travis-ci.org/c4milo/fusejs.svg)](https://travis-ci.org/c4milo/fusejs)
 
-Fusejs are a set of NodeJS bindings for [Fuse](http://fuse.sourceforge.net/) low level API. 
-It allows you to write filesystems, in userspace, using Javascript and NodeJS. 
-Even though most of the Fuse functions are already binded, this module has not 
-been used in production. Use it at your own risk. 
+Fusejs are a set of NodeJS bindings for [Fuse](http://fuse.sourceforge.net/) low level API.
+It allows you to write filesystems, in userspace, using Javascript and NodeJS.
+Even though most of the Fuse functions are already binded, this module has not
+been used in production. Use it at your own risk.
 
 ## How it works
-Fuse low level API is inherently asynchronous, therefore, there is no need for libuv thread pool. 
+Fuse low level API is inherently asynchronous, therefore, there is no need for libuv thread pool.
 
 FuseJS workflow looks like:
 
 ```                          
           node example/hello.js /tmp/hello_fs -ofsname=hellofs -orw -d
-                                         ↕ 
+                                         ↕
                                 Google V8 / FuseJS
 Flow starts here!                        ↕
 	ls -lah /tmp/hello_fs             libfuse
@@ -22,10 +22,10 @@ Flow starts here!                        ↕
        		glibc                      glibc
 Userspace     ↕                          ↕
 ---------------------------------------------         
-Kernel        ↕                          ↕	
+Kernel        ↕                          ↕
 			  ↕                          ↕
              VFS ↔ ↔ ↔ ↔ ↔ ↔ ↔ ↔ ↔ ↔ ↔  FUSE
-             
+
              							...
                                         Ext4
                                         NFS
@@ -50,7 +50,7 @@ The following Fuse low level operations are fully supported:
 * **symlink:** Creates a symbolic link
 * **rename:** Renames a file
 * **link:** Creates a hard link
-* **open:** Opens a file 
+* **open:** Opens a file
 * **read:** Reads data
 * **write:** Writes data
 * **flush:** Flushes data. This is called on each close of an opened file. Since file descriptors can be duplicated (dup, dup2, fork), for one open call there may be many flush calls.Filesystems shouldn't assume that flush will always be called after some writes, or that it will be called at all.
@@ -78,8 +78,8 @@ The following Fuse low level operations are fully supported:
 In order to use FuseJS you need to install any of the Fuse implementations for OSX. OSXFuse is the one that has been used throughout the FuseJS development. Go to http://osxfuse.github.com/ and follow the instructions to get it installed. Additionally, FuseJS toolchain uses `pkg-config`, you need to have it installed in your system as well, in order to compile FuseJS. It usually should come by default in your operating system, if not, then use your package manager to install it.
 
 * download https://github.com/downloads/osxfuse/osxfuse/OSXFUSE-2.5.2.dmg
-* sudo port install pkg-config (OSX)
-* ```npm install fusejs``` 
+* sudo port install pkgconfig (OSX)
+* ```npm install fusejs```
 
 
 ### Linux
@@ -89,7 +89,7 @@ In order to use FuseJS you need to install any of the Fuse implementations for O
 ## API Documentation
 All the API Documentation can be found at:
 
-* https://github.com/c4milo/fusejs/blob/master/fuse.js. 
+* https://github.com/c4milo/fusejs/blob/master/fuse.js.
 
 You can also take a look at the examples in: (TODO!)
 
