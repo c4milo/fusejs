@@ -96,7 +96,7 @@ namespace NodeFuse {
             static void Forget(fuse_req_t req,
                                 fuse_ino_t ino,
                                 unsigned long nlookup);
-            #if FUSE_USE_VERSION > 28
+            #if FUSE_VERSION > 28
             static void MultiForget(fuse_req_t req,
                                 size_t count,
                                 struct fuse_forget_data *forget_all);
@@ -250,7 +250,7 @@ namespace NodeFuse {
             static void RemoteForget(fuse_req_t req,
                                 fuse_ino_t ino,
                                 unsigned long nlookup);
-            #if FUSE_USE_VERSION > 28
+            #if FUSE_VERSION > 28
             static void RemoteMultiForget(fuse_req_t req,
                                 size_t count,
                                 struct fuse_forget_data *forget_all);

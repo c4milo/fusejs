@@ -1,5 +1,5 @@
 #include "forget_data.h"
-#if FUSE_USE_VERSION > 28
+#if FUSE_VERSION > 28
 
 namespace NodeFuse {
 

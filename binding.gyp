@@ -20,7 +20,7 @@
             "-fpermissive"
           ],
           "xcode_settings": {
-             "OTHER_CFLAGS": [ "-std=c++11", "-stdlib=libc++","-mmacosx-version-min=10.7" ]
+             "OTHER_CPLUSPLUSFLAGS": ["-stdlib=libc++", "-std=c++11", "-mmacosx-version-min=10.7" ]
            },
           "defines": [
           '_FILE_OFFSET_BITS=64', 'FUSE_USE_VERSION=30'
