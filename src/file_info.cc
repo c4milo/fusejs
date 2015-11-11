@@ -9,6 +9,38 @@
 
 namespace NodeFuse {
     Nan::Persistent<Function> FileInfo::constructor;
+    
+    static Nan::Persistent<String> flags_sym;
+    static Nan::Persistent<String> writepage_sym;
+    static Nan::Persistent<String> direct_io_sym;
+    static Nan::Persistent<String> keep_cache_sym;
+    static Nan::Persistent<String> flush_sym;
+    static Nan::Persistent<String> nonseekable_sym;
+    static Nan::Persistent<String> file_handle_sym;
+    static Nan::Persistent<String> lock_owner_sym;
+
+    //Open flags
+    static Nan::Persistent<String> rdonly_sym;
+    static Nan::Persistent<String> wronly_sym;
+    static Nan::Persistent<String> rdwr_sym;
+    static Nan::Persistent<String> nonblock_sym;
+    static Nan::Persistent<String> append_sym;
+    static Nan::Persistent<String> creat_sym;
+    static Nan::Persistent<String> trunc_sym;
+    static Nan::Persistent<String> excl_sym;
+#ifdef O_SHLOCK
+    static Nan::Persistent<String> shlock_sym;
+#endif
+#ifdef O_EXLOCK
+    static Nan::Persistent<String> exlock_sym;
+#endif
+    static Nan::Persistent<String> nofollow_sym;
+#ifdef O_SYMLINK
+    static Nan::Persistent<String> symlink_sym;
+#endif
+#ifdef O_EVTONLY
+    static Nan::Persistent<String> evtonly_sym;
+#endif
 
     NAN_METHOD(FileInfo::New){
         if (info.IsConstructCall()) {
@@ -24,37 +56,37 @@ namespace NodeFuse {
     }
 
     void FileInfo::Initialize(Handle<Object> target) {
-        /*
-        flags_sym = Nan::Global<String>( Nan::New("flags").ToLocalChecked());
-        writepage_sym = Nan::Global<String>( Nan::New("writepage").ToLocalChecked());
-        direct_io_sym = Nan::Global<String>( Nan::New("direct_io").ToLocalChecked());
-        keep_cache_sym = Nan::Global<String>( Nan::New("keep_cache").ToLocalChecked());
-        flush_sym = Nan::Global<String>( Nan::New("flush").ToLocalChecked());
-        nonseekable_sym = Nan::Global<String>( Nan::New("nonseekable").ToLocalChecked());
-        file_handle_sym = Nan::Global<String>( Nan::New("fh").ToLocalChecked());
-        lock_owner_sym = Nan::Global<String>( Nan::New("lock_owner").ToLocalChecked());
-        rdonly_sym = Nan::Global<String>( Nan::New("rdonly").ToLocalChecked());
-        wronly_sym = Nan::Global<String>( Nan::New("wronly").ToLocalChecked());
-        rdwr_sym = Nan::Global<String>( Nan::New("rdwr").ToLocalChecked());
-        nonblock_sym = Nan::Global<String>( Nan::New("nonblock").ToLocalChecked());
-        append_sym = Nan::Global<String>( Nan::New("append").ToLocalChecked());
-        creat_sym = Nan::Global<String>( Nan::New("creat").ToLocalChecked());
-        trunc_sym = Nan::Global<String>( Nan::New("trunc").ToLocalChecked());
-        excl_sym = Nan::Global<String>( Nan::New("excl").ToLocalChecked());
+        
+        flags_sym.Reset( Nan::New("flags").ToLocalChecked());
+        writepage_sym.Reset( Nan::New("writepage").ToLocalChecked());
+        direct_io_sym.Reset( Nan::New("direct_io").ToLocalChecked());
+        keep_cache_sym.Reset( Nan::New("keep_cache").ToLocalChecked());
+        flush_sym.Reset( Nan::New("flush").ToLocalChecked());
+        nonseekable_sym.Reset( Nan::New("nonseekable").ToLocalChecked());
+        file_handle_sym.Reset( Nan::New("file_handle").ToLocalChecked());
+        lock_owner_sym.Reset( Nan::New("lock_owner").ToLocalChecked());
+        rdonly_sym.Reset( Nan::New("rdonly").ToLocalChecked());
+        wronly_sym.Reset( Nan::New("wronly").ToLocalChecked());
+        rdwr_sym.Reset( Nan::New("rdwr").ToLocalChecked());
+        nonblock_sym.Reset( Nan::New("nonblock").ToLocalChecked());
+        append_sym.Reset( Nan::New("append").ToLocalChecked());
+        creat_sym.Reset( Nan::New("creat").ToLocalChecked());
+        trunc_sym.Reset( Nan::New("trunc").ToLocalChecked());
+        excl_sym.Reset( Nan::New("excl").ToLocalChecked());
         #ifdef O_SHLOCK
-        shlock_sym = Nan::Global<String>( Nan::New("shlock").ToLocalChecked());
+        shlock_sym.Reset( Nan::New("shlock").ToLocalChecked());
         #endif
         #ifdef O_EXLOCK
-        exlock_sym = Nan::Global<String>( Nan::New("exlock").ToLocalChecked());
+        exlock_sym.Reset( Nan::New("exlock").ToLocalChecked());
         #endif
-        nofollow_sym = Nan::Global<String>( Nan::New("nofollow").ToLocalChecked());
+        nofollow_sym.Reset( Nan::New("nofollow").ToLocalChecked());
         #ifdef O_SYMLINK
-        symlink_sym = Nan::Global<String>( Nan::New("symlink").ToLocalChecked());
+        symlink_sym.Reset( Nan::New("symlink").ToLocalChecked());
         #endif
         #ifdef O_EVTONLY
-        evtonly_sym = Nan::Global<String>( Nan::New("evtonly").ToLocalChecked());
+        evtonly_sym.Reset( Nan::New("evtonly").ToLocalChecked());
         #endif
-        */
+        
         Local<v8::FunctionTemplate> tpl = Nan::New<v8::FunctionTemplate>(New);
         tpl->SetClassName(Nan::New<v8::String>("FileInfo").ToLocalChecked());
         tpl->InstanceTemplate()->SetInternalFieldCount(1);
@@ -63,14 +95,14 @@ namespace NodeFuse {
 
         object_tmpl->SetInternalFieldCount(1);
 
-        Nan::SetAccessor(object_tmpl, Nan::New("flags").ToLocalChecked(), FileInfo::GetFlags);
-        Nan::SetAccessor(object_tmpl, Nan::New("writepage").ToLocalChecked(), FileInfo::GetWritePage);
-        Nan::SetAccessor(object_tmpl, Nan::New("direct_io").ToLocalChecked(), FileInfo::GetDirectIO, FileInfo::SetDirectIO);
-        Nan::SetAccessor(object_tmpl, Nan::New("keep_cache").ToLocalChecked(), FileInfo::GetKeepCache, FileInfo::SetKeepCache);
-        Nan::SetAccessor(object_tmpl, Nan::New("flush").ToLocalChecked(), FileInfo::GetFlush);
-        Nan::SetAccessor(object_tmpl, Nan::New("nonseekable").ToLocalChecked(), FileInfo::GetNonSeekable, FileInfo::SetNonSeekable);
-        Nan::SetAccessor(object_tmpl, Nan::New("file_handle").ToLocalChecked(), FileInfo::GetFileHandle, FileInfo::SetFileHandle);
-        Nan::SetAccessor(object_tmpl, Nan::New("lock_owner").ToLocalChecked(), FileInfo::GetLockOwner);
+        Nan::SetAccessor(object_tmpl, Nan::New(flags_sym), FileInfo::GetFlags);
+        Nan::SetAccessor(object_tmpl, Nan::New(writepage_sym), FileInfo::GetWritePage);
+        Nan::SetAccessor(object_tmpl, Nan::New(direct_io_sym), FileInfo::GetDirectIO, FileInfo::SetDirectIO);
+        Nan::SetAccessor(object_tmpl, Nan::New(keep_cache_sym), FileInfo::GetKeepCache, FileInfo::SetKeepCache);
+        Nan::SetAccessor(object_tmpl, Nan::New(flush_sym), FileInfo::GetFlush);
+        Nan::SetAccessor(object_tmpl, Nan::New(nonseekable_sym), FileInfo::GetNonSeekable, FileInfo::SetNonSeekable);
+        Nan::SetAccessor(object_tmpl, Nan::New(file_handle_sym), FileInfo::GetFileHandle, FileInfo::SetFileHandle);
+        Nan::SetAccessor(object_tmpl, Nan::New(lock_owner_sym), FileInfo::GetLockOwner);
         constructor.Reset(tpl->GetFunction());
 
     }
@@ -89,26 +121,26 @@ namespace NodeFuse {
         Local<Object> flagsObj = Nan::New<Object>();
 
         //Initializes object
-        Nan::Set(flagsObj, Nan::New("rdonly").ToLocalChecked(), Nan::False());
-        Nan::Set(flagsObj, Nan::New("wronly").ToLocalChecked(), Nan::False());
-        Nan::Set(flagsObj, Nan::New("rdwr").ToLocalChecked(), Nan::False());
-        Nan::Set(flagsObj, Nan::New("nonblock").ToLocalChecked(), Nan::False());
-        Nan::Set(flagsObj, Nan::New("append").ToLocalChecked(), Nan::False());
-        Nan::Set(flagsObj, Nan::New("creat").ToLocalChecked(), Nan::False());
-        Nan::Set(flagsObj, Nan::New("trunc").ToLocalChecked(), Nan::False());
-        Nan::Set(flagsObj, Nan::New("excl").ToLocalChecked(), Nan::False());
+        Nan::Set(flagsObj, Nan::New(rdonly_sym), Nan::False());
+        Nan::Set(flagsObj, Nan::New(wronly_sym), Nan::False());
+        Nan::Set(flagsObj, Nan::New(rdwr_sym), Nan::False());
+        Nan::Set(flagsObj, Nan::New(nonblock_sym), Nan::False());
+        Nan::Set(flagsObj, Nan::New(append_sym), Nan::False());
+        Nan::Set(flagsObj, Nan::New(creat_sym), Nan::False());
+        Nan::Set(flagsObj, Nan::New(trunc_sym), Nan::False());
+        Nan::Set(flagsObj, Nan::New(excl_sym), Nan::False());
 #ifdef O_SHLOCK
-        Nan::Set(flagsObj, Nan::New("shlock").ToLocalChecked(), Nan::False());
+        Nan::Set(flagsObj, Nan::New(shlock_sym), Nan::False());
 #endif
 #ifdef O_EXLOCK
-        Nan::Set(flagsObj, Nan::New("exlock").ToLocalChecked(), Nan::False());
+        Nan::Set(flagsObj, Nan::New(exlock_sym), Nan::False());
 #endif
-        Nan::Set(flagsObj, Nan::New("nofollow").ToLocalChecked(), Nan::False());
+        Nan::Set(flagsObj, Nan::New(nofollow_sym), Nan::False());
 #ifdef O_SYMLINK
-        Nan::Set(flagsObj, Nan::New("symlink").ToLocalChecked(), Nan::False());
+        Nan::Set(flagsObj, Nan::New(symlink_sym), Nan::False());
 #endif
 #ifdef O_EVTONLY
-        Nan::Set(flagsObj, Nan::New("evtonly").ToLocalChecked(), Nan::False());
+        Nan::Set(flagsObj, Nan::New(evtonly_sym), Nan::False());
 #endif
         /*
            O_RDONLY        open for reading only
@@ -130,60 +162,60 @@ namespace NodeFuse {
 
         switch( flags & 3){
             case 0:
-                Nan::Set(flagsObj, Nan::New("rdonly").ToLocalChecked(), Nan::True());
+                Nan::Set(flagsObj, Nan::New(rdonly_sym), Nan::True());
                 break;
             case 1:
-                Nan::Set(flagsObj, Nan::New("wronly").ToLocalChecked(), Nan::True());
+                Nan::Set(flagsObj, Nan::New(wronly_sym), Nan::True());
                 break;
             case 2:
-                Nan::Set(flagsObj, Nan::New("rdwr").ToLocalChecked(), Nan::True());
+                Nan::Set(flagsObj, Nan::New(rdwr_sym), Nan::True());
                 break;
         }
         if (flags & O_NONBLOCK) {
-            Nan::Set(flagsObj, Nan::New("nonblock").ToLocalChecked(), Nan::True());
+            Nan::Set(flagsObj, Nan::New(nonblock_sym), Nan::True());
         }
 
         if (flags & O_APPEND) {
-            Nan::Set(flagsObj, Nan::New("append").ToLocalChecked(), Nan::True());
+            Nan::Set(flagsObj, Nan::New(append_sym), Nan::True());
         }
 
         if (flags & O_CREAT) {
-            Nan::Set(flagsObj, Nan::New("creat").ToLocalChecked(), Nan::True());
+            Nan::Set(flagsObj, Nan::New(creat_sym), Nan::True());
         }
 
         if (flags & O_TRUNC) {
-            Nan::Set(flagsObj, Nan::New("trunc").ToLocalChecked(), Nan::True());
+            Nan::Set(flagsObj, Nan::New(trunc_sym), Nan::True());
         }
 
         if (flags & O_EXCL) {
-            Nan::Set(flagsObj, Nan::New("excl").ToLocalChecked(), Nan::True());
+            Nan::Set(flagsObj, Nan::New(excl_sym), Nan::True());
         }
 
 #ifdef O_SHLOCK
         if (flags & O_SHLOCK) {
-            Nan::Set(flagsObj, Nan::New("shlock").ToLocalChecked(), Nan::True());
+            Nan::Set(flagsObj, Nan::New(shlock_sym), Nan::True());
         }
 #endif
 
 #ifdef O_EXLOCK
         if (flags & O_EXLOCK) {
-            Nan::Set(flagsObj, Nan::New("exlock").ToLocalChecked(), Nan::True());
+            Nan::Set(flagsObj, Nan::New(exlock_sym), Nan::True());
         }
 #endif
 
         if (flags & O_NOFOLLOW) {
-            Nan::Set(flagsObj, Nan::New("nofollow").ToLocalChecked(), Nan::True());
+            Nan::Set(flagsObj, Nan::New(nofollow_sym), Nan::True());
         }
 
 #ifdef O_SYMLINK
         if (flags & O_SYMLINK) {
-            Nan::Set(flagsObj, Nan::New("symlink").ToLocalChecked(), Nan::True());
+            Nan::Set(flagsObj, Nan::New(symlink_sym), Nan::True());
         }
 #endif
 
 #ifdef O_EVTONLY
         if (flags & O_EVTONLY) {
-            Nan::Set(flagsObj, Nan::New("evtonly").ToLocalChecked(), Nan::True());
+            Nan::Set(flagsObj, Nan::New(evtonly_sym), Nan::True());
         }
 #endif
 
