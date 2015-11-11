@@ -50,4 +50,4 @@ before_install:
 
 install:
   - npm/.bin/npm install
-
+  - node -e "require('./build/Release/fusejs')"
