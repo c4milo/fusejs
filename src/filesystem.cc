@@ -241,7 +241,7 @@ namespace NodeFuse {
                 case _FUSE_OPS_SETLK_:
                     break;
                 case _FUSE_OPS_MULTI_FORGET_:
-                    #if FUSE_USE_VERSION > 28
+                    #if FUSE_VERSION > 28
                     RemoteMultiForget(value.req, value.size, static_cast<struct fuse_forget_data *>(value.userdata) );
                     #endif
                     break;
@@ -294,7 +294,7 @@ namespace NodeFuse {
         fuse_ops.releasedir = FileSystem::ReleaseDir;
         fuse_ops.fsyncdir   = FileSystem::FSyncDir;
         fuse_ops.statfs     = FileSystem::StatFs;
-        #if FUSE_USE_VERSION > 28
+        #if FUSE_VERSION > 28
         #ifndef __APPLE__
         fuse_ops.forget_multi = FileSystem::MultiForget; 
         #endif
@@ -487,7 +487,7 @@ namespace NodeFuse {
 
     }
 
-    #if FUSE_USE_VERSION > 28
+    #if FUSE_VERSION > 28
     void FileSystem::MultiForget(fuse_req_t req,
                         size_t count,
                         struct fuse_forget_data *forget){
@@ -544,7 +544,7 @@ namespace NodeFuse {
         //scope.Close(Undefined());
 
     }
-    #endif //FUSE_USE_VERSION
+    #endif //FUSE_VERSION
 
 
     void FileSystem::Forget(fuse_req_t req,
