@@ -12,6 +12,50 @@
  
 namespace NodeFuse {
     Persistent<Function> FileSystem::constructor;
+    static Nan::Persistent<String> init_sym;
+    static Nan::Persistent<String> destroy_sym;
+    static Nan::Persistent<String> lookup_sym;
+    static Nan::Persistent<String> forget_sym;
+    static Nan::Persistent<String> getattr_sym;
+    static Nan::Persistent<String> setattr_sym;
+    static Nan::Persistent<String> readlink_sym;
+    static Nan::Persistent<String> mknod_sym;
+    static Nan::Persistent<String> mkdir_sym;
+    static Nan::Persistent<String> unlink_sym;
+    static Nan::Persistent<String> rmdir_sym;
+    static Nan::Persistent<String> symlink_sym;
+    static Nan::Persistent<String> rename_sym;
+    static Nan::Persistent<String> link_sym;
+    static Nan::Persistent<String> open_sym;
+    static Nan::Persistent<String> read_sym;
+    static Nan::Persistent<String> write_sym;
+    static Nan::Persistent<String> flush_sym;
+    static Nan::Persistent<String> release_sym;
+    static Nan::Persistent<String> fsync_sym;
+    static Nan::Persistent<String> opendir_sym;
+    static Nan::Persistent<String> readdir_sym;
+    static Nan::Persistent<String> releasedir_sym;
+    static Nan::Persistent<String> fsyncdir_sym;
+    static Nan::Persistent<String> statfs_sym;
+    static Nan::Persistent<String> setxattr_sym;
+    static Nan::Persistent<String> getxattr_sym;
+    static Nan::Persistent<String> listxattr_sym;
+    static Nan::Persistent<String> removexattr_sym;
+    static Nan::Persistent<String> access_sym;
+    static Nan::Persistent<String> create_sym;
+    static Nan::Persistent<String> getlk_sym;
+    static Nan::Persistent<String> setlk_sym;
+    static Nan::Persistent<String> bmap_sym;
+    static Nan::Persistent<String> ioctl_sym;
+    static Nan::Persistent<String> poll_sym;
+    static Nan::Persistent<String> conn_info_proto_major_sym;
+    static Nan::Persistent<String> conn_info_proto_minor_sym;
+    static Nan::Persistent<String> conn_info_async_read_sym;
+    static Nan::Persistent<String> conn_info_max_write_sym;
+    static Nan::Persistent<String> conn_info_max_readahead_sym;
+    static Nan::Persistent<String> conn_info_capable_sym;
+    static Nan::Persistent<String> conn_info_want_sym;
+    static Nan::Persistent<String> multiforget_sym;
 
     // struct vrt_fuse_cmd_value
     // {
@@ -310,49 +354,51 @@ namespace NodeFuse {
         // fuse_ops.ioctl      = FileSystem::IOCtl;
         // fuse_ops.poll       = FileSystem::Poll;
 
-        // init_sym Nan::New("init"));
-        // NanAssignPersistent(destroy_sym,     Nan::New("destroy"));
-        // NanAssignPersistent(lookup_sym,      Nan::New("lookup"));
-        // NanAssignPersistent(forget_sym,      Nan::New("forget"));
-        // NanAssignPersistent(getattr_sym,     Nan::New("getattr"));
-        // NanAssignPersistent(setattr_sym,     Nan::New("setattr"));
-        // NanAssignPersistent(readlink_sym,    Nan::New("readlink"));
-        // NanAssignPersistent(mknod_sym,       Nan::New("mknod"));
-        // NanAssignPersistent(mkdir_sym,       Nan::New("mkdir"));
-        // NanAssignPersistent(unlink_sym,      Nan::New("unlink"));
-        // NanAssignPersistent(rmdir_sym,       Nan::New("rmdir"));
-        // NanAssignPersistent(symlink_sym,     Nan::New("symlink"));
-        // NanAssignPersistent(rename_sym,      Nan::New("rename"));
-        // NanAssignPersistent(link_sym,        Nan::New("link"));
-        // NanAssignPersistent(open_sym,        Nan::New("open"));
-        // NanAssignPersistent(read_sym,        Nan::New("read"));
-        // NanAssignPersistent(write_sym,       Nan::New("write"));
-        // NanAssignPersistent(flush_sym,       Nan::New("flush"));
-        // NanAssignPersistent(release_sym,     Nan::New("release"));
-        // NanAssignPersistent(fsync_sym,       Nan::New("fsync"));
-        // NanAssignPersistent(opendir_sym,     Nan::New("opendir"));
-        // NanAssignPersistent(readdir_sym,     Nan::New("readdir"));
-        // NanAssignPersistent(releasedir_sym,  Nan::New("releasedir"));
-        // NanAssignPersistent(fsyncdir_sym,    Nan::New("fsyncdir"));
-        // NanAssignPersistent(statfs_sym,      Nan::New("statfs"));
-        // NanAssignPersistent(setxattr_sym,    Nan::New("setxattr"));
-        // NanAssignPersistent(getxattr_sym,    Nan::New("getxattr"));
-        // NanAssignPersistent(listxattr_sym,   Nan::New("listxattr"));
-        // NanAssignPersistent(removexattr_sym, Nan::New("removexattr"));
-        // NanAssignPersistent(access_sym,      Nan::New("access"));
-        // NanAssignPersistent(create_sym,      Nan::New("create"));
-        // NanAssignPersistent(getlk_sym,       Nan::New("getlk"));
-        // NanAssignPersistent(setlk_sym,       Nan::New("setlk"));
-        // NanAssignPersistent(bmap_sym,        Nan::New("bmap"));
-        // NanAssignPersistent(ioctl_sym,       Nan::New("ioctl"));
-        // NanAssignPersistent(poll_sym,        Nan::New("poll"));
-        // NanAssignPersistent(conn_info_proto_major_sym,     Nan::New("proto_major"));
-        // NanAssignPersistent(conn_info_proto_minor_sym,     Nan::New("proto_minor"));
-        // NanAssignPersistent(conn_info_async_read_sym,      Nan::New("async_read"));
-        // NanAssignPersistent(conn_info_max_write_sym,       Nan::New("max_write"));
-        // NanAssignPersistent(conn_info_max_readahead_sym,   Nan::New("max_readahead"));
-        // NanAssignPersistent(conn_info_capable_sym,         Nan::New("capable"));
-        // NanAssignPersistent(conn_info_want_sym,            Nan::New("want"));
+        init_sym.Reset( Nan::New<String>("init").ToLocalChecked());
+        destroy_sym.Reset( Nan::New<String>("destroy").ToLocalChecked());
+        lookup_sym.Reset( Nan::New<String>("lookup").ToLocalChecked());
+        forget_sym.Reset( Nan::New<String>("forget").ToLocalChecked());
+        getattr_sym.Reset( Nan::New<String>("getattr").ToLocalChecked());
+        setattr_sym.Reset( Nan::New<String>("setattr").ToLocalChecked());
+        readlink_sym.Reset( Nan::New<String>("readlink").ToLocalChecked());
+        mknod_sym.Reset( Nan::New<String>("mknod").ToLocalChecked());
+        mkdir_sym.Reset( Nan::New<String>("mkdir").ToLocalChecked());
+        unlink_sym.Reset( Nan::New<String>("unlink").ToLocalChecked());
+        rmdir_sym.Reset( Nan::New<String>("rmdir").ToLocalChecked());
+        symlink_sym.Reset( Nan::New<String>("symlink").ToLocalChecked());
+        rename_sym.Reset( Nan::New<String>("rename").ToLocalChecked());
+        link_sym.Reset( Nan::New<String>("link").ToLocalChecked());
+        open_sym.Reset( Nan::New<String>("open").ToLocalChecked());
+        read_sym.Reset( Nan::New<String>("read").ToLocalChecked());
+        write_sym.Reset( Nan::New<String>("write").ToLocalChecked());
+        flush_sym.Reset( Nan::New<String>("flush").ToLocalChecked());
+        release_sym.Reset( Nan::New<String>("release").ToLocalChecked());
+        fsync_sym.Reset( Nan::New<String>("fsync").ToLocalChecked());
+        opendir_sym.Reset( Nan::New<String>("opendir").ToLocalChecked());
+        readdir_sym.Reset( Nan::New<String>("readdir").ToLocalChecked());
+        releasedir_sym.Reset( Nan::New<String>("releasedir").ToLocalChecked());
+        fsyncdir_sym.Reset( Nan::New<String>("fsyncdir").ToLocalChecked());
+        statfs_sym.Reset( Nan::New<String>("statfs").ToLocalChecked());
+        setxattr_sym.Reset( Nan::New<String>("setxattr").ToLocalChecked());
+        getxattr_sym.Reset( Nan::New<String>("getxattr").ToLocalChecked());
+        listxattr_sym.Reset( Nan::New<String>("listxattr").ToLocalChecked());
+        removexattr_sym.Reset( Nan::New<String>("removexattr").ToLocalChecked());
+        access_sym.Reset( Nan::New<String>("access").ToLocalChecked());
+        create_sym.Reset( Nan::New<String>("create").ToLocalChecked());
+        getlk_sym.Reset( Nan::New<String>("getlk").ToLocalChecked());
+        setlk_sym.Reset( Nan::New<String>("setlk").ToLocalChecked());
+        bmap_sym.Reset( Nan::New<String>("bmap").ToLocalChecked());
+        ioctl_sym.Reset( Nan::New<String>("ioctl").ToLocalChecked());
+        poll_sym.Reset( Nan::New<String>("poll").ToLocalChecked());
+        conn_info_proto_major_sym.Reset( Nan::New<String>("proto_major").ToLocalChecked());
+        conn_info_proto_minor_sym.Reset( Nan::New<String>("proto_minor").ToLocalChecked());
+        conn_info_async_read_sym.Reset( Nan::New<String>("async_read").ToLocalChecked());
+        conn_info_max_write_sym.Reset( Nan::New<String>("max_write").ToLocalChecked());
+        conn_info_max_readahead_sym.Reset( Nan::New<String>("max_readahead").ToLocalChecked());
+        conn_info_capable_sym.Reset( Nan::New<String>("capable").ToLocalChecked());
+        conn_info_want_sym.Reset( Nan::New<String>("want").ToLocalChecked());
+        multiforget_sym.Reset( Nan::New<String>("multiforget").ToLocalChecked());
+        
     }
 
     void FileSystem::Init(void* userdata,
@@ -384,11 +430,11 @@ namespace NodeFuse {
         //These properties will be read-only for now.
         //TODO set accessors for read/write properties
         Local<Object> info = Nan::New<Object>();
-        info->Set(Nan::New<String>("conn_info_proto_major").ToLocalChecked(), Nan::New<Integer>(conn.proto_major));
-        info->Set(Nan::New<String>("conn_info_proto_minor").ToLocalChecked(), Nan::New<Integer>(conn.proto_minor));
-        info->Set(Nan::New<String>("conn_info_async_read").ToLocalChecked(), Nan::New<Integer>(conn.async_read));
-        info->Set(Nan::New<String>("conn_info_max_write").ToLocalChecked(), Nan::New<Number>(conn.max_write));
-        info->Set(Nan::New<String>("conn_info_max_readahead").ToLocalChecked(), Nan::New<Number>(conn.max_readahead));
+        info->Set(Nan::New(conn_info_proto_major_sym), Nan::New<Integer>(conn.proto_major));
+        info->Set(Nan::New(conn_info_proto_minor_sym), Nan::New<Integer>(conn.proto_minor));
+        info->Set(Nan::New(conn_info_async_read_sym), Nan::New<Integer>(conn.async_read));
+        info->Set(Nan::New(conn_info_max_write_sym), Nan::New<Number>(conn.max_write));
+        info->Set(Nan::New(conn_info_max_readahead_sym), Nan::New<Number>(conn.max_readahead));
         //TODO macro to enable certain properties given the fuse version
         //info->Set(conn_info_capable_sym, Nan::New<Integer>(conn.capable));
         //info->Set(conn_info_want_sym, Nan::New<Integer>(conn.want));
@@ -423,7 +469,7 @@ namespace NodeFuse {
         Nan::HandleScope scope;;
         Fuse* fuse = static_cast<Fuse *>(userdata);
         Local<Object> fsobj = Nan::New(fuse->fsobj);
-        Local<Value> vdestroy = fsobj->Get(Nan::New<String>("destroy").ToLocalChecked());
+        Local<Value> vdestroy = fsobj->Get(Nan::New(destroy_sym));
         Local<Function> destroy = Local<Function>::Cast(vdestroy);
 
         Nan::TryCatch try_catch;
@@ -462,7 +508,7 @@ namespace NodeFuse {
         Nan::HandleScope scope;;
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
-        Local<Value> vlookup = fsobj->Get(Nan::New<String>("lookup").ToLocalChecked());
+        Local<Value> vlookup = fsobj->Get(Nan::New(lookup_sym));
         Local<Function> lookup = Local<Function>::Cast(vlookup);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
@@ -513,7 +559,7 @@ namespace NodeFuse {
         Nan::HandleScope scope;;
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
-        Local<Value> vforget = fsobj->Get(Nan::New<String>("multiforget").ToLocalChecked());
+        Local<Value> vforget = fsobj->Get(Nan::New(multiforget_sym));
         Local<Function> forget = Local<Function>::Cast(vforget);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
@@ -573,7 +619,7 @@ namespace NodeFuse {
         Nan::HandleScope scope;;
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
-        Local<Value> vforget = fsobj->Get(Nan::New<String>("forget").ToLocalChecked());
+        Local<Value> vforget = fsobj->Get(Nan::New(forget_sym) );
         Local<Function> forget = Local<Function>::Cast(vforget);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
@@ -630,7 +676,7 @@ namespace NodeFuse {
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vgetattr = fsobj->Get(Nan::New<String>("getattr").ToLocalChecked());
+        Local<Value> vgetattr = fsobj->Get(Nan::New(getattr_sym));
         Local<Function> getattr = Local<Function>::Cast(vgetattr);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
@@ -692,7 +738,7 @@ namespace NodeFuse {
         Fuse *fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vsetattr = fsobj->Get(Nan::New<String>("setattr").ToLocalChecked());
+        Local<Value> vsetattr = fsobj->Get(Nan::New(setattr_sym));
         Local<Function> setattr = Local<Function>::Cast(vsetattr);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
@@ -741,7 +787,7 @@ namespace NodeFuse {
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vreadlink = fsobj->Get(Nan::New<String>("readlink").ToLocalChecked());
+        Local<Value> vreadlink = fsobj->Get(Nan::New(readlink_sym));
         Local<Function> readlink = Local<Function>::Cast(vreadlink);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
@@ -799,7 +845,7 @@ namespace NodeFuse {
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vmknod = fsobj->Get(Nan::New<String>("mknod").ToLocalChecked());
+        Local<Value> vmknod = fsobj->Get(Nan::New(mknod_sym));
         Local<Function> mknod = Local<Function>::Cast(vmknod);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
@@ -860,7 +906,7 @@ namespace NodeFuse {
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vmkdir = fsobj->Get(Nan::New<String>("mkdir").ToLocalChecked());
+        Local<Value> vmkdir = fsobj->Get(Nan::New(mkdir_sym));
         Local<Function> mkdir = Local<Function>::Cast(vmkdir);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
@@ -916,7 +962,7 @@ namespace NodeFuse {
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vunlink = fsobj->Get(Nan::New<String>("unlink").ToLocalChecked());
+        Local<Value> vunlink = fsobj->Get(Nan::New(unlink_sym));
         Local<Function> unlink = Local<Function>::Cast(vunlink);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
@@ -969,7 +1015,7 @@ namespace NodeFuse {
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vrmdir = fsobj->Get(Nan::New<String>("rmdir").ToLocalChecked());
+        Local<Value> vrmdir = fsobj->Get(Nan::New(rmdir_sym));
         Local<Function> rmdir = Local<Function>::Cast(vrmdir);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
@@ -1023,7 +1069,7 @@ namespace NodeFuse {
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vsymlink = fsobj->Get(Nan::New<String>("symlink").ToLocalChecked());
+        Local<Value> vsymlink = fsobj->Get(Nan::New(symlink_sym));
         Local<Function> symlink = Local<Function>::Cast(vsymlink);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
@@ -1081,7 +1127,7 @@ namespace NodeFuse {
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vrename = fsobj->Get(Nan::New<String>("rename").ToLocalChecked());
+        Local<Value> vrename = fsobj->Get(Nan::New(rename_sym));
         Local<Function> rename = Local<Function>::Cast(vrename);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
@@ -1138,7 +1184,7 @@ namespace NodeFuse {
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vlink = fsobj->Get(Nan::New<String>("link").ToLocalChecked());
+        Local<Value> vlink = fsobj->Get(Nan::New(link_sym));
         Local<Function> link = Local<Function>::Cast(vlink);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
@@ -1193,7 +1239,7 @@ namespace NodeFuse {
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vopen = fsobj->Get(Nan::New<String>("open").ToLocalChecked());
+        Local<Value> vopen = fsobj->Get(Nan::New(open_sym));
         Local<Function> open = Local<Function>::Cast(vopen);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
@@ -1262,7 +1308,7 @@ namespace NodeFuse {
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vread = fsobj->Get(Nan::New<String>("read").ToLocalChecked());
+        Local<Value> vread = fsobj->Get(Nan::New(read_sym));
         Local<Function> read = Local<Function>::Cast(vread);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
@@ -1339,7 +1385,7 @@ namespace NodeFuse {
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vwrite = fsobj->Get(Nan::New<String>("write").ToLocalChecked());
+        Local<Value> vwrite = fsobj->Get(Nan::New(write_sym));
         Local<Function> write = Local<Function>::Cast(vwrite);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
@@ -1406,7 +1452,7 @@ namespace NodeFuse {
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vflush = fsobj->Get(Nan::New<String>("flush").ToLocalChecked());
+        Local<Value> vflush = fsobj->Get(Nan::New(flush_sym));
         Local<Function> flush = Local<Function>::Cast(vflush);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
@@ -1468,7 +1514,7 @@ namespace NodeFuse {
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vrelease = fsobj->Get(Nan::New<String>("release").ToLocalChecked());
+        Local<Value> vrelease = fsobj->Get(Nan::New(release_sym));
         Local<Function> release = Local<Function>::Cast(vrelease);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
@@ -1531,7 +1577,7 @@ namespace NodeFuse {
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vfsync = fsobj->Get(Nan::New<String>("fsync").ToLocalChecked());
+        Local<Value> vfsync = fsobj->Get(Nan::New(fsync_sym));
         Local<Function> fsync = Local<Function>::Cast(vfsync);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
@@ -1592,7 +1638,7 @@ namespace NodeFuse {
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vopendir = fsobj->Get(Nan::New<String>("opendir").ToLocalChecked());
+        Local<Value> vopendir = fsobj->Get(Nan::New(opendir_sym));
         Local<Function> opendir = Local<Function>::Cast(vopendir);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
@@ -1658,7 +1704,7 @@ namespace NodeFuse {
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vreaddir = fsobj->Get(Nan::New<String>("readdir").ToLocalChecked());
+        Local<Value> vreaddir = fsobj->Get(Nan::New(readdir_sym));
         Local<Function> readdir = Local<Function>::Cast(vreaddir);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
@@ -1726,7 +1772,7 @@ namespace NodeFuse {
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vreleasedir = fsobj->Get(Nan::New<String>("releasedir").ToLocalChecked());
+        Local<Value> vreleasedir = fsobj->Get(Nan::New(releasedir_sym));
         Local<Function> releasedir = Local<Function>::Cast(vreleasedir);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
@@ -1789,7 +1835,7 @@ namespace NodeFuse {
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vfsyncdir = fsobj->Get(Nan::New<String>("fsyncdir").ToLocalChecked());
+        Local<Value> vfsyncdir = fsobj->Get(Nan::New(fsyncdir_sym));
         Local<Function> fsyncdir = Local<Function>::Cast(vfsyncdir);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
@@ -1843,7 +1889,7 @@ namespace NodeFuse {
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vstatfs = fsobj->Get(Nan::New<String>("statfs").ToLocalChecked());
+        Local<Value> vstatfs = fsobj->Get(Nan::New(statfs_sym));
         Local<Function> statfs = Local<Function>::Cast(vstatfs);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
@@ -1915,7 +1961,7 @@ namespace NodeFuse {
         Fuse *fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vsetxattr = fsobj->Get(Nan::New<String>("setxattr").ToLocalChecked());
+        Local<Value> vsetxattr = fsobj->Get(Nan::New(setxattr_sym));
         Local<Function> setxattr = Local<Function>::Cast(vsetxattr);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
@@ -2003,7 +2049,7 @@ namespace NodeFuse {
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vgetxattr = fsobj->Get(Nan::New<String>("getxattr").ToLocalChecked());
+        Local<Value> vgetxattr = fsobj->Get(Nan::New(getxattr_sym));
         Local<Function> getxattr = Local<Function>::Cast(vgetxattr);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
@@ -2069,7 +2115,7 @@ namespace NodeFuse {
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vlistxattr = fsobj->Get(Nan::New<String>("listxattr").ToLocalChecked());
+        Local<Value> vlistxattr = fsobj->Get(Nan::New(listxattr_sym));
         Local<Function> listxattr = Local<Function>::Cast(vlistxattr);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
@@ -2116,7 +2162,7 @@ namespace NodeFuse {
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vremovexattr = fsobj->Get(Nan::New<String>("removexattr").ToLocalChecked());
+        Local<Value> vremovexattr = fsobj->Get(Nan::New(removexattr_sym));
         Local<Function> removexattr = Local<Function>::Cast(vremovexattr);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
@@ -2167,7 +2213,7 @@ namespace NodeFuse {
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vaccess = fsobj->Get(Nan::New<String>("access").ToLocalChecked());
+        Local<Value> vaccess = fsobj->Get(Nan::New(access_sym));
         Local<Function> access = Local<Function>::Cast(vaccess);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
@@ -2226,7 +2272,7 @@ namespace NodeFuse {
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vcreate = fsobj->Get(Nan::New<String>("create").ToLocalChecked());
+        Local<Value> vcreate = fsobj->Get(Nan::New(create_sym));
         Local<Function> create = Local<Function>::Cast(vcreate);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
@@ -2268,7 +2314,7 @@ namespace NodeFuse {
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vgetlk = fsobj->Get(Nan::New<String>("getlk").ToLocalChecked());
+        Local<Value> vgetlk = fsobj->Get(Nan::New(getlk_sym));
         Local<Function> getlk = Local<Function>::Cast(vgetlk);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
@@ -2308,7 +2354,7 @@ namespace NodeFuse {
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
         Local<Object> fsobj = Nan::New(fuse->fsobj);
 
-        Local<Value> vsetlk = fsobj->Get(Nan::New<String>("setlk").ToLocalChecked());
+        Local<Value> vsetlk = fsobj->Get(Nan::New(setlk_sym));
         Local<Function> setlk = Local<Function>::Cast(vsetlk);
 
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
