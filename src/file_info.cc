@@ -107,7 +107,7 @@ namespace NodeFuse {
 
     }
 
-    FileInfo::FileInfo() : ObjectWrap() {}
+    FileInfo::FileInfo() : Nan::ObjectWrap() {}
     FileInfo::~FileInfo() {
         // if(this->fi != nullptr)
         // {
@@ -117,7 +117,7 @@ namespace NodeFuse {
     }
 
     NAN_GETTER(FileInfo::GetFlags){
-        FileInfo* fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
+        FileInfo* fileInfo = Nan::ObjectWrap::Unwrap<FileInfo>(info.This());
         Local<Object> flagsObj = Nan::New<Object>();
 
         //Initializes object
@@ -223,17 +223,17 @@ namespace NodeFuse {
     }
 
     NAN_GETTER(FileInfo::GetWritePage){
-        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
+        FileInfo *fileInfo = Nan::ObjectWrap::Unwrap<FileInfo>(info.This());
         info.GetReturnValue().Set(fileInfo->fi.writepage ? Nan::True() : Nan::False());
     }
 
     NAN_GETTER(FileInfo::GetDirectIO){//(Local<String> property, const AccessorInfo& info) {
-        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
+        FileInfo *fileInfo = Nan::ObjectWrap::Unwrap<FileInfo>(info.This());
         info.GetReturnValue().Set(fileInfo->fi.direct_io ? Nan::True() : Nan::False());
     }
 
     NAN_SETTER(FileInfo::SetDirectIO){
-        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
+        FileInfo *fileInfo = Nan::ObjectWrap::Unwrap<FileInfo>(info.This());
 
         if (!value->IsBoolean()) {
             // TODO: Check to see if this case will cause errors
@@ -244,12 +244,12 @@ namespace NodeFuse {
     }
 
     NAN_GETTER(FileInfo::GetKeepCache){
-        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
+        FileInfo *fileInfo = Nan::ObjectWrap::Unwrap<FileInfo>(info.This());
         info.GetReturnValue().Set(fileInfo->fi.keep_cache ? Nan::True() : Nan::False());
     }
 
     NAN_SETTER(FileInfo::SetKeepCache){
-        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
+        FileInfo *fileInfo = Nan::ObjectWrap::Unwrap<FileInfo>(info.This());
 
         if (!value->IsBoolean()) {
             // TODO: Check to see if this case will cause errors
@@ -260,14 +260,14 @@ namespace NodeFuse {
     }
 
     NAN_GETTER(FileInfo::GetFlush){
-        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
+        FileInfo *fileInfo = Nan::ObjectWrap::Unwrap<FileInfo>(info.This());
         info.GetReturnValue().Set( fileInfo->fi.flush ? Nan::True() : Nan::False());
     }
 
     NAN_GETTER(FileInfo::GetNonSeekable){     
 
 #if FUSE_VERSION > 27 && !__APPLE__
-        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
+        FileInfo *fileInfo = Nan::ObjectWrap::Unwrap<FileInfo>(info.This());
         info.GetReturnValue().Set(fileInfo->fi.nonseekable ? Nan::True() : Nan::False());
 #else
         info.GetReturnValue().Set(Nan::False());
@@ -280,13 +280,13 @@ namespace NodeFuse {
             FUSEJS_THROW_EXCEPTION("Invalid value type: ", "a Boolean was expected");
         }
 #if FUSE_VERSION > 28 && !__APPLE__
-        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
+        FileInfo *fileInfo = Nan::ObjectWrap::Unwrap<FileInfo>(info.This());
         fileInfo->fi.nonseekable = value->IsTrue() ? 1 : 0;
 #endif
     }
 
     NAN_SETTER(FileInfo::SetFileHandle){
-        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
+        FileInfo *fileInfo = Nan::ObjectWrap::Unwrap<FileInfo>(info.This());
 
         if (!value->IsNumber()) {
             Nan::ThrowTypeError("Invalid value type: a Number was expected");        
@@ -296,13 +296,13 @@ namespace NodeFuse {
     }
 
     NAN_GETTER(FileInfo::GetFileHandle){
-        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
+        FileInfo *fileInfo = Nan::ObjectWrap::Unwrap<FileInfo>(info.This());
 
         info.GetReturnValue().Set(Nan::New<Integer>(  (uint32_t) (fileInfo->fi.fh) ));
     }
 
     NAN_GETTER(FileInfo::GetLockOwner){
-        FileInfo *fileInfo = ObjectWrap::Unwrap<FileInfo>(info.This());
+        FileInfo *fileInfo = Nan::ObjectWrap::Unwrap<FileInfo>(info.This());
 
         info.GetReturnValue().Set(Nan::New<Integer>(  (uint32_t) (fileInfo->fi.lock_owner) ));
     }

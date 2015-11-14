@@ -10,7 +10,7 @@
 #if FUSE_VERSION > 28 
 
 namespace NodeFuse {
-    class ForgetData : public ObjectWrap {
+    class ForgetData : public Nan::ObjectWrap {
         friend class FileSystem;
         public:
             static void Initialize(Handle<Object> target);

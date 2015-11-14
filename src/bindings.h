@@ -6,7 +6,7 @@
 #include "node_fuse.h"
 
 namespace NodeFuse {
-    class Fuse : public ObjectWrap {
+    class Fuse : public Nan::ObjectWrap {
         public:
             static void Initialize(Handle<Object> target);
             Nan::Persistent<Object> fsobj;

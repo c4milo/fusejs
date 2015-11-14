@@ -7,7 +7,7 @@
 #include "node_fuse.h"
 
 namespace NodeFuse {
-    class Reply : public ObjectWrap {
+    class Reply : public Nan::ObjectWrap {
         friend class FileSystem;
 
         public:
