@@ -123,49 +123,6 @@ namespace NodeFuse {
     // static mpsc_queue_t<struct fuse_cmd> ring_buffer(__RING_SIZE__);
     static mpmc_bounded_queue<struct fuse_cmd> ring_buffer(__RING_SIZE__);
 
-    void QueueOp(
-          int8_t op,
-          fuse_req_t req,
-          fuse_ino_t ino,
-          fuse_ino_t newino, //used for renaming files
-          size_t size,
-          off_t off,
-          dev_t dev,
-          mode_t mode,
-          const char* name,
-          const char* newname, //used for renaming files, and for symlinking
-          int to_set,
-          struct fuse_conn_info conn,
-          struct fuse_file_info fi,
-          struct stat attr,
-          void *userdata,
-          unsigned long nlookup
-          #ifdef __APPLE__
-          ,uint32_t position
-          #endif 
-          ,char *error_message
-    ){
-
-        struct fuse_cmd value;
-
-        value.op = op;
-        value.req = req;
-        value.ino = ino;
-        value.newino = newino; //used for renaming files
-        value.size = size;
-        value.off = off;
-        value.dev = dev;
-        value.mode = mode;
-        value.name = name;
-        value.newname = newname; //used for renaming files and for symlinking
-        value.to_set = to_set;
-        value.conn = conn;
-        value.fi = fi;        
-        value.attr = attr;
-        value.userdata = userdata;
-        value.nlookup = nlookup;
-
-    }
     void FileSystem::DispatchOp(uv_async_t* handle, int status)
     {
     //     struct vrt_fuse_cmd_value op; //(struct fuse_cmd *)malloc(sizeof(struct fuse_cmd));
@@ -515,10 +472,12 @@ namespace NodeFuse {
         Local<Number> parentInode = Nan::New<Number>(parent);
         Local<String> entryName = Nan::New<String>(name).ToLocalChecked();
         // free(name);
-        Reply* reply = new Reply();
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
+        //reply->Wrap(replyObj);
+
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
-        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        reply->Wrap(replyObj);
+        // //reply->Wrap(replyObj);
 
         Local<Value> argv[4] = {context, parentInode,
                                 entryName, replyObj};
@@ -538,7 +497,7 @@ namespace NodeFuse {
                         size_t count,
                         struct fuse_forget_data *forget){
         struct fuse_cmd value;
-        
+
         // if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
         //     printf("ring buffer was full while trying to enqueue multi forget\n");
         //     return;
@@ -572,11 +531,10 @@ namespace NodeFuse {
             data->Set(i, infoObj);
         }
 
-        Reply* reply = new Reply();
-        reply->request = req;
-        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        reply->Wrap(replyObj);
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+        reply->request = req;
         Local<Value> argv[3] = {context, data, replyObj};
 
         Nan::TryCatch try_catch;
@@ -597,7 +555,7 @@ namespace NodeFuse {
                             fuse_ino_t ino,
                             unsigned long nlookup) {
         struct fuse_cmd value;
-        
+
         // if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
         //     printf("ring buffer was full while trying to enqueue forget at inode %d\n", (int)ino);
         //     return;
@@ -626,11 +584,10 @@ namespace NodeFuse {
         Local<Number> inode = Nan::New<Number>(ino);
         Local<Integer> nlookup_ = Nan::New<Integer>( (int) nlookup);
 
-        Reply* reply = new Reply();
-        reply->request = req;
-        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        reply->Wrap(replyObj);
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+        reply->request = req;
 
         Local<Value> argv[4] = {context, inode, nlookup_, replyObj};
 
@@ -651,7 +608,7 @@ namespace NodeFuse {
                              fuse_ino_t ino,
                              struct fuse_file_info* fi) {
         struct fuse_cmd value;
-        
+
         // if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
         //     printf("ring buffer was full while trying to enqueue getattr at inode %d\n", (int) ino);
         //     return;
@@ -682,10 +639,9 @@ namespace NodeFuse {
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Number> inode = Nan::New<Number>(ino);
 
-        Reply* reply = new Reply();
-        reply->request = req;
-        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        reply->Wrap(replyObj);
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
+            Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+            reply->request = req;
 
         Local<Value> argv[3] = {context, inode, replyObj};
 
@@ -707,7 +663,7 @@ namespace NodeFuse {
                              struct fuse_file_info* fi) {
 
         struct fuse_cmd value;
-        
+
         // if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
         //     printf("ring buffer was full while trying to enqueue setattr at inode %d\n", (int) ino);
         //     return;
@@ -749,11 +705,10 @@ namespace NodeFuse {
         Local<Object> attrs = GetAttrsToBeSet(to_set, &attr_)->ToObject();
         // free(attr);
 
-        Reply *reply = new Reply();
-        reply->request = req;
-        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        reply->Wrap(replyObj);
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+        reply->request = req;
         Local<Value> argv[4] = {context, inode, attrs, replyObj};
 
         Nan::TryCatch try_catch;
@@ -769,7 +724,7 @@ namespace NodeFuse {
 
     void FileSystem::ReadLink(fuse_req_t req, fuse_ino_t ino) {
         struct fuse_cmd value;
-        
+
         // if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
         //     printf("ring buffer was full while trying to enqueue setattr at inode %d\n", (int) ino);
         //     return;
@@ -793,11 +748,10 @@ namespace NodeFuse {
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Number> inode = Nan::New<Number>(ino);
 
-        Reply* reply = new Reply();
-        reply->request = req;
-        Local<Object> replyObj = Nan::NewInstance(Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        reply->Wrap(replyObj);
+        Local<Object> replyObj = Nan::NewInstance(Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+        reply->request = req;
         Local<Value> argv[3] = {context, inode, replyObj};
 
         Nan::TryCatch try_catch;
@@ -815,7 +769,7 @@ namespace NodeFuse {
                            mode_t mode,
                            dev_t rdev) {
         struct fuse_cmd value;
-        
+
         // if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
         //     printf("ring buffer was full while trying to enqueue mknod with parent %d and child %s\n", (int) parent, name);
         //     return;
@@ -855,11 +809,10 @@ namespace NodeFuse {
         Local<Integer> mode_ = Nan::New<Integer>(mode);
         Local<Integer> rdev_ = Nan::New<Integer>((uint32_t)rdev);
 
-        Reply* reply = new Reply();
-        reply->request = req;
-        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        reply->Wrap(replyObj);
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+        reply->request = req;
         Local<Value> argv[6] = {context, parentInode,
                                 name_, mode_,
                                 rdev_, replyObj};
@@ -881,7 +834,7 @@ namespace NodeFuse {
                            mode_t mode) {
 
         struct fuse_cmd value;
-        
+
         // if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
         //     printf("ring buffer was full while trying to enqueue mkdir with parent %d and name %s\n", (int) parent, name);
         //     return;
@@ -915,11 +868,10 @@ namespace NodeFuse {
         Local<String> name_ = Nan::New<String>(name).ToLocalChecked();
         Local<Integer> mode_ = Nan::New<Integer>(mode);
 
-        Reply* reply = new Reply();
-        reply->request = req;
-        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        reply->Wrap(replyObj);
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+        reply->request = req;
         Local<Value> argv[5] = {context, parentInode,
                                 name_, mode_, replyObj};
 
@@ -939,7 +891,7 @@ namespace NodeFuse {
                             const char* name) {
 
         struct fuse_cmd value;
-        
+
         // if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
         //     printf("ring buffer was full while trying to unlink %s from parent %d \n",  name, (int) parent);
         //     return;
@@ -969,11 +921,10 @@ namespace NodeFuse {
         Local<Number> parentInode = Nan::New<Number>(parent);
         Local<String> name_ = Nan::New<String>(name).ToLocalChecked();
 
-        Reply* reply = new Reply();
-        reply->request = req;
-        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        reply->Wrap(replyObj);
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+        reply->request = req;
         Local<Value> argv[4] = {context, parentInode, name_, replyObj};
 
         Nan::TryCatch try_catch;
@@ -991,7 +942,7 @@ namespace NodeFuse {
                            fuse_ino_t parent,
                            const char* name) {
         struct fuse_cmd value;
-        
+
         // if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
         //     printf("ring buffer was full while trying to unlink folder %s from parent %d \n",  name, (int) parent);
         //     return;
@@ -1022,11 +973,10 @@ namespace NodeFuse {
         Local<Number> parentInode = Nan::New<Number>(parent);
         Local<String> name_ = Nan::New<String>(name).ToLocalChecked();
 
-        Reply* reply = new Reply();
-        reply->request = req;
-        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        reply->Wrap(replyObj);
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+        reply->request = req;
         Local<Value> argv[4] = {context, parentInode, name_, replyObj};
 
         Nan::TryCatch try_catch;
@@ -1044,7 +994,7 @@ namespace NodeFuse {
                              fuse_ino_t parent,
                              const char* name) {
         struct fuse_cmd value;
-        
+
         // if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
         //     printf("ring buffer was full while trying to symlink from %s to %s with parent inode %d \n",  name, link, (int) parent);
         //     return;
@@ -1077,11 +1027,10 @@ namespace NodeFuse {
         Local<String> name_ = Nan::New<String>(name).ToLocalChecked();
         Local<String> link_ = Nan::New<String>(link).ToLocalChecked();
 
-        Reply* reply = new Reply();
-        reply->request = req;
-        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        reply->Wrap(replyObj);
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+        reply->request = req;
         Local<Value> argv[5] = {context, parentInode,
                                 link_, name_, replyObj};
 
@@ -1099,7 +1048,7 @@ namespace NodeFuse {
                                 fuse_ino_t newparent,
                                 const char *newname){
         struct fuse_cmd value;
-        
+
         // if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
         //     printf("ring buffer was full while trying to rename file %s from parent %d \n",  name, (int) parent);
         //     return;
@@ -1136,11 +1085,10 @@ namespace NodeFuse {
         Local<Number> newParentInode = Nan::New<Number>(newparent);
         Local<String> newName = Nan::New<String>(newname).ToLocalChecked();
 
-        Reply* reply = new Reply();
-        reply->request = req;
-        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        reply->Wrap(replyObj);
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+        reply->request = req;
         Local<Value> argv[6] = {context, parentInode,
                                 name_, newParentInode,
                                 newName, replyObj};
@@ -1159,7 +1107,7 @@ namespace NodeFuse {
                           const char* newname) 
     {
         struct fuse_cmd value;
-        
+
         // if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
         //     printf("ring buffer was full while trying to link inode %d to new parent parent %d with newname %s\n",  (int) ino, (int) newparent, newname);
         //     return;
@@ -1192,11 +1140,10 @@ namespace NodeFuse {
         Local<Number> newParent = Nan::New<Number>(newparent);
         Local<String> newName = Nan::New<String>(newname).ToLocalChecked();
 
-        Reply* reply = new Reply();
-        reply->request = req;
-        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        reply->Wrap(replyObj);
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+        reply->request = req;
         Local<Value> argv[5] = {context, inode,
                                 newParent, newName, replyObj};
 
@@ -1213,7 +1160,7 @@ namespace NodeFuse {
                           fuse_ino_t ino,
                           struct fuse_file_info* fi) {
         struct fuse_cmd value;
-        
+
         // if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
         //     printf("ring buffer was full while trying to enqueue open at inode %d\n", (int) ino);
         //     return;
@@ -1252,11 +1199,10 @@ namespace NodeFuse {
         Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
-        Reply* reply = new Reply();
-        reply->request = req;
-        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        reply->Wrap(replyObj);
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+        reply->request = req;
         Local<Value> argv[4] = {context, inode,
                                 infoObj, replyObj};
 
@@ -1277,7 +1223,7 @@ namespace NodeFuse {
                           off_t off,
                           struct fuse_file_info* fi) {
         struct fuse_cmd value;
-        
+
         // if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
         //     printf("ring buffer was full while trying to enqueue read at inode %d\n", (int) ino);
         //     return;
@@ -1323,11 +1269,10 @@ namespace NodeFuse {
         Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
-        Reply* reply = new Reply();
-        reply->request = req;
-        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        reply->Wrap(replyObj);
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+        reply->request = req;
         Local<Value> argv[6] = {context, inode,
                                 size, offset,
                                 infoObj, replyObj};
@@ -1350,7 +1295,7 @@ namespace NodeFuse {
                            off_t off,
                            struct fuse_file_info* fi) {
         struct fuse_cmd value;
-        
+
         // if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
         //     printf("ring buffer was full while trying to enqueue write at inode %d\n", (int) ino);
         //     return;
@@ -1403,11 +1348,10 @@ namespace NodeFuse {
         Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
-        Reply* reply = new Reply();
-        reply->request = req;
-        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        reply->Wrap(replyObj);
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+        reply->request = req;
         Local<Value> argv[6] = {context, inode,
                                 // Nan::New<Object>(buffer->handle_), offset,
                                 buffer, offset,
@@ -1427,7 +1371,7 @@ namespace NodeFuse {
                            fuse_ino_t ino,
                            struct fuse_file_info* fi) {
         struct fuse_cmd value;
-        
+
         // if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
         //     printf("ring buffer was full while trying to enqueue write at inode %d\n", (int) ino);
         //     return;
@@ -1466,11 +1410,10 @@ namespace NodeFuse {
         Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
-        Reply* reply = new Reply();
-        reply->request = req;
-        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        reply->Wrap(replyObj);
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+        reply->request = req;
         Local<Value> argv[4] = {context, inode,
                                 infoObj, replyObj};
 
@@ -1488,7 +1431,7 @@ namespace NodeFuse {
                              struct fuse_file_info* fi) {
 
         struct fuse_cmd value;
-        
+
         // if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
         //     printf("ring buffer was full while trying to release inode %d\n", (int) ino);
         //     return;
@@ -1527,11 +1470,10 @@ namespace NodeFuse {
         Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
-        Reply* reply = new Reply();
-        reply->request = req;
-        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        reply->Wrap(replyObj);
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+        reply->request = req;
         Local<Value> argv[4] = {context, inode,
                                 infoObj, replyObj};
 
@@ -1550,7 +1492,7 @@ namespace NodeFuse {
                            struct fuse_file_info* fi) {
 
         struct fuse_cmd value;
-        
+
         // if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
         //     printf("ring buffer was full while trying to fsync file %d\n",  (int) ino);
         //     return;
@@ -1592,11 +1534,10 @@ namespace NodeFuse {
         Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
-        Reply* reply = new Reply();
-        reply->request = req;
-        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        reply->Wrap(replyObj);
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+        reply->request = req;
         Local<Value> argv[5] = {context, inode,
                                 Nan::New<Boolean>(datasync)->ToObject(),
                                 infoObj, replyObj};
@@ -1614,7 +1555,7 @@ namespace NodeFuse {
                              struct fuse_file_info* fi) {
 
         struct fuse_cmd value;
-        
+
         // if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
         //     printf("ring buffer was full while trying to opendir with inode %d \n",  (int)ino);
         //     return;
@@ -1651,11 +1592,10 @@ namespace NodeFuse {
         Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
-        Reply* reply = new Reply();
-        reply->request = req;
-        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        reply->Wrap(replyObj);
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+        reply->request = req;
         Local<Value> argv[4] = {context, inode,
                                 infoObj, replyObj};
 
@@ -1675,7 +1615,7 @@ namespace NodeFuse {
                              struct fuse_file_info* fi) {
 
         struct fuse_cmd value;
-        
+
         // if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
         //     printf("ring buffer was full while trying to enqueue readdir at inode %d\n", (uint8_t) ino);
         //     return;
@@ -1719,11 +1659,10 @@ namespace NodeFuse {
         Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
-        Reply* reply = new Reply();
-        reply->request = req;
-        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        reply->Wrap(replyObj);
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+        reply->request = req;
         Local<Value> argv[6] = {context, inode,
                                 size, offset,
                                 infoObj, replyObj};
@@ -1744,7 +1683,7 @@ namespace NodeFuse {
                                 struct fuse_file_info* fi) {
 
         struct fuse_cmd value;
-        
+
         // if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
         //     printf("ring buffer was full while trying to releasedir with inode %d \n",  (int)ino);
         //     return;
@@ -1785,11 +1724,10 @@ namespace NodeFuse {
         Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//;
         info->Wrap(infoObj);
 
-        Reply* reply = new Reply();
-        reply->request = req;
-        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        reply->Wrap(replyObj);
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+        reply->request = req;
         Local<Value> argv[4] = {context, inode,
                                 infoObj, replyObj};
 
@@ -1808,7 +1746,7 @@ namespace NodeFuse {
                               struct fuse_file_info* fi) {
 
         struct fuse_cmd value;
-        
+
         // if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
         //     printf("ring buffer was full while trying to fsync dir %d\n",  (int) ino);
         //     return;
@@ -1849,11 +1787,10 @@ namespace NodeFuse {
         Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
-        Reply* reply = new Reply();
-        reply->request = req;
-        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        reply->Wrap(replyObj);
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+        reply->request = req;
         Local<Value> argv[5] = {context, inode,
                                 Nan::New<Boolean>(datasync)->ToObject(),
                                 infoObj, replyObj};
@@ -1869,7 +1806,7 @@ namespace NodeFuse {
 
     void FileSystem::StatFs(fuse_req_t req, fuse_ino_t ino) {
         struct fuse_cmd value;
-        
+
         // if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
         //     printf("ring buffer was full while trying to statfs inode %d\n", (int) ino);
         //     return;
@@ -1895,11 +1832,10 @@ namespace NodeFuse {
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Number> inode = Nan::New<Number>(ino);
 
-        Reply* reply = new Reply();
-        reply->request = req;
-        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        reply->Wrap(replyObj);
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+        reply->request = req;
         Local<Value> argv[3] = {context, inode, replyObj};
 
         Nan::TryCatch try_catch;
@@ -1924,7 +1860,7 @@ namespace NodeFuse {
                 #endif
 
         struct fuse_cmd value;
-        
+
         // if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
         //     printf("ring buffer was full while trying to setxattr file %s from parent %d \n",  name_, (int) ino);
         //     return;
@@ -1976,11 +1912,10 @@ namespace NodeFuse {
         //TODO change for an object with accessors
         Local<Integer> flags = Nan::New<Integer>(flags_);
 
-        Reply *reply = new Reply();
-        reply->request = req;
-        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        reply->Wrap(replyObj);
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+        reply->request = req;
 #ifdef __APPLE__
         Local<Value> argv[8] = {context, inode,
                                 name, value,
@@ -2015,7 +1950,7 @@ namespace NodeFuse {
                               ) {
             #endif
     struct fuse_cmd value;
-    
+
     // if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
     // printf("ring buffer was full while trying to getxattr for inode %d\n",  (int) ino);
     //     return;
@@ -2061,11 +1996,10 @@ namespace NodeFuse {
 #endif
 
 
-        Reply* reply = new Reply();
-        reply->request = req;
-        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        reply->Wrap(replyObj);
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+        reply->request = req;
 #ifdef __APPLE__
         Local<Value> argv[6] = {context, inode,
                                 name, size,
@@ -2092,7 +2026,7 @@ namespace NodeFuse {
                                size_t size_) {
 
         struct fuse_cmd value;
-        
+
         // if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
         //     printf("ring buffer was full while trying to enqueue write at inode %d\n", (int) ino);
         //     return;
@@ -2122,11 +2056,10 @@ namespace NodeFuse {
         Local<Number> inode = Nan::New<Number>(ino);
         Local<Number> size = Nan::New<Number>(size_);
 
-        Reply* reply = new Reply();
-        reply->request = req;
-        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        reply->Wrap(replyObj);
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+        reply->request = req;
         Local<Value> argv[4] = {context, inode,
                                 size, replyObj};
         Nan::TryCatch try_catch;
@@ -2141,7 +2074,7 @@ namespace NodeFuse {
                                  fuse_ino_t ino,
                                  const char* name_) {
         struct fuse_cmd value;
-        
+
         // if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
         //     printf("ring buffer was full while trying to enqueue write at inode %d\n", (int) ino);
         //     return;
@@ -2169,11 +2102,10 @@ namespace NodeFuse {
         Local<Number> inode = Nan::New<Number>(ino);
         Local<String> name = Nan::New<String>(name_).ToLocalChecked();
 
-        Reply* reply = new Reply();
-        reply->request = req;
-        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        reply->Wrap(replyObj);
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+        reply->request = req;
         Local<Value> argv[4] = {context, inode,
                                 name, replyObj};
         Nan::TryCatch try_catch;
@@ -2189,7 +2121,7 @@ namespace NodeFuse {
                             int mask_) {
 
         struct fuse_cmd value;
-        
+
         // if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
         //     printf("ring buffer was full while trying to access %d\n", (int) ino);
         //     return;
@@ -2204,13 +2136,17 @@ namespace NodeFuse {
         ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_ACCESS_*/]);
         uv_async_send(&uv_async_handle);
 
+
     }
 
     void FileSystem::RemoteAccess(fuse_req_t req,
                             fuse_ino_t ino,
                             int mask_) {
+        
+        
         Nan::HandleScope scope;;
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
+        
         Local<Object> fsobj = Nan::New(fuse->fsobj);
 
         Local<Value> vaccess = fsobj->Get(Nan::New(access_sym));
@@ -2220,16 +2156,15 @@ namespace NodeFuse {
         Local<Number> inode = Nan::New<Number>(ino);
         Local<Integer> mask = Nan::New<Integer>(mask_);
 
-        Reply* reply = new Reply();
-        reply->request = req;
-        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        reply->Wrap(replyObj);
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
+    Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+    reply->request = req;
         Local<Value> argv[4] = {context, inode,
                                 mask, replyObj};
 
         Nan::TryCatch try_catch;
-
+        
         access->Call(fsobj, 4, argv);
 
         if (try_catch.HasCaught()) {
@@ -2243,7 +2178,7 @@ namespace NodeFuse {
                             mode_t mode,
                             struct fuse_file_info* fi) {
         struct fuse_cmd value;
-        
+
         // if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL){
         //     printf("ring buffer was full while trying to enqueue write at inode %d\n", (int) parent);
         //     return;
@@ -2286,11 +2221,10 @@ namespace NodeFuse {
         Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         info->Wrap(infoObj);
 
-        Reply* reply = new Reply();
-        reply->request = req;
-        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        reply->Wrap(replyObj);
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+        reply->request = req;
         Local<Value> argv[6] = {context, parentInode,
                                 name_, mode_,
                                 infoObj, replyObj};
@@ -2328,11 +2262,10 @@ namespace NodeFuse {
 
         Local<Object> lockObj = FlockToObject(lock)->ToObject();
 
-        Reply* reply = new Reply();
-        reply->request = req;
-        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        reply->Wrap(replyObj);
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+        reply->request = req;
         Local<Value> argv[5] = {context, inode,
                                 infoObj, lockObj, replyObj};
 
@@ -2370,11 +2303,10 @@ namespace NodeFuse {
 
         Local<Object> lockObj = FlockToObject(lock)->ToObject();
 
-        Reply* reply = new Reply();
-        reply->request = req;
-        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        reply->Wrap(replyObj);
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+        reply->request = req;
         Local<Value> argv[6] = {context, inode,
                                 infoObj, lockObj,
                                 sleep, replyObj};
@@ -2406,11 +2338,10 @@ namespace NodeFuse {
         // TODO: Check if down casting to integer breaks BMAP
         Local<Integer> index = Nan::New<Integer>( (int) idx);
 
-        Reply* reply = new Reply();
-        reply->request = req;
-        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(reply->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        reply->Wrap(replyObj);
+        Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+        reply->request = req;
         Local<Value> argv[5] = {context, inode,
                                 blocksize, index, replyObj};
 
