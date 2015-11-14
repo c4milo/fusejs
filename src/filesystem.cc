@@ -524,16 +524,16 @@ namespace NodeFuse {
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Array> data = Nan::New<Array>(count);
 
-        // for( uint i = 0; i < count; i++){
-            ForgetData *forget_data = new ForgetData();
-            // forget_data->fd = &( forget_all[i] );
-            Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(FileInfo::constructor)).ToLocalChecked(); //Nan::NewInstance(Nan::New<Function>(forget_data->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-            FileInfo *data = Nan::ObjectWrap.Unwrap(i, infoObj);
-            info->fi = fi;
+        for( uint i = 0; i < count; i++){
+        // ForgetData *forget_data = new ForgetData();
+        // forget_data->fd = &( forget_all[i] );
+            Local<Object> forgetObject = Nan::NewInstance(Nan::New<Function>(FileInfo::constructor)).ToLocalChecked(); //Nan::NewInstance(Nan::New<Function>(forget_data->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
+            ForgetData *forget_data = Nan::ObjectWrap::Unwrap<ForgetData>(forgetObject);
+            forget_data->fd = &( forget_all[i] );
+            data->Set(i, forgetObject);
         }
 
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
         Local<Value> argv[3] = {context, data, replyObj};
