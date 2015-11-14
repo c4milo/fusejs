@@ -28,7 +28,7 @@ namespace NodeFuse {
 
     }
 
-    Fuse::Fuse() : ObjectWrap() {}
+    Fuse::Fuse() : Nan::ObjectWrap() {}
     Fuse::~Fuse() {
         if (fargs != NULL) {
             fuse_opt_free_args(fargs);
@@ -165,7 +165,7 @@ namespace NodeFuse {
         }
 
         Local<Object> currentInstance = info.This();
-        Fuse *fuse  = ObjectWrap::Unwrap<Fuse>(currentInstance);
+        Fuse *fuse  = Nan::ObjectWrap::Unwrap<Fuse>(currentInstance);
         struct fuse_args fargs = FUSE_ARGS_INIT(0, NULL);
         fuse->fargs = (struct fuse_args *)malloc(sizeof(fargs));
         memcpy( fuse->fargs, &fargs, sizeof(fargs) );   
@@ -225,7 +225,7 @@ namespace NodeFuse {
     void Fuse::Unmount(const Nan::FunctionCallbackInfo<v8::Value>& args) {
         Nan::EscapableHandleScope scope;
         Local<Object> currentInstance = args.This();
-        Fuse *fuse = ObjectWrap::Unwrap<Fuse>(currentInstance);
+        Fuse *fuse = Nan::ObjectWrap::Unwrap<Fuse>(currentInstance);
         // fuse_session_exit(fuse->session);
         // printf("unmount called");
         // fuse_session_remove_chan(fuse->channel);

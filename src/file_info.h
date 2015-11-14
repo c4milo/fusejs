@@ -7,7 +7,7 @@
 #include "node_fuse.h"
 //https://github.com/nodejs/nan/blob/4ed41d760313b648b4d212d6ff5374668757be4f/test/cpp/settemplate.cpp
 namespace NodeFuse {
-    class FileInfo : public ObjectWrap {
+    class FileInfo : public Nan::ObjectWrap {
         friend class FileSystem;
         friend class Reply;
 

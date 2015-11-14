@@ -44,7 +44,7 @@ namespace NodeFuse {
         constructor.Reset(tpl->GetFunction());
     }
 
-    Reply::Reply() : ObjectWrap() {
+    Reply::Reply() : Nan::ObjectWrap() {
         dentry_acc_size = 0;
         dentry_cur_length = 0;
         dentry_size = 0;
@@ -63,7 +63,7 @@ namespace NodeFuse {
         Nan::HandleScope scope;
 
         Local<Object> replyObj = args.This();
-        Reply* reply = ObjectWrap::Unwrap<Reply>(replyObj);
+        Reply* reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
 
         int argslen = args.Length();
 
@@ -97,7 +97,7 @@ namespace NodeFuse {
         Nan::HandleScope scope;
 
         Local<Object> replyObj = args.This();
-        Reply* reply = ObjectWrap::Unwrap<Reply>(replyObj);
+        Reply* reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
 
         int argslen = args.Length();
 
@@ -140,7 +140,7 @@ namespace NodeFuse {
         Nan::HandleScope scope;;
 
         Local<Object> replyObj = args.This();
-        Reply* reply = ObjectWrap::Unwrap<Reply>(replyObj);
+        Reply* reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
 
         int argslen = args.Length();
 
@@ -153,7 +153,7 @@ namespace NodeFuse {
             Nan::ThrowTypeError( "You must specify a string as first argument");
         }
 
-        String::Utf8Value link(arg->ToString());
+        String::Utf8Value link(arg);
 
         int ret = -1;
         ret = fuse_reply_readlink(reply->request, (const char*) *link);
@@ -169,7 +169,7 @@ namespace NodeFuse {
         Nan::HandleScope scope;;
 
         Local<Object> replyObj = args.This();
-        Reply* reply = ObjectWrap::Unwrap<Reply>(replyObj);
+        Reply* reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
 
         int argslen = args.Length();
         if (argslen == 0) {
@@ -195,7 +195,7 @@ namespace NodeFuse {
         Nan::HandleScope scope;;
 
         Local<Object> replyObj = args.This();
-        Reply* reply = ObjectWrap::Unwrap<Reply>(replyObj);
+        Reply* reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
 
         int argslen = args.Length();
         if (argslen == 0) {
@@ -207,7 +207,7 @@ namespace NodeFuse {
             Nan::ThrowTypeError( "You must specify a FileInfo object as first argument");
         }
 
-        FileInfo* fileInfo = ObjectWrap::Unwrap<FileInfo>(fiobj);
+        FileInfo* fileInfo = Nan::ObjectWrap::Unwrap<FileInfo>(fiobj);
 
         int ret = -1;
         ret = fuse_reply_open(reply->request, &(fileInfo->fi));
@@ -222,7 +222,7 @@ namespace NodeFuse {
         Nan::HandleScope scope;
 
         Local<Object> replyObj = args.This();
-        Reply* reply = ObjectWrap::Unwrap<Reply>(replyObj);
+        Reply* reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
 
         int argslen = args.Length();
         if (argslen == 0) {
@@ -274,7 +274,7 @@ namespace NodeFuse {
         Nan::HandleScope scope;;
 
         Local<Object> replyObj = args.This();
-        Reply* reply = ObjectWrap::Unwrap<Reply>(replyObj);
+        Reply* reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
 
         int argslen = args.Length();
         if (argslen == 0) {
@@ -300,7 +300,7 @@ namespace NodeFuse {
         Nan::HandleScope scope;;
 
         Local<Object> replyObj = args.This();
-        Reply* reply = ObjectWrap::Unwrap<Reply>(replyObj);
+        Reply* reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
 
         int ret = -1;
         struct statvfs buf;
@@ -333,7 +333,7 @@ namespace NodeFuse {
         Nan::HandleScope scope;;
 
         Local<Object> replyObj = args.This();
-        Reply* reply = ObjectWrap::Unwrap<Reply>(replyObj);
+        Reply* reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
 
         int argslen = args.Length();
 
@@ -359,7 +359,7 @@ namespace NodeFuse {
             Nan::ThrowTypeError( "You must specify a FileInfo object as second argument");
         }
 
-        FileInfo* fileInfo = ObjectWrap::Unwrap<FileInfo>(fiobj);
+        FileInfo* fileInfo = Nan::ObjectWrap::Unwrap<FileInfo>(fiobj);
 
         ret = fuse_reply_create(reply->request, &entry, &(fileInfo->fi));
         reply->b_hasReplied = true;
@@ -373,7 +373,7 @@ namespace NodeFuse {
         Nan::HandleScope scope;;
 
         Local<Object> replyObj = args.This();
-        Reply* reply = ObjectWrap::Unwrap<Reply>(replyObj);
+        Reply* reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
 
         int argslen = args.Length();
         if (argslen == 0) {
@@ -398,7 +398,7 @@ namespace NodeFuse {
         Nan::HandleScope scope;;
 
         Local<Object> replyObj = args.This();
-        Reply* reply = ObjectWrap::Unwrap<Reply>(replyObj);
+        Reply* reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
 
         int argslen = args.Length();
 
@@ -428,9 +428,9 @@ namespace NodeFuse {
     }
 
     void Reply::None(const Nan::FunctionCallbackInfo<v8::Value>& args) {
-        Nan::EscapableHandleScope scope;
+        Nan::HandleScope scope;
         Local<Object> replyObj = args.This();
-        Reply* reply = ObjectWrap::Unwrap<Reply>(replyObj);       
+        Reply* reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);       
         fuse_reply_none(reply->request); 
         reply->b_hasReplied = true;
     }
@@ -440,7 +440,7 @@ namespace NodeFuse {
         Nan::HandleScope scope;;
 
         Local<Object> replyObj = args.This();
-        Reply* reply = ObjectWrap::Unwrap<Reply>(replyObj);
+        Reply* reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
 
         int argslen = args.Length();
         if (argslen == 0) {
@@ -462,9 +462,9 @@ namespace NodeFuse {
     }
 
     void Reply::AddDirEntry(const Nan::FunctionCallbackInfo<v8::Value>& args) {
-        Nan::EscapableHandleScope scope;
+        Nan::HandleScope scope;
         Local<Object> replyObj = args.This();
-        Reply* reply = ObjectWrap::Unwrap<Reply>(replyObj);
+        Reply* reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
 
         int argslen = args.Length();
 
@@ -488,7 +488,7 @@ namespace NodeFuse {
             Nan::ThrowTypeError("You must specify a offset number as fourth argument");
         }
 
-        String::Utf8Value name(args[0]->ToString());
+        String::Utf8Value name(args[0]);
         size_t requestedSize = args[1]->IntegerValue();
         off_t offset = args[3]->IntegerValue();
         reply-> dentry_offset = offset;
@@ -524,7 +524,7 @@ namespace NodeFuse {
     }
     
     NAN_GETTER(Reply::hasReplied){
-        Reply *reply = ObjectWrap::Unwrap<Reply>(info.This());
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(info.This());
         info.GetReturnValue().Set(reply->b_hasReplied ? Nan::True() : Nan::False());
     }
 
