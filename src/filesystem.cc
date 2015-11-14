@@ -452,7 +452,7 @@ namespace NodeFuse {
         value.op = _FUSE_OPS_LOOKUP_;
         value.req = req;
         value.ino = parent;
-        value.name = name;
+        value.name = strdup(name);
 
         ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_LOOKUP_*/]);
         uv_async_send(&uv_async_handle);
@@ -471,7 +471,7 @@ namespace NodeFuse {
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Number> parentInode = Nan::New<Number>(parent);
         Local<String> entryName = Nan::New<String>(name).ToLocalChecked();
-        // free(name);
+        free((void *)name);
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         //reply->Wrap(replyObj);
 
@@ -780,7 +780,7 @@ namespace NodeFuse {
         value.op = _FUSE_OPS_MKNOD_;
         value.req = req;
         value.ino= parent;
-        value.name = name;
+        value.name = strdup(name);
         value.mode = mode;
         value.dev = rdev;
 
@@ -807,6 +807,8 @@ namespace NodeFuse {
         Local<Number> parentInode = Nan::New<Number>(parent);
 
         Local<String> name_ = Nan::New<String>(name).ToLocalChecked();
+        free((void *)name);
+
         Local<Integer> mode_ = Nan::New<Integer>(mode);
         Local<Integer> rdev_ = Nan::New<Integer>((uint32_t)rdev);
 
@@ -844,7 +846,7 @@ namespace NodeFuse {
         value.op = _FUSE_OPS_MKDIR_;
         value.req = req;
         value.ino = parent;
-        value.name = name;
+        value.name = strdup(name);
         value.mode = mode;
 
         ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_MKDIR_*/ ]);
@@ -867,6 +869,7 @@ namespace NodeFuse {
         Local<Number> parentInode = Nan::New<Number>(parent);
 
         Local<String> name_ = Nan::New<String>(name).ToLocalChecked();
+        free((void *)name);
         Local<Integer> mode_ = Nan::New<Integer>(mode);
 
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
@@ -901,7 +904,7 @@ namespace NodeFuse {
         value.op = _FUSE_OPS_UNLINK_;
         value.req = req;
         value.ino = parent;
-        value.name = name;
+        value.name = strdup(name);
 
         ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_UNLINK_*/]);
         uv_async_send(&uv_async_handle);
@@ -921,7 +924,7 @@ namespace NodeFuse {
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Number> parentInode = Nan::New<Number>(parent);
         Local<String> name_ = Nan::New<String>(name).ToLocalChecked();
-
+        free((void *)name);
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
@@ -953,7 +956,7 @@ namespace NodeFuse {
         value.op = _FUSE_OPS_RMDIR_;
         value.req = req;
         value.ino = parent;
-        value.name = name;
+        value.name = strdup(name);
 
         ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_RMDIR_*/ ]);
         uv_async_send(&uv_async_handle);
@@ -973,7 +976,8 @@ namespace NodeFuse {
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Number> parentInode = Nan::New<Number>(parent);
         Local<String> name_ = Nan::New<String>(name).ToLocalChecked();
-
+        free((void *)name);
+        
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
@@ -1002,9 +1006,9 @@ namespace NodeFuse {
         // }
 
         value.op = _FUSE_OPS_SYMLINK_;
-        value.name = link;
+        value.name = strdup(link);
         value.ino = parent;
-        value.newname = name;
+        value.newname = strdup(name);
 
 
         ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_SYMLINK_*/ ]);
@@ -1026,6 +1030,8 @@ namespace NodeFuse {
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Number> parentInode = Nan::New<Number>(parent);
         Local<String> name_ = Nan::New<String>(name).ToLocalChecked();
+        free((void *)name);
+        free((void *)link);
         Local<String> link_ = Nan::New<String>(link).ToLocalChecked();
 
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
@@ -1060,8 +1066,8 @@ namespace NodeFuse {
         value.req = req;
         value.ino = parent;
         value.newino = newparent;
-        value.name = name;
-        value.newname = newname;
+        value.name = strdup(name);
+        value.newname = strdup(newname);
 
         ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_RENAME_*/ ]);
         uv_async_send(&uv_async_handle);
@@ -1086,6 +1092,8 @@ namespace NodeFuse {
         Local<Number> newParentInode = Nan::New<Number>(newparent);
         Local<String> newName = Nan::New<String>(newname).ToLocalChecked();
 
+        free((void *)name);
+        free((void *)newname);
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
@@ -1119,7 +1127,7 @@ namespace NodeFuse {
         value.req = req;
         value.ino = ino;
         value.newino = newparent;
-        value.name = newname;
+        value.name = strdup(newname);
 
         ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_LINK_*/ ]);
         uv_async_send(&uv_async_handle);
@@ -1141,6 +1149,7 @@ namespace NodeFuse {
         Local<Number> newParent = Nan::New<Number>(newparent);
         Local<String> newName = Nan::New<String>(newname).ToLocalChecked();
 
+        free((void *)newname);
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
@@ -1881,8 +1890,8 @@ namespace NodeFuse {
 
         value.op = _FUSE_OPS_SETXATTR_;
         value.req = req;
-        value.name = name_;
-        value.newname = value_;
+        value.name = strdup(name_);
+        value.newname = strdup(value_);
         value.size = size_;
         value.to_set = flags_;
         #ifdef __APPLE__
@@ -1919,6 +1928,9 @@ namespace NodeFuse {
         Local<Integer> position = Nan::New<Integer>(position_);
 #endif
         Local<Number> size = Nan::New<Number>(size_);
+
+        free((void *)value_);
+        free((void *)name_);
 
         //TODO change for an object with accessors
         Local<Integer> flags = Nan::New<Integer>(flags_);
@@ -1970,7 +1982,7 @@ namespace NodeFuse {
     value.op = _FUSE_OPS_GETXATTR_;
     value.req = req;
     value.ino = ino;
-    value.name = name_;
+    value.name = strdup(name_);
     value.size = size_;
     #ifdef __APPLE__
     value.position = position_;
@@ -2001,6 +2013,7 @@ namespace NodeFuse {
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Number> inode = Nan::New<Number>(ino);
         Local<String> name = Nan::New<String>(name_).ToLocalChecked();
+        free((void *)name_);
         Local<Number> size = Nan::New<Number>(size_);
 #ifdef __APPLE__
         Local<Integer> position = Nan::New<Integer>(position_);
@@ -2094,7 +2107,7 @@ namespace NodeFuse {
         value.op = _FUSE_OPS_REMOVEXATTR_;
         value.req = req;
         value.ino = ino;
-        value.name = name_;
+        value.name = strdup(name_);
         ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_REMOVEXATTR_*/]);
         uv_async_send(&uv_async_handle);
     }
@@ -2112,7 +2125,8 @@ namespace NodeFuse {
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Number> inode = Nan::New<Number>(ino);
         Local<String> name = Nan::New<String>(name_).ToLocalChecked();
-
+        free((void *)name_);
+        
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
@@ -2198,7 +2212,7 @@ namespace NodeFuse {
         value.op = _FUSE_OPS_CREATE_;
         value.req = req;
         value.ino = parent;
-        value.name = name;
+        value.name = strdup(name);
         value.mode = mode;
         if(fi != NULL){
             memcpy( (void*) &(value.fi), fi, sizeof(struct fuse_file_info));
@@ -2226,6 +2240,7 @@ namespace NodeFuse {
         Local<String> name_ = Nan::New<String>(name).ToLocalChecked();
         Local<Integer> mode_ = Nan::New<Integer>(mode);
 
+        free((void *)name);
         // FileInfo* info = new FileInfo();
         // info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
         // info->fi = fi;

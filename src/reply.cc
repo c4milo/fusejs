@@ -203,14 +203,17 @@ namespace NodeFuse {
         }
 
         Local<Object> fiobj = args[0]->ToObject();
-        if (!FileInfo::HasInstance(fiobj)) {
-            Nan::ThrowTypeError( "You must specify a FileInfo object as first argument");
-        }
+        // if (!FileInfo::HasInstance(fiobj)) {
+        //     Nan::ThrowTypeError( "You must specify a FileInfo object as first argument");
+        // }
 
         FileInfo* fileInfo = Nan::ObjectWrap::Unwrap<FileInfo>(fiobj);
-
+        if(fileInfo == nullptr){
+            printf("fileinfo from reply open was null\n");
+        }
         int ret = -1;
         ret = fuse_reply_open(reply->request, &(fileInfo->fi));
+        
         reply->b_hasReplied = true;
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
@@ -355,9 +358,9 @@ namespace NodeFuse {
         }
 
         Local<Object> fiobj = args[1]->ToObject();
-        if (!FileInfo::HasInstance(fiobj)) {
-            Nan::ThrowTypeError( "You must specify a FileInfo object as second argument");
-        }
+        // if (!FileInfo::HasInstance(fiobj)) {
+        //     Nan::ThrowTypeError( "You must specify a FileInfo object as second argument");
+        // }
 
         FileInfo* fileInfo = Nan::ObjectWrap::Unwrap<FileInfo>(fiobj);
 
