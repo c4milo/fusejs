@@ -215,11 +215,11 @@ namespace NodeFuse {
                                struct fuse_file_info* fi);
             static void GetLock(fuse_req_t req,
                               fuse_ino_t ino,
-                              struct fuse_file_info* fi,
+                              struct fuse_file_info fi,
                               struct flock* lock);
             static void SetLock(fuse_req_t req,
                               fuse_ino_t ino,
-                              struct fuse_file_info* fi,
+                              struct fuse_file_info fi,
                               struct flock* lock,
                               int sleep);
             static void BMap(fuse_req_t req,

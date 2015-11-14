@@ -524,11 +524,12 @@ namespace NodeFuse {
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Array> data = Nan::New<Array>(count);
 
-        for( uint i = 0; i < count; i++){
+        // for( uint i = 0; i < count; i++){
             ForgetData *forget_data = new ForgetData();
             // forget_data->fd = &( forget_all[i] );
-            Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(forget_data->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-            data->Set(i, infoObj);
+            Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(FileInfo::constructor)).ToLocalChecked(); //Nan::NewInstance(Nan::New<Function>(forget_data->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
+            FileInfo *data = Nan::ObjectWrap.Unwrap(i, infoObj);
+            info->fi = fi;
         }
 
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
@@ -1192,12 +1193,13 @@ namespace NodeFuse {
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Number> inode = Nan::New<Number>(ino);
 
-        FileInfo* info = new FileInfo();
-        info->fi = fi;
+        // FileInfo* info = new FileInfo();
+        // info->fi = fi;
         // info->fi = (struct fuse_file_info* ) malloc(sizeof(struct fuse_file_info));
         // memcpy( info->fi, &fi, sizeof(struct fuse_file_info));
-        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        info->Wrap(infoObj);
+        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(FileInfo::constructor)).ToLocalChecked(); //Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
+        FileInfo *info = Nan::ObjectWrap::Unwrap<FileInfo>(infoObj);
+        info->fi = fi;
 
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
@@ -1262,12 +1264,13 @@ namespace NodeFuse {
         Local<Number> size = Nan::New<Number>(size_);
         Local<Number> offset = Nan::New<Number>(off);
 
-        FileInfo* info = new FileInfo();
-        info->fi = fi;
+        // FileInfo* info = new FileInfo();
+        // info->fi = fi;
         // info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
         // memcpy( (void*) info->fi , &fi, sizeof(struct fuse_file_info));
-        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        info->Wrap(infoObj);
+        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(FileInfo::constructor)).ToLocalChecked(); //Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
+        FileInfo *info = Nan::ObjectWrap::Unwrap<FileInfo>(infoObj);
+        info->fi = fi;
 
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
@@ -1340,13 +1343,14 @@ namespace NodeFuse {
         Local<Object> buffer = Nan::NewBuffer((char*) buf, size).ToLocalChecked();
         // free will be called implicitly when buffer is garbage collected
         // free((void *)buf);
-        FileInfo* info = new FileInfo();
+        // FileInfo* info = new FileInfo();
 
-        info->fi = fi;
+        // info->fi = fi;
         // info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
         // memcpy( (void*) info->fi , &fi, sizeof(struct fuse_file_info));
-        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        info->Wrap(infoObj);
+        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(FileInfo::constructor)).ToLocalChecked(); //Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
+        FileInfo *info = Nan::ObjectWrap::Unwrap<FileInfo>(infoObj);
+        info->fi = fi;
 
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
@@ -1402,14 +1406,15 @@ namespace NodeFuse {
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Number> inode = Nan::New<Number>(ino);
 
-        FileInfo* info = new FileInfo();
-        info->fi = fi;
+        // FileInfo* info = new FileInfo();
+        // info->fi = fi;
         // info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
         // memcpy( (void*) info->fi , &fi, sizeof(struct fuse_file_info));
         
-        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        info->Wrap(infoObj);
-
+        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(FileInfo::constructor)).ToLocalChecked(); //Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->FileInfo *Nan::ObjectWrap.Unwrap(= ;
+        FileInfo *info = Nan::ObjectWrap::Unwrap<FileInfo>(infoObj);
+        info->fi = fi;
+ 
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
@@ -1463,12 +1468,13 @@ namespace NodeFuse {
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Number> inode = Nan::New<Number>(ino);
 
-        FileInfo* info = new FileInfo();
-        info->fi = fi;
+        // FileInfo* info = new FileInfo();
+        // info->fi = fi;
         // info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
         // memcpy( (void*) info->fi , &fi, sizeof(struct fuse_file_info));
-        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        info->Wrap(infoObj);
+        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(FileInfo::constructor)).ToLocalChecked(); //Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
+        FileInfo *info = Nan::ObjectWrap::Unwrap<FileInfo>(infoObj);
+        info->fi = fi;
 
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
@@ -1526,13 +1532,14 @@ namespace NodeFuse {
         Local<Number> inode = Nan::New<Number>(ino);
         bool datasync = datasync_ == 0 ? false : true;
 
-        FileInfo* info = new FileInfo();
-        info->fi = fi;
+        // FileInfo* info = new FileInfo();
+        // info->fi = fi;
         // info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
         // memcpy( (void*) info->fi , &fi, sizeof(struct fuse_file_info));
 
-        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        info->Wrap(infoObj);
+        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(FileInfo::constructor)).ToLocalChecked(); //Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->FileInfo *Nan::ObjectWrap.Unwrap(= ;
+        FileInfo *info = Nan::ObjectWrap::Unwrap<FileInfo>(infoObj);
+        info->fi = fi;
 
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
@@ -1585,12 +1592,13 @@ namespace NodeFuse {
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Number> inode = Nan::New<Number>(ino);
 
-        FileInfo* info = new FileInfo();
-        info->fi = fi;
+        // FileInfo* info = new FileInfo();
+        // info->fi = fi;
         // info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
         // memcpy( (void*) info->fi , &fi, sizeof(struct fuse_file_info));
-        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        info->Wrap(infoObj);
+        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(FileInfo::constructor)).ToLocalChecked(); //Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
+        FileInfo *info = Nan::ObjectWrap::Unwrap<FileInfo>(infoObj);
+        info->fi = fi;
 
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
@@ -1652,12 +1660,13 @@ namespace NodeFuse {
         Local<Integer> size = Nan::New<Integer>((int)size_);
         Local<Integer> offset = Nan::New<Integer>((int) off);
 
-        FileInfo* info = new FileInfo();
-        info->fi = fi;
+        // FileInfo* info = new FileInfo();
+        // info->fi = fi;
         // info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
         // memcpy( (void*) info->fi , &fi, sizeof(struct fuse_file_info));
-        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        info->Wrap(infoObj);
+        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(FileInfo::constructor)).ToLocalChecked(); //Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
+        FileInfo *info = Nan::ObjectWrap::Unwrap<FileInfo>(infoObj);
+        info->fi = fi;
 
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
@@ -1717,12 +1726,13 @@ namespace NodeFuse {
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Number> inode = Nan::New<Number>(ino);
 
-        FileInfo* info = new FileInfo();
-        info->fi = fi;
+        // FileInfo* info = new FileInfo();
+        // info->fi = fi;
         // info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
         // memcpy( (void*) info->fi , &fi, sizeof(struct fuse_file_info));
-        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//;
-        info->Wrap(infoObj);
+        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(FileInfo::constructor)).ToLocalChecked(); //Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//;
+        FileInfo *info = Nan::ObjectWrap::Unwrap<FileInfo>(infoObj);
+        info->fi = fi;
 
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
@@ -1780,12 +1790,13 @@ namespace NodeFuse {
         Local<Number> inode = Nan::New<Number>(ino);
         bool datasync = datasync_ == 0 ? false : true;
 
-        FileInfo* info = new FileInfo();
-        info->fi = fi;
+        // FileInfo* info = new FileInfo();
+        // info->fi = fi;
         // info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
         // memcpy( (void*) info->fi , &fi, sizeof(struct fuse_file_info));
-        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        info->Wrap(infoObj);
+        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(FileInfo::constructor)).ToLocalChecked(); //Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
+        FileInfo *info = Nan::ObjectWrap::Unwrap<FileInfo>(infoObj);
+        info->fi = fi;
 
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
@@ -2215,11 +2226,12 @@ namespace NodeFuse {
         Local<String> name_ = Nan::New<String>(name).ToLocalChecked();
         Local<Integer> mode_ = Nan::New<Integer>(mode);
 
-        FileInfo* info = new FileInfo();
+        // FileInfo* info = new FileInfo();
         // info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
+        // info->fi = fi;
+        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(FileInfo::constructor)).ToLocalChecked(); //Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
+        FileInfo *info = Nan::ObjectWrap::Unwrap<FileInfo>(infoObj);
         info->fi = fi;
-        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        info->Wrap(infoObj);
 
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
@@ -2242,7 +2254,7 @@ namespace NodeFuse {
 
     void FileSystem::GetLock(fuse_req_t req,
                              fuse_ino_t ino,
-                             struct fuse_file_info* fi,
+                             struct fuse_file_info fi,
                              struct flock* lock) {
         Nan::HandleScope scope;;
         Fuse* fuse = static_cast<Fuse *>(fuse_req_userdata(req));
@@ -2254,11 +2266,12 @@ namespace NodeFuse {
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Number> inode = Nan::New<Number>(ino);
 
-        FileInfo* info = new FileInfo();
+        // FileInfo* info = new FileInfo();
         // info->fi = fi;
-        memcpy(&(info->fi), fi, sizeof(struct fuse_file_info));
-        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-        info->Wrap(infoObj);
+        // memcpy(&(info->fi), fi, sizeof(struct fuse_file_info));
+        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(FileInfo::constructor)).ToLocalChecked(); //Nan::NewInstance(Nan::New<Function>(info->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
+        FileInfo *info = Nan::ObjectWrap::Unwrap<FileInfo>(infoObj);
+        info->fi = fi;
 
         Local<Object> lockObj = FlockToObject(lock)->ToObject();
 
@@ -2280,7 +2293,7 @@ namespace NodeFuse {
 
     void FileSystem::SetLock(fuse_req_t req,
                              fuse_ino_t ino,
-                             struct fuse_file_info* fi,
+                             struct fuse_file_info fi,
                              struct flock* lock,
                              int sleep_) {
         Nan::HandleScope scope;;
@@ -2294,13 +2307,14 @@ namespace NodeFuse {
         Local<Number> inode = Nan::New<Number>(ino);
         Local<Integer> sleep = Nan::New<Integer>(sleep_);
 
-        FileInfo* info = new FileInfo();
+        // FileInfo* info = new FileInfo();
         // info->fi = fi;
-        memcpy(&(info->fi), fi, sizeof(struct fuse_file_info));
-        Local<Function> constructor = Nan::New<Function>(FileInfo::constructor);
-        Local<Object> infoObj = Nan::NewInstance(constructor).ToLocalChecked();//->GetFunction()->NewInstance();
-        info->Wrap(infoObj);
-
+        // memcpy(&(info->fi), fi, sizeof(struct fuse_file_info));
+        // Local<Function> constructor = Nan::New<Function>(Nan::New<Function>(FileInfo::constructor)).ToLocalChecked();;
+        Local<Object> infoObj = Nan::NewInstance(Nan::New<Function>(FileInfo::constructor)).ToLocalChecked(); //Nan::NewInstance(constructor).ToLocalChecked();//->GetFunction()->FileInfo *Nan::ObjectWrap.Unwrap(= ;
+        FileInfo *info = Nan::ObjectWrap::Unwrap<FileInfo>(infoObj);
+        info->fi = fi;
+        
         Local<Object> lockObj = FlockToObject(lock)->ToObject();
 
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
