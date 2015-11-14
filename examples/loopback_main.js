@@ -20,10 +20,10 @@ const fuse = require('fusejs').fuse
 // setup the directories
 var loopback = require('./loopback.js');
 const LoopbackFS = loopback.LoopbackFS;
-loopback.setLoopback( process.argv[1] );
- 
+loopback.setLoopback( process.argv[2] );
+
 fuse.mount({
 	filesystem: LoopbackFS,
-	options: ['LoopbackFS'].concat(process.argv.slice(2,process.argv.length))
+	options: ['LoopbackFS'].concat(process.argv.slice(3,process.argv.length))
 })
 
