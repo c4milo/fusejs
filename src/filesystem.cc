@@ -677,7 +677,7 @@ namespace NodeFuse {
         memcpy( (void*) &(value.attr), attr, sizeof(struct stat) );
         value.to_set = to_set;
         if(fi != NULL){
-            memcpy( (void*) &(value.fi), fi, sizeof(struct fuse_file_info));
+            value.fi = *fi;
         }
 
 
@@ -1181,7 +1181,7 @@ namespace NodeFuse {
         value.req = req;
         value.ino = ino;
         if(fi != NULL){
-            memcpy( (void*) &(value.fi), fi, sizeof(struct fuse_file_info));
+            value.fi = *fi;
         }
 
         ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_OPEN_*/]);
@@ -1247,7 +1247,7 @@ namespace NodeFuse {
         value.off = off;
         value.size = size;
         if(fi != NULL){
-            memcpy( (void*) &(value.fi), fi, sizeof(struct fuse_file_info));
+            value.fi = *fi;
         }
 
         ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_READ_*/ ]);
@@ -1324,7 +1324,7 @@ namespace NodeFuse {
         memcpy((void *)value.name, buf, size);
 
         if(fi != NULL){
-            memcpy( (void*) &(value.fi), fi, sizeof(struct fuse_file_info));
+            value.fi = *fi;
         }
 
         ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_WRITE_*/]);
@@ -1394,7 +1394,7 @@ namespace NodeFuse {
         value.req = req;
         value.ino = ino;
         if(fi != NULL){
-            memcpy( (void*) &(value.fi), fi, sizeof(struct fuse_file_info));
+            value.fi = *fi;
         }
 
         ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_FLUSH_*/]);
@@ -1456,7 +1456,7 @@ namespace NodeFuse {
         value.req = req;
         value.ino = ino;
         if(fi != NULL){
-            memcpy( (void*) &(value.fi), fi, sizeof(struct fuse_file_info));
+            value.fi = *fi;
         }
 
         ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_RELEASE_*/]);
@@ -1518,7 +1518,7 @@ namespace NodeFuse {
         value.ino = ino;
         value.to_set = datasync_;
         if(fi != NULL){
-            memcpy( (void*) &(value.fi), fi, sizeof(struct fuse_file_info));
+            value.fi = *fi;
         }
 
         ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_FSYNC_*/]);
@@ -1581,7 +1581,7 @@ namespace NodeFuse {
         value.req = req;
         value.ino = ino;
         if(fi != NULL){
-            memcpy( (void*) &(value.fi), fi, sizeof(struct fuse_file_info));
+            value.fi = *fi;
         }
 
         ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_OPENDIR_*/ ]);
@@ -1645,7 +1645,7 @@ namespace NodeFuse {
         value.size = size_;
         value.off = off;
         if(fi != NULL){
-            memcpy( (void*) &(value.fi), fi, sizeof(struct fuse_file_info));
+            value.fi = *fi;
         }
 
         ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_READDIR_*/]);
@@ -1713,7 +1713,7 @@ namespace NodeFuse {
         value.req = req;
         value.ino = ino;
         if(fi != NULL){
-            memcpy( (void*) &(value.fi), fi, sizeof(struct fuse_file_info));
+            value.fi = *fi;
         }
 
 
@@ -1777,7 +1777,7 @@ namespace NodeFuse {
         value.ino = ino;
         value.to_set = datasync_;
         if(fi != NULL){
-            memcpy( (void*) &(value.fi), fi, sizeof(struct fuse_file_info));
+            value.fi = *fi;
         }
 
         ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_FSYNCDIR_*/ ]);
@@ -2215,7 +2215,7 @@ namespace NodeFuse {
         value.name = strdup(name);
         value.mode = mode;
         if(fi != NULL){
-            memcpy( (void*) &(value.fi), fi, sizeof(struct fuse_file_info));
+            value.fi = *fi;
         }
 
         ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_CREATE_*/ ]);
