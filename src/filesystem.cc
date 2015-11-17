@@ -8,7 +8,7 @@
 #include "bindings.h"
 #include "forget_data.h"
 #include "node_buffer.h"
-#include "mpmc_queue.h"
+#include "spsc_queue.h"
  
 namespace NodeFuse {
     Persistent<Function> FileSystem::constructor;
@@ -121,7 +121,7 @@ namespace NodeFuse {
     static struct fuse_lowlevel_ops fuse_ops;
 
     // static mpsc_queue_t<struct fuse_cmd> ring_buffer(__RING_SIZE__);
-    static mpmc_bounded_queue<struct fuse_cmd> ring_buffer(__RING_SIZE__);
+    static spsc_bounded_queue_t<struct fuse_cmd> ring_buffer(__RING_SIZE__);
 
     void FileSystem::DispatchOp(uv_async_t* handle, int status)
     {
