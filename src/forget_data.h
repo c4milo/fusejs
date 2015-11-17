@@ -17,7 +17,7 @@ namespace NodeFuse {
 
             ForgetData();
             virtual ~ForgetData();
-            struct fuse_forget_data *fd;
+            struct fuse_forget_data fd;
             static Nan::Persistent<v8::Function> constructor;
             static Nan::Persistent<v8::FunctionTemplate> constructor_template;
             static NAN_METHOD(New);

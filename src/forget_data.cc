@@ -37,14 +37,14 @@ namespace NodeFuse {
                 const Nan::PropertyCallbackInfo<v8::Value>& info) 
 	{
 		ForgetData *forget_data = Nan::ObjectWrap::Unwrap<ForgetData>(info.This());
-		info.GetReturnValue().Set( Nan::New<Integer>(static_cast<uint32_t>(forget_data->fd->ino)));
+		info.GetReturnValue().Set( Nan::New<Number>((double)(forget_data->fd.ino)));
 	}
 
 	void ForgetData::GetNLookup(v8::Local<v8::String> property,
                 const Nan::PropertyCallbackInfo<v8::Value>& info) 
 	{
 		ForgetData *forget_data = Nan::ObjectWrap::Unwrap<ForgetData>(info.This());
-		info.GetReturnValue().Set( Nan::New<Integer>( static_cast<uint32_t>(forget_data->fd->nlookup)) );
+		info.GetReturnValue().Set( Nan::New<Number>( (double)(forget_data->fd.nlookup)) );
 	}
 
 }

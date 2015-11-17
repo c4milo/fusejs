@@ -506,8 +506,8 @@ namespace NodeFuse {
         value.op = _FUSE_OPS_MULTI_FORGET_;
         value.req = req;
         value.size = count;
-        value.userdata = (void *) forget;
-
+        value.userdata = malloc( sizeof(struct fuse_forget_data) * count); 
+        memcpy(value.userdata, forget, count * sizeof(struct fuse_forget_data));
         ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_FORGET_*/]);
         uv_async_send(&uv_async_handle);
 
@@ -529,7 +529,7 @@ namespace NodeFuse {
         // forget_data->fd = &( forget_all[i] );
             Local<Object> forgetObject = Nan::NewInstance(Nan::New<Function>(FileInfo::constructor)).ToLocalChecked(); //Nan::NewInstance(Nan::New<Function>(forget_data->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
             ForgetData *forget_data = Nan::ObjectWrap::Unwrap<ForgetData>(forgetObject);
-            forget_data->fd = &( forget_all[i] );
+            forget_data->fd =  forget_all[i] ;
             data->Set(i, forgetObject);
         }
 
