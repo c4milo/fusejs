@@ -177,6 +177,7 @@ namespace NodeFuse {
                 FUSEJS_THROW_EXCEPTION("Unable to allocate memory, fuse_opt_add_arg failed: ", strerror(errno));
                 return;
             }
+            free(fopt);
         }
 
         int ret = fuse_parse_cmdline(fuse->fargs, &fuse->mountpoint,
