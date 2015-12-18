@@ -8,7 +8,7 @@
 #include "bindings.h"
 #include "forget_data.h"
 #include "node_buffer.h"
-#include "mpmc_queue.h"
+#include "spsc_queue.h"
  
 namespace NodeFuse {
     Persistent<Function> FileSystem::constructor;
@@ -121,7 +121,7 @@ namespace NodeFuse {
     static struct fuse_lowlevel_ops fuse_ops;
 
     // static mpsc_queue_t<struct fuse_cmd> ring_buffer(__RING_SIZE__);
-    static mpmc_bounded_queue<struct fuse_cmd> ring_buffer(__RING_SIZE__);
+    static spsc_bounded_queue_t<struct fuse_cmd> ring_buffer(__RING_SIZE__);
 
     void FileSystem::DispatchOp(uv_async_t* handle, int status)
     {
@@ -136,6 +136,7 @@ namespace NodeFuse {
             switch(value.op){
                 case _FUSE_OPS_LOOKUP_:
                     RemoteLookup(value.req, value.ino, value.name);
+                    free((void *) value.name);
                     break;
                 case _FUSE_OPS_GETATTR_:
                     RemoteGetAttr(value.req, value.ino, value.fi);
@@ -166,27 +167,37 @@ namespace NodeFuse {
                     break;
                 case _FUSE_OPS_MKNOD_:
                     RemoteMkNod(value.req, value.ino, value.name, value.mode, value.dev);
+                    free((void *) value.name);
                     break;
                 case _FUSE_OPS_MKDIR_:
                     RemoteMkDir(value.req, value.ino, value.name,value.mode);
+                    free((void *) value.name);
                     break;
                 case _FUSE_OPS_UNLINK_:
                     RemoteUnlink(value.req, value.ino, value.name);
+                    free((void *) value.name);
                     break;
                 case _FUSE_OPS_RMDIR_:
                     RemoteRmDir(value.req, value.ino, value.name);
+                    free((void *) value.name);
                     break;
                 case _FUSE_OPS_SYMLINK_:
                     RemoteSymLink(value.req, value.name, value.ino, value.newname);
+                    free((void *) value.name);
+                    free((void *) value.newname);
                     break;
                 case _FUSE_OPS_RENAME_:
                     RemoteRename(value.req, value.ino, value.name, value.newino, value.newname);
+                    free((void *) value.name);
+                    free((void *) value.newname);
                     break;
                 case _FUSE_OPS_LINK_:
                     RemoteLink(value.req, value.ino, value.newino, value.name);
+                    free((void *) value.name);
                     break;
                 case _FUSE_OPS_WRITE_:
                     RemoteWrite(value.req, value.ino, value.name, value.size, value.off, value.fi);
+                    // MPool.deallocate((void *) value.name);                    
                     break;
                 case _FUSE_OPS_FLUSH_:
                     RemoteFlush(value.req, value.ino, value.fi);
@@ -215,7 +226,8 @@ namespace NodeFuse {
                                               ,value.position
                             #endif
                         );
-
+                    free((void *) value.name);
+                    free((void *) value.newname);
                     break;
                 case _FUSE_OPS_GETXATTR_:
                     RemoteGetXAttr(value.req, value.ino, value.name, value.size
@@ -224,12 +236,14 @@ namespace NodeFuse {
                             #endif
                         );
 
+                    free((void *) value.name);
                     break;
                 case _FUSE_OPS_LISTXATTR_:
                     RemoteListXAttr(value.req, value.ino, value.size);
                     break;
                 case _FUSE_OPS_REMOVEXATTR_:
                     RemoteRemoveXAttr(value.req, value.ino, value.name);
+                    free((void *) value.name);
                     break;
                 case _FUSE_OPS_ACCESS_:
                     RemoteAccess(value.req, value.ino, value.to_set);
@@ -244,12 +258,13 @@ namespace NodeFuse {
                 case _FUSE_OPS_MULTI_FORGET_:
                     #if FUSE_VERSION > 28
                     RemoteMultiForget(value.req, value.size, static_cast<struct fuse_forget_data *>(value.userdata) );
+                    free(value.userdata);
                     #endif
                     break;
 
                 case _FUSE_OPS_BMAP_:                
                     break;
-            }
+            }            
         }
         
     }
@@ -372,7 +387,12 @@ namespace NodeFuse {
         if(conn != NULL){
             memcpy( &(value.conn), conn, sizeof(struct fuse_conn_info));
         }
-        ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_INIT_*/]);
+        bool result = ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_INIT_*/]);
+        while( !result){
+            //the queue was full
+            uv_async_send(&uv_async_handle);
+            result = ring_buffer.produce(value);
+        }
         uv_async_send(&uv_async_handle);
 
     }
@@ -418,7 +438,12 @@ namespace NodeFuse {
         value.op = _FUSE_OPS_DESTROY_;
         value.userdata =  userdata;        
 
-        ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_DESTROY_*/]);
+        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_DESTROY_*/]);
+        while( !result){
+            //the queue was full
+            uv_async_send(&uv_async_handle);
+            result = ring_buffer.produce(value);
+        }
         uv_async_send(&uv_async_handle);
     }
 
@@ -454,7 +479,12 @@ namespace NodeFuse {
         value.ino = parent;
         value.name = strdup(name);
 
-        ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_LOOKUP_*/]);
+        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_LOOKUP_*/]);
+        while( !result){
+            //the queue was full
+            uv_async_send(&uv_async_handle);
+            result = ring_buffer.produce(value);
+        }
         uv_async_send(&uv_async_handle);
 
     }
@@ -471,7 +501,6 @@ namespace NodeFuse {
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Number> parentInode = Nan::New<Number>(parent);
         Local<String> entryName = Nan::New<String>(name).ToLocalChecked();
-        free((void *)name);
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         //reply->Wrap(replyObj);
 
@@ -506,9 +535,14 @@ namespace NodeFuse {
         value.op = _FUSE_OPS_MULTI_FORGET_;
         value.req = req;
         value.size = count;
-        value.userdata = (void *) forget;
-
-        ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_FORGET_*/]);
+        value.userdata = malloc( sizeof(struct fuse_forget_data) * count); 
+        memcpy(value.userdata, forget, count * sizeof(struct fuse_forget_data));
+        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_FORGET_*/]);
+        while( !result){
+            //the queue was full
+            uv_async_send(&uv_async_handle);
+            result = ring_buffer.produce(value);
+        }
         uv_async_send(&uv_async_handle);
 
     }
@@ -529,7 +563,7 @@ namespace NodeFuse {
         // forget_data->fd = &( forget_all[i] );
             Local<Object> forgetObject = Nan::NewInstance(Nan::New<Function>(FileInfo::constructor)).ToLocalChecked(); //Nan::NewInstance(Nan::New<Function>(forget_data->constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
             ForgetData *forget_data = Nan::ObjectWrap::Unwrap<ForgetData>(forgetObject);
-            forget_data->fd = &( forget_all[i] );
+            forget_data->fd =  forget_all[i] ;
             data->Set(i, forgetObject);
         }
 
@@ -567,7 +601,12 @@ namespace NodeFuse {
         value.ino = ino;
         value.nlookup = nlookup;
 
-        ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_FORGET_*/]);
+        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_FORGET_*/]);
+        while( !result){
+            //the queue was full
+            uv_async_send(&uv_async_handle);
+            result = ring_buffer.produce(value);
+        }
         uv_async_send(&uv_async_handle);
 
     }
@@ -623,7 +662,12 @@ namespace NodeFuse {
             memcpy( (void *) &(value.fi),  fi, sizeof(struct fuse_file_info));
         }
 
-        ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_GETATTR_*/ ]);
+        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_GETATTR_*/ ]);
+        while( !result){
+            //the queue was full
+            uv_async_send(&uv_async_handle);
+            result = ring_buffer.produce(value);
+        }
         uv_async_send(&uv_async_handle);
 
     }
@@ -677,11 +721,16 @@ namespace NodeFuse {
         memcpy( (void*) &(value.attr), attr, sizeof(struct stat) );
         value.to_set = to_set;
         if(fi != NULL){
-            memcpy( (void*) &(value.fi), fi, sizeof(struct fuse_file_info));
+            value.fi = *fi;
         }
 
 
-        ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_SETATTR_*/]);
+        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_SETATTR_*/]);
+        while( !result){
+            //the queue was full
+            uv_async_send(&uv_async_handle);
+            result = ring_buffer.produce(value);
+        }
         uv_async_send(&uv_async_handle);
 
     }
@@ -735,7 +784,12 @@ namespace NodeFuse {
         value.req = req;
         value.ino = ino;
 
-        ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_READLINK_*/ ]);
+        bool result = ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_READLINK_*/ ]);
+        while( !result){
+            //the queue was full
+            uv_async_send(&uv_async_handle);
+            result = ring_buffer.produce(value);
+        }
         uv_async_send(&uv_async_handle);
     }
     void FileSystem::RemoteReadLink(fuse_req_t req, fuse_ino_t ino) {
@@ -784,7 +838,12 @@ namespace NodeFuse {
         value.mode = mode;
         value.dev = rdev;
 
-        ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_MKNOD_*/ ]);
+        bool result = ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_MKNOD_*/ ]);
+        while( !result){
+            //the queue was full
+            uv_async_send(&uv_async_handle);
+            result = ring_buffer.produce(value);
+        }
         uv_async_send(&uv_async_handle);
 
 
@@ -807,8 +866,7 @@ namespace NodeFuse {
         Local<Number> parentInode = Nan::New<Number>(parent);
 
         Local<String> name_ = Nan::New<String>(name).ToLocalChecked();
-        free((void *)name);
-
+        
         Local<Integer> mode_ = Nan::New<Integer>(mode);
         Local<Integer> rdev_ = Nan::New<Integer>((uint32_t)rdev);
 
@@ -849,7 +907,12 @@ namespace NodeFuse {
         value.name = strdup(name);
         value.mode = mode;
 
-        ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_MKDIR_*/ ]);
+        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_MKDIR_*/ ]);
+        while( !result){
+            //the queue was full
+            uv_async_send(&uv_async_handle);
+            result = ring_buffer.produce(value);
+        }
         uv_async_send(&uv_async_handle);
 
     }
@@ -869,7 +932,6 @@ namespace NodeFuse {
         Local<Number> parentInode = Nan::New<Number>(parent);
 
         Local<String> name_ = Nan::New<String>(name).ToLocalChecked();
-        free((void *)name);
         Local<Integer> mode_ = Nan::New<Integer>(mode);
 
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
@@ -906,7 +968,12 @@ namespace NodeFuse {
         value.ino = parent;
         value.name = strdup(name);
 
-        ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_UNLINK_*/]);
+        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_UNLINK_*/]);
+        while( !result){
+            //the queue was full
+            uv_async_send(&uv_async_handle);
+            result = ring_buffer.produce(value);
+        }
         uv_async_send(&uv_async_handle);
 
     }
@@ -924,7 +991,6 @@ namespace NodeFuse {
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Number> parentInode = Nan::New<Number>(parent);
         Local<String> name_ = Nan::New<String>(name).ToLocalChecked();
-        free((void *)name);
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
@@ -958,7 +1024,12 @@ namespace NodeFuse {
         value.ino = parent;
         value.name = strdup(name);
 
-        ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_RMDIR_*/ ]);
+        bool result = ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_RMDIR_*/ ]);
+        while( !result){
+            //the queue was full
+            uv_async_send(&uv_async_handle);
+            result = ring_buffer.produce(value);
+        }
         uv_async_send(&uv_async_handle);
 
     }
@@ -976,7 +1047,6 @@ namespace NodeFuse {
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Number> parentInode = Nan::New<Number>(parent);
         Local<String> name_ = Nan::New<String>(name).ToLocalChecked();
-        free((void *)name);
         
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
@@ -1011,7 +1081,12 @@ namespace NodeFuse {
         value.newname = strdup(name);
 
 
-        ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_SYMLINK_*/ ]);
+        bool result = ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_SYMLINK_*/ ]);
+        while( !result){
+            //the queue was full
+            uv_async_send(&uv_async_handle);
+            result = ring_buffer.produce(value);
+        }
         uv_async_send(&uv_async_handle);
 
     }
@@ -1030,8 +1105,6 @@ namespace NodeFuse {
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Number> parentInode = Nan::New<Number>(parent);
         Local<String> name_ = Nan::New<String>(name).ToLocalChecked();
-        free((void *)name);
-        free((void *)link);
         Local<String> link_ = Nan::New<String>(link).ToLocalChecked();
 
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
@@ -1069,7 +1142,12 @@ namespace NodeFuse {
         value.name = strdup(name);
         value.newname = strdup(newname);
 
-        ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_RENAME_*/ ]);
+        bool result = ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_RENAME_*/ ]);
+        while( !result){
+            //the queue was full
+            uv_async_send(&uv_async_handle);
+            result = ring_buffer.produce(value);
+        }
         uv_async_send(&uv_async_handle);
 
     }
@@ -1092,8 +1170,6 @@ namespace NodeFuse {
         Local<Number> newParentInode = Nan::New<Number>(newparent);
         Local<String> newName = Nan::New<String>(newname).ToLocalChecked();
 
-        free((void *)name);
-        free((void *)newname);
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
@@ -1129,7 +1205,12 @@ namespace NodeFuse {
         value.newino = newparent;
         value.name = strdup(newname);
 
-        ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_LINK_*/ ]);
+        bool result = ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_LINK_*/ ]);
+        while( !result){
+            //the queue was full
+            uv_async_send(&uv_async_handle);
+            result = ring_buffer.produce(value);
+        }
         uv_async_send(&uv_async_handle);
     }
 
@@ -1149,7 +1230,6 @@ namespace NodeFuse {
         Local<Number> newParent = Nan::New<Number>(newparent);
         Local<String> newName = Nan::New<String>(newname).ToLocalChecked();
 
-        free((void *)newname);
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
@@ -1181,10 +1261,15 @@ namespace NodeFuse {
         value.req = req;
         value.ino = ino;
         if(fi != NULL){
-            memcpy( (void*) &(value.fi), fi, sizeof(struct fuse_file_info));
+            value.fi = *fi;
         }
 
-        ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_OPEN_*/]);
+        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_OPEN_*/]);
+        while( !result){
+            //the queue was full
+            uv_async_send(&uv_async_handle);
+            result = ring_buffer.produce(value);
+        }
         uv_async_send(&uv_async_handle);
 
     }
@@ -1247,10 +1332,15 @@ namespace NodeFuse {
         value.off = off;
         value.size = size;
         if(fi != NULL){
-            memcpy( (void*) &(value.fi), fi, sizeof(struct fuse_file_info));
+            value.fi = *fi;
         }
 
-        ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_READ_*/ ]);
+        bool result = ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_READ_*/ ]);
+        while( !result){
+            //the queue was full
+            uv_async_send(&uv_async_handle);
+            result = ring_buffer.produce(value);
+        }
         uv_async_send(&uv_async_handle);
 
 
@@ -1313,8 +1403,7 @@ namespace NodeFuse {
         //     return;
         // }
 
-        
-
+       
         value.op = _FUSE_OPS_WRITE_;
         value.req = req;
         value.ino = ino;
@@ -1322,12 +1411,17 @@ namespace NodeFuse {
         value.size = size;
         value.name = (char *)malloc(size);
         memcpy((void *)value.name, buf, size);
-
+        
         if(fi != NULL){
-            memcpy( (void*) &(value.fi), fi, sizeof(struct fuse_file_info));
+            value.fi = *fi;
         }
 
-        ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_WRITE_*/]);
+        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_WRITE_*/]);
+        while( !result){
+            //the queue was full
+            uv_async_send(&uv_async_handle);
+            result = ring_buffer.produce(value);
+        }
         uv_async_send(&uv_async_handle);
 
 
@@ -1350,8 +1444,8 @@ namespace NodeFuse {
         Local<Number> offset = Nan::New<Number>(off);
 
         Local<Object> buffer = Nan::NewBuffer((char*) buf, size).ToLocalChecked();
+        // Local<Object> buffer = Nan::CopyBuffer((char*) buf, size).ToLocalChecked();
         // free will be called implicitly when buffer is garbage collected
-        // free((void *)buf);
         // FileInfo* info = new FileInfo();
 
         // info->fi = fi;
@@ -1394,10 +1488,15 @@ namespace NodeFuse {
         value.req = req;
         value.ino = ino;
         if(fi != NULL){
-            memcpy( (void*) &(value.fi), fi, sizeof(struct fuse_file_info));
+            value.fi = *fi;
         }
 
-        ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_FLUSH_*/]);
+        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_FLUSH_*/]);
+        while( !result){
+            //the queue was full
+            uv_async_send(&uv_async_handle);
+            result = ring_buffer.produce(value);
+        }
         uv_async_send(&uv_async_handle);
 
     }
@@ -1456,10 +1555,15 @@ namespace NodeFuse {
         value.req = req;
         value.ino = ino;
         if(fi != NULL){
-            memcpy( (void*) &(value.fi), fi, sizeof(struct fuse_file_info));
+            value.fi = *fi;
         }
 
-        ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_RELEASE_*/]);
+        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_RELEASE_*/]);
+        while( !result){
+            //the queue was full
+            uv_async_send(&uv_async_handle);
+            result = ring_buffer.produce(value);
+        }
         uv_async_send(&uv_async_handle);
 
     }
@@ -1518,10 +1622,15 @@ namespace NodeFuse {
         value.ino = ino;
         value.to_set = datasync_;
         if(fi != NULL){
-            memcpy( (void*) &(value.fi), fi, sizeof(struct fuse_file_info));
+            value.fi = *fi;
         }
 
-        ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_FSYNC_*/]);
+        bool result = ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_FSYNC_*/]);
+        while( !result){
+            //the queue was full
+            uv_async_send(&uv_async_handle);
+            result = ring_buffer.produce(value);
+        }
         uv_async_send(&uv_async_handle);
 
     }
@@ -1581,10 +1690,15 @@ namespace NodeFuse {
         value.req = req;
         value.ino = ino;
         if(fi != NULL){
-            memcpy( (void*) &(value.fi), fi, sizeof(struct fuse_file_info));
+            value.fi = *fi;
         }
 
-        ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_OPENDIR_*/ ]);
+        bool result = ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_OPENDIR_*/ ]);
+        while( !result){
+            //the queue was full
+            uv_async_send(&uv_async_handle);
+            result = ring_buffer.produce(value);
+        }
         uv_async_send(&uv_async_handle);
     }
 
@@ -1645,10 +1759,15 @@ namespace NodeFuse {
         value.size = size_;
         value.off = off;
         if(fi != NULL){
-            memcpy( (void*) &(value.fi), fi, sizeof(struct fuse_file_info));
+            value.fi = *fi;
         }
 
-        ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_READDIR_*/]);
+        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_READDIR_*/]);
+        while( !result){
+            //the queue was full
+            uv_async_send(&uv_async_handle);
+            result = ring_buffer.produce(value);
+        }
         uv_async_send(&uv_async_handle);
     }
     void FileSystem::RemoteReadDir(fuse_req_t req,
@@ -1713,11 +1832,16 @@ namespace NodeFuse {
         value.req = req;
         value.ino = ino;
         if(fi != NULL){
-            memcpy( (void*) &(value.fi), fi, sizeof(struct fuse_file_info));
+            value.fi = *fi;
         }
 
 
-        ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_RELEASEDIR_*/]);
+        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_RELEASEDIR_*/]);
+        while( !result){
+            //the queue was full
+            uv_async_send(&uv_async_handle);
+            result = ring_buffer.produce(value);
+        }
         uv_async_send(&uv_async_handle);
 
     }
@@ -1777,10 +1901,15 @@ namespace NodeFuse {
         value.ino = ino;
         value.to_set = datasync_;
         if(fi != NULL){
-            memcpy( (void*) &(value.fi), fi, sizeof(struct fuse_file_info));
+            value.fi = *fi;
         }
 
-        ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_FSYNCDIR_*/ ]);
+        bool result = ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_FSYNCDIR_*/ ]);
+        while( !result){
+            //the queue was full
+            uv_async_send(&uv_async_handle);
+            result = ring_buffer.produce(value);
+        }
         uv_async_send(&uv_async_handle);
     }
     void FileSystem::RemoteFSyncDir(fuse_req_t req,
@@ -1836,7 +1965,12 @@ namespace NodeFuse {
         value.req = req;
         value.ino = ino;
 
-        ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_STATFS_*/]);
+        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_STATFS_*/]);
+        while( !result){
+            //the queue was full
+            uv_async_send(&uv_async_handle);
+            result = ring_buffer.produce(value);
+        }
         uv_async_send(&uv_async_handle);
 
     }
@@ -1898,7 +2032,12 @@ namespace NodeFuse {
         value.position = position_;
         #endif
 
-        ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_SETXATTR_*/]);
+        bool result = ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_SETXATTR_*/]);
+        while( !result){
+            //the queue was full
+            uv_async_send(&uv_async_handle);
+            result = ring_buffer.produce(value);
+        }
         uv_async_send(&uv_async_handle);
 
     }
@@ -1929,8 +2068,6 @@ namespace NodeFuse {
 #endif
         Local<Number> size = Nan::New<Number>(size_);
 
-        free((void *)value_);
-        free((void *)name_);
 
         //TODO change for an object with accessors
         Local<Integer> flags = Nan::New<Integer>(flags_);
@@ -1989,7 +2126,12 @@ namespace NodeFuse {
     #endif
 
 
-    ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_GETXATTR_*/]);
+    bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_GETXATTR_*/]);
+    while( !result){
+        //the queue was full
+        uv_async_send(&uv_async_handle);
+        result = ring_buffer.produce(value);
+    }
     uv_async_send(&uv_async_handle);
 
     }
@@ -2013,7 +2155,6 @@ namespace NodeFuse {
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Number> inode = Nan::New<Number>(ino);
         Local<String> name = Nan::New<String>(name_).ToLocalChecked();
-        free((void *)name_);
         Local<Number> size = Nan::New<Number>(size_);
 #ifdef __APPLE__
         Local<Integer> position = Nan::New<Integer>(position_);
@@ -2061,7 +2202,12 @@ namespace NodeFuse {
         value.req = req;
         value.ino = ino;
         value.size = size_;
-        ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_LISTXATTR_*/]);
+        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_LISTXATTR_*/]);
+        while( !result){
+            //the queue was full
+            uv_async_send(&uv_async_handle);
+            result = ring_buffer.produce(value);
+        }
         uv_async_send(&uv_async_handle);
 
     }
@@ -2108,7 +2254,12 @@ namespace NodeFuse {
         value.req = req;
         value.ino = ino;
         value.name = strdup(name_);
-        ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_REMOVEXATTR_*/]);
+        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_REMOVEXATTR_*/]);
+        while( !result){
+            //the queue was full
+            uv_async_send(&uv_async_handle);
+            result = ring_buffer.produce(value);
+        }
         uv_async_send(&uv_async_handle);
     }
 
@@ -2125,7 +2276,6 @@ namespace NodeFuse {
         Local<Object> context = RequestContextToObject(fuse_req_ctx(req))->ToObject();
         Local<Number> inode = Nan::New<Number>(ino);
         Local<String> name = Nan::New<String>(name_).ToLocalChecked();
-        free((void *)name_);
         
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
@@ -2158,7 +2308,12 @@ namespace NodeFuse {
         value.ino = ino;
         value.to_set = mask_;
 
-        ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_ACCESS_*/]);
+        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_ACCESS_*/]);
+        while( !result){
+            //the queue was full
+            uv_async_send(&uv_async_handle);
+            result = ring_buffer.produce(value);
+        }
         uv_async_send(&uv_async_handle);
 
 
@@ -2215,10 +2370,15 @@ namespace NodeFuse {
         value.name = strdup(name);
         value.mode = mode;
         if(fi != NULL){
-            memcpy( (void*) &(value.fi), fi, sizeof(struct fuse_file_info));
+            value.fi = *fi;
         }
 
-        ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_CREATE_*/ ]);
+        bool result = ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_CREATE_*/ ]);
+        while( !result){
+            //the queue was full
+            uv_async_send(&uv_async_handle);
+            result = ring_buffer.produce(value);
+        }
         uv_async_send(&uv_async_handle);
 
     }
@@ -2240,7 +2400,6 @@ namespace NodeFuse {
         Local<String> name_ = Nan::New<String>(name).ToLocalChecked();
         Local<Integer> mode_ = Nan::New<Integer>(mode);
 
-        free((void *)name);
         // FileInfo* info = new FileInfo();
         // info->fi = (struct fuse_file_info*) malloc(sizeof(struct fuse_file_info) );
         // info->fi = fi;

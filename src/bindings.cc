@@ -93,11 +93,8 @@ namespace NodeFuse {
         }
 
         fuse_session_add_chan(fuse->session, fuse->channel);
-        if(fuse->multithreaded){
-            ret = fuse_session_loop_mt(fuse->session); //blocks here
-        }else{
-            ret = fuse_session_loop(fuse->session); //blocks here            
-        }
+
+        ret = fuse_session_loop(fuse->session); //blocks here            
 
         //Continues executing if user unmounts the fs
         fuse_remove_signal_handlers(fuse->session);
@@ -177,6 +174,7 @@ namespace NodeFuse {
                 FUSEJS_THROW_EXCEPTION("Unable to allocate memory, fuse_opt_add_arg failed: ", strerror(errno));
                 return;
             }
+            free(fopt);
         }
 
         int ret = fuse_parse_cmdline(fuse->fargs, &fuse->mountpoint,
