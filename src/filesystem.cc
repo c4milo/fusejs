@@ -1443,7 +1443,11 @@ namespace NodeFuse {
         Local<Number> inode = Nan::New<Number>(ino);
         Local<Number> offset = Nan::New<Number>(off);
 
-        Local<Object> buffer = Nan::NewBuffer((char*) buf, size).ToLocalChecked();
+        // pedro - Nan::NewBuffer() was leaking the buf - better use Nan::CopyBuffer with delete []buf
+        Local<Object> buffer = Nan::CopyBuffer((char*) buf, size).ToLocalChecked();
+        delete []buf;
+
+        // Local<Object> buffer = Nan::NewBuffer((char*) buf, size).ToLocalChecked();
         // Local<Object> buffer = Nan::CopyBuffer((char*) buf, size).ToLocalChecked();
         // free will be called implicitly when buffer is garbage collected
         // FileInfo* info = new FileInfo();
