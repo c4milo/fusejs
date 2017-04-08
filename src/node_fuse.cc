@@ -168,7 +168,7 @@ namespace NodeFuse {
         Local<Object> obj = value->ToObject();
 
         statbuf->f_bsize = obj->Get(Nan::New(bsize_sym))->IntegerValue();
-        statbuf->f_frsize = obj->Get(Nan::New(blocks_sym))->IntegerValue();
+        statbuf->f_frsize = obj->Get(Nan::New(frsize_sym))->IntegerValue();
 
         statbuf->f_blocks = obj->Get(Nan::New(blocks_sym))->IntegerValue();
         statbuf->f_bfree = obj->Get(Nan::New(bfree_sym))->IntegerValue();
