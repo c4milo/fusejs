@@ -136,7 +136,7 @@ namespace NodeFuse {
 
         Local<Object> obj = value->ToObject();
 
-        statbuf->st_dev = obj->Get(Nan::New(dev_sym))->IntegerValue();
+        //statbuf->st_dev = obj->Get(Nan::New(dev_sym))->IntegerValue();
         // statbuf->st_dev = Nan::Get(obj, Nan::New(dev_sym).ToLocalChecked())->IntegerValue();
         statbuf->st_ino = obj->Get(Nan::New(ino_sym))->IntegerValue();
         // statbuf->st_ino = Nan::GetRealNamedProperty(obj, Nan::New(inode_sym).ToLocalChecked()).ToLocalChecked()->IntegerValue();
@@ -150,8 +150,8 @@ namespace NodeFuse {
         // Nan::Utf8String sizeBuf(sizeStr);
         // statbuf->st_size = atoll( *sizeBuf );
 
-        statbuf->st_blksize = obj->Get(Nan::New(blksize_sym))->IntegerValue();
-        statbuf->st_blocks = obj->Get(Nan::New(blocks_sym))->IntegerValue();
+        //statbuf->st_blksize = obj->Get(Nan::New(blksize_sym))->IntegerValue();
+        //statbuf->st_blocks = obj->Get(Nan::New(blocks_sym))->IntegerValue();
         statbuf->st_atime = obj->Get(Nan::New(atime_sym))->IntegerValue();
         statbuf->st_mtime = obj->Get(Nan::New(mtime_sym))->IntegerValue();
         statbuf->st_ctime = obj->Get(Nan::New(ctime_sym))->IntegerValue();
