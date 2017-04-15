@@ -506,6 +506,10 @@ namespace NodeFuse {
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
+        
+        // listen to interrupts
+        reply->HookInterrupt();
+        
         // //reply->Wrap(replyObj);
 
         Local<Value> argv[4] = {context, parentInode,
@@ -570,6 +574,10 @@ namespace NodeFuse {
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
+        
+        // listen to interrupts
+        reply->HookInterrupt();
+        
         Local<Value> argv[3] = {context, data, replyObj};
 
         Nan::TryCatch try_catch;
@@ -629,6 +637,9 @@ namespace NodeFuse {
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
 
+        // listen to interrupts
+        reply->HookInterrupt();
+        
         Local<Value> argv[4] = {context, inode, nlookup_, replyObj};
 
         Nan::TryCatch try_catch;
@@ -685,8 +696,12 @@ namespace NodeFuse {
         Local<Number> inode = Nan::New<Number>(ino);
 
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
-            Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
-            reply->request = req;
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+        reply->request = req;
+        
+        // listen to interrupts
+        reply->HookInterrupt();
+        
 
         Local<Value> argv[3] = {context, inode, replyObj};
 
@@ -759,6 +774,10 @@ namespace NodeFuse {
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
+        
+        // listen to interrupts
+        reply->HookInterrupt();
+        
         Local<Value> argv[4] = {context, inode, attrs, replyObj};
 
         Nan::TryCatch try_catch;
@@ -807,6 +826,11 @@ namespace NodeFuse {
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
+        
+        // listen to interrupts
+        reply->HookInterrupt();
+        
+        
         Local<Value> argv[3] = {context, inode, replyObj};
 
         Nan::TryCatch try_catch;
@@ -874,6 +898,10 @@ namespace NodeFuse {
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
+        
+        // listen to interrupts
+        reply->HookInterrupt();
+        
         Local<Value> argv[6] = {context, parentInode,
                                 name_, mode_,
                                 rdev_, replyObj};
@@ -938,6 +966,10 @@ namespace NodeFuse {
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
+        
+        // listen to interrupts
+        reply->HookInterrupt();
+        
         Local<Value> argv[5] = {context, parentInode,
                                 name_, mode_, replyObj};
 
@@ -995,6 +1027,10 @@ namespace NodeFuse {
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
+        
+        // listen to interrupts
+        reply->HookInterrupt();
+        
         Local<Value> argv[4] = {context, parentInode, name_, replyObj};
 
         Nan::TryCatch try_catch;
@@ -1052,6 +1088,10 @@ namespace NodeFuse {
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
+        
+        // listen to interrupts
+        reply->HookInterrupt();
+        
         Local<Value> argv[4] = {context, parentInode, name_, replyObj};
 
         Nan::TryCatch try_catch;
@@ -1076,6 +1116,7 @@ namespace NodeFuse {
         // }
 
         value.op = _FUSE_OPS_SYMLINK_;
+        value.req = req;
         value.name = strdup(link);
         value.ino = parent;
         value.newname = strdup(name);
@@ -1111,6 +1152,10 @@ namespace NodeFuse {
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
+        
+        // listen to interrupts
+        reply->HookInterrupt();
+        
         Local<Value> argv[5] = {context, parentInode,
                                 link_, name_, replyObj};
 
@@ -1174,6 +1219,10 @@ namespace NodeFuse {
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
+        
+        // listen to interrupts
+        reply->HookInterrupt();
+        
         Local<Value> argv[6] = {context, parentInode,
                                 name_, newParentInode,
                                 newName, replyObj};
@@ -1234,6 +1283,10 @@ namespace NodeFuse {
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
+        
+        // listen to interrupts
+        reply->HookInterrupt();
+        
         Local<Value> argv[5] = {context, inode,
                                 newParent, newName, replyObj};
 
@@ -1299,6 +1352,10 @@ namespace NodeFuse {
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
+        
+        // listen to interrupts
+        reply->HookInterrupt();
+        
         Local<Value> argv[4] = {context, inode,
                                 infoObj, replyObj};
 
@@ -1375,6 +1432,10 @@ namespace NodeFuse {
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
+        
+        // listen to interrupts
+        reply->HookInterrupt();
+        
         Local<Value> argv[6] = {context, inode,
                                 size, offset,
                                 infoObj, replyObj};
@@ -1463,6 +1524,10 @@ namespace NodeFuse {
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
+        
+        // listen to interrupts
+        reply->HookInterrupt();
+        
         Local<Value> argv[6] = {context, inode,
                                 // Nan::New<Object>(buffer->handle_), offset,
                                 buffer, offset,
@@ -1531,6 +1596,10 @@ namespace NodeFuse {
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
+        
+        // listen to interrupts
+        reply->HookInterrupt();
+        
         Local<Value> argv[4] = {context, inode,
                                 infoObj, replyObj};
 
@@ -1597,6 +1666,10 @@ namespace NodeFuse {
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
+        
+        // listen to interrupts
+        reply->HookInterrupt();
+        
         Local<Value> argv[4] = {context, inode,
                                 infoObj, replyObj};
 
@@ -1667,6 +1740,10 @@ namespace NodeFuse {
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
+        
+        // listen to interrupts
+        reply->HookInterrupt();
+        
         Local<Value> argv[5] = {context, inode,
                                 Nan::New<Boolean>(datasync)->ToObject(),
                                 infoObj, replyObj};
@@ -1731,6 +1808,10 @@ namespace NodeFuse {
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
+        
+        // listen to interrupts
+        reply->HookInterrupt();
+        
         Local<Value> argv[4] = {context, inode,
                                 infoObj, replyObj};
 
@@ -1804,6 +1885,10 @@ namespace NodeFuse {
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
+        
+        // listen to interrupts
+        reply->HookInterrupt();
+        
         Local<Value> argv[6] = {context, inode,
                                 size, offset,
                                 infoObj, replyObj};
@@ -1875,6 +1960,10 @@ namespace NodeFuse {
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
+        
+        // listen to interrupts
+        reply->HookInterrupt();
+        
         Local<Value> argv[4] = {context, inode,
                                 infoObj, replyObj};
 
@@ -1944,6 +2033,10 @@ namespace NodeFuse {
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
+        
+        // listen to interrupts
+        reply->HookInterrupt();
+        
         Local<Value> argv[5] = {context, inode,
                                 Nan::New<Boolean>(datasync)->ToObject(),
                                 infoObj, replyObj};
@@ -1994,6 +2087,10 @@ namespace NodeFuse {
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
+        
+        // listen to interrupts
+        reply->HookInterrupt();
+        
         Local<Value> argv[3] = {context, inode, replyObj};
 
         Nan::TryCatch try_catch;
@@ -2080,6 +2177,10 @@ namespace NodeFuse {
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
+                                  
+        // listen to interrupts
+        reply->HookInterrupt();
+                                  
 #ifdef __APPLE__
         Local<Value> argv[8] = {context, inode,
                                 name, value,
@@ -2169,6 +2270,10 @@ namespace NodeFuse {
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
+                                  
+        // listen to interrupts
+        reply->HookInterrupt();
+                                  
 #ifdef __APPLE__
         Local<Value> argv[6] = {context, inode,
                                 name, size,
@@ -2234,6 +2339,11 @@ namespace NodeFuse {
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
+        
+        // listen to interrupts
+        reply->HookInterrupt();
+        
+    
         Local<Value> argv[4] = {context, inode,
                                 size, replyObj};
         Nan::TryCatch try_catch;
@@ -2285,6 +2395,10 @@ namespace NodeFuse {
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
+        
+        // listen to interrupts
+        reply->HookInterrupt();
+        
         Local<Value> argv[4] = {context, inode,
                                 name, replyObj};
         Nan::TryCatch try_catch;
@@ -2342,8 +2456,12 @@ namespace NodeFuse {
 
         Local<Object> replyObj = Nan::NewInstance( Nan::New<Function>(Reply::constructor)).ToLocalChecked();//->GetFunction()->NewInstance();
 
-    Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
-    reply->request = req;
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+        reply->request = req;
+        
+        // listen to interrupts
+        reply->HookInterrupt();
+        
         Local<Value> argv[4] = {context, inode,
                                 mask, replyObj};
 
@@ -2415,6 +2533,10 @@ namespace NodeFuse {
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
+        
+        // listen to interrupts
+        reply->HookInterrupt();
+        
         Local<Value> argv[6] = {context, parentInode,
                                 name_, mode_,
                                 infoObj, replyObj};
@@ -2457,6 +2579,10 @@ namespace NodeFuse {
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
+        
+        // listen to interrupts
+        reply->HookInterrupt();
+        
         Local<Value> argv[5] = {context, inode,
                                 infoObj, lockObj, replyObj};
 
@@ -2499,6 +2625,10 @@ namespace NodeFuse {
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
+        
+        // listen to interrupts
+        reply->HookInterrupt();
+        
         Local<Value> argv[6] = {context, inode,
                                 infoObj, lockObj,
                                 sleep, replyObj};
@@ -2534,6 +2664,10 @@ namespace NodeFuse {
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
+        
+        // listen to interrupts
+        reply->HookInterrupt();
+        
         Local<Value> argv[5] = {context, inode,
                                 blocksize, index, replyObj};
 

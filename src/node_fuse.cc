@@ -23,6 +23,7 @@ namespace NodeFuse {
     static Nan::Persistent<String> atime_sym;
     static Nan::Persistent<String> mtime_sym;
     static Nan::Persistent<String> ctime_sym;
+    //static Nan::Persistent<String> crtime_sym;
 
     //statvfs struct symbols
     static Nan::Persistent<String> bsize_sym;
@@ -70,6 +71,11 @@ namespace NodeFuse {
         atime_sym.Reset( Nan::New<String>("atime").ToLocalChecked());
         mtime_sym.Reset( Nan::New<String>("mtime").ToLocalChecked());
         ctime_sym.Reset( Nan::New<String>("ctime").ToLocalChecked());
+        /*
+        #ifdef __APPLE__
+        crtime_sym.Reset( Nan::New<String>("crtime").ToLocalChecked());
+        #endif
+        */
         bsize_sym.Reset( Nan::New<String>("bsize").ToLocalChecked());
         frsize_sym.Reset( Nan::New<String>("frsize").ToLocalChecked());
         blocks_sym.Reset( Nan::New<String>("blocks").ToLocalChecked());
@@ -136,7 +142,7 @@ namespace NodeFuse {
 
         Local<Object> obj = value->ToObject();
 
-        statbuf->st_dev = obj->Get(Nan::New(dev_sym))->IntegerValue();
+        //statbuf->st_dev = obj->Get(Nan::New(dev_sym))->IntegerValue();
         // statbuf->st_dev = Nan::Get(obj, Nan::New(dev_sym).ToLocalChecked())->IntegerValue();
         statbuf->st_ino = obj->Get(Nan::New(ino_sym))->IntegerValue();
         // statbuf->st_ino = Nan::GetRealNamedProperty(obj, Nan::New(inode_sym).ToLocalChecked()).ToLocalChecked()->IntegerValue();
@@ -150,12 +156,19 @@ namespace NodeFuse {
         // Nan::Utf8String sizeBuf(sizeStr);
         // statbuf->st_size = atoll( *sizeBuf );
 
-        statbuf->st_blksize = obj->Get(Nan::New(blksize_sym))->IntegerValue();
-        statbuf->st_blocks = obj->Get(Nan::New(blocks_sym))->IntegerValue();
+        //statbuf->st_blksize = obj->Get(Nan::New(blksize_sym))->IntegerValue();
+        //statbuf->st_blocks = obj->Get(Nan::New(blocks_sym))->IntegerValue();
         statbuf->st_atime = obj->Get(Nan::New(atime_sym))->IntegerValue();
         statbuf->st_mtime = obj->Get(Nan::New(mtime_sym))->IntegerValue();
         statbuf->st_ctime = obj->Get(Nan::New(ctime_sym))->IntegerValue();
-
+        
+        /*
+        #ifdef __APPLE__
+        #if FUSE_SET_ATTR_CRTIME
+        statbuf->st_crtime = obj->Get(Nan::New(crtime_sym))->IntegerValue();
+        #endif
+        #endif
+        */
 
         return 0;
     }
@@ -168,7 +181,7 @@ namespace NodeFuse {
         Local<Object> obj = value->ToObject();
 
         statbuf->f_bsize = obj->Get(Nan::New(bsize_sym))->IntegerValue();
-        statbuf->f_frsize = obj->Get(Nan::New(blocks_sym))->IntegerValue();
+        statbuf->f_frsize = obj->Get(Nan::New(frsize_sym))->IntegerValue();
 
         statbuf->f_blocks = obj->Get(Nan::New(blocks_sym))->IntegerValue();
         statbuf->f_bfree = obj->Get(Nan::New(bfree_sym))->IntegerValue();
@@ -227,6 +240,17 @@ namespace NodeFuse {
             attrs->Set( Nan::New(mtime_sym), NODE_UNIXTIME_V8(stat->st_mtime));
         }
 
+        /*
+        #ifdef __APPLE__
+        #if FUSE_SET_ATTR_CRTIME
+         if (to_set & FUSE_SET_ATTR_CRTIME) {
+            attrs->Set( Nan::New(crtime_sym), Nan::New<Integer>(stat->st_crtime));
+        }
+        #endif
+        #endif
+        */
+
+        /* this will be decided on the upper level'
         #ifdef FUSE_SET_ATTR_ATIME_NOW
         if (to_set & FUSE_SET_ATTR_ATIME_NOW ){
             attrs->Set( Nan::New(atime_sym), Nan::New<Integer>(-1));
@@ -236,6 +260,7 @@ namespace NodeFuse {
             attrs->Set( Nan::New(mtime_sym), Nan::New<Integer>(-1));
         }
         #endif
+        */
 
 
 

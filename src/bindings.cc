@@ -94,7 +94,11 @@ namespace NodeFuse {
 
         fuse_session_add_chan(fuse->session, fuse->channel);
 
-        ret = fuse_session_loop(fuse->session); //blocks here            
+        //if(0){
+            ret = fuse_session_loop_mt(fuse->session); //blocks here
+        //}else{
+            //ret = fuse_session_loop(fuse->session); //blocks here
+        //}
 
         //Continues executing if user unmounts the fs
         fuse_remove_signal_handlers(fuse->session);

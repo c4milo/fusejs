@@ -8,6 +8,8 @@
 #include "node_buffer.h"
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 
+uv_async_t uv_async_interrupt_handle;
+
 namespace NodeFuse {
     Nan::Persistent<Function> Reply::constructor;
     void Reply::New(const Nan::FunctionCallbackInfo<v8::Value>& info){
@@ -41,8 +43,110 @@ namespace NodeFuse {
         Nan::SetPrototypeMethod(tpl, "addDirEntry", Reply::AddDirEntry);
         Nan::SetPrototypeMethod(tpl, "none", Reply::None);
         Nan::SetAccessor(tpl->InstanceTemplate(), Nan::New("hasReplied").ToLocalChecked(), Reply::hasReplied);
+        Nan::SetAccessor(tpl->InstanceTemplate(), Nan::New("wasInterrupted").ToLocalChecked(), Reply::wasInterrupted);
+        
+//        Nan::SetPrototypeMethod(tpl, "onInterrupt", Reply::RegisterInterruptHandler);
+
         constructor.Reset(tpl->GetFunction());
     }
+    
+    void Reply::HookInterrupt(){
+        // register the interrupt handler
+        fuse_req_interrupt_func(request, HandleInterrupt, this);
+    }
+    
+    void Reply::HandleInterrupt(fuse_req_t req, void *data){
+        // this is called on another thread a non v8 thread
+
+        // get the reply instance
+        Reply* reply = (Reply*)data;
+        
+        // update the state
+        reply->b_wasInterrupted = true;
+        reply->b_hasReplied = true;
+        
+        // respond
+        int ret = -1;
+        ret = fuse_reply_err(reply->request, ETIMEDOUT);
+        if (ret == -1) {
+            FUSEJS_THROW_EXCEPTION("Reply error on interrupt failed", "Unable to reply the operation");
+        }
+        
+        // finally clear the handler
+        fuse_req_interrupt_func(reply->request, NULL, NULL);
+        
+        //uv_async_interrupt_handle.data = data;
+        //uv_async_send(&uv_async_interrupt_handle);
+    }
+    
+//    void Reply::CallInterruptHandler(uv_async_t *async_data){
+//        // js thread
+//        Isolate * isolate = Isolate::GetCurrent();
+//        v8::HandleScope handleScope(isolate);
+//        
+//        // get the reply instance
+//        Reply* reply = (Reply*)async_data;
+//        
+//        // update the state
+//        reply->b_wasInterrupted = true;
+//        reply->b_hasReplied = true;
+//
+//        
+//        if (!reply->b_interruptCallback.IsEmpty()) {
+//            Local<Value> argv[0] = {};
+//            
+//            Local<Function>::New(isolate, reply->b_interruptCallback)->
+//                Call(isolate->GetCurrentContext()->Global(), 0, argv);
+//
+//            // Free up the persistent function callback
+//            reply->b_interruptCallback.Reset();
+//            // free the aync handler
+//            free(&uv_async_interrupt_handle);
+//            
+//            // finally clear the fuse interrupt handler
+//            fuse_req_interrupt_func(reply->request, NULL, NULL);
+//            
+//        }else{
+//            // not handled, handle here - by responding with timeout
+//            int ret = -1;
+//            ret = fuse_reply_err(reply->request, ETIMEDOUT);
+//            if (ret == -1) {
+//                FUSEJS_THROW_EXCEPTION("Reply error on interrupt failed", "Unable to reply the operation");
+//            }
+//            
+//            // finally clear the handler
+//            fuse_req_interrupt_func(reply->request, NULL, NULL);
+//        }
+//        
+//    }
+    
+    
+//    void Reply::RegisterInterruptHandler(const Nan::FunctionCallbackInfo<v8::Value>& args) {
+//        // js thread
+//        Isolate * isolate = args.GetIsolate();
+//        
+//        Local<Object> replyObj = args.This();
+//        Reply* reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
+//        
+//        Local<Function> callback = Local<Function>::Cast(args[1]);
+//        reply->b_interruptCallback.Reset(isolate, callback);
+//        
+//        
+//        // register the interrupt handler
+//        fuse_req_interrupt_func(reply->request, Handle_interrupt, reply);
+//        
+//        
+//        uv_async_init(uv_default_loop(), &uv_async_interrupt_handle, (uv_async_cb) Reply::CallInterruptHandler);
+// 
+//        //Local<Function> cb = Local<Function>::Cast( args[ 0 ] );
+//        //reply->b_interruptCallback = Persistent<Function>::New( isolate, cb );
+//        
+//        //reply->b_interruptCallback.SetFunction(args[0].As<Function>());
+//        //reply->b_interruptCallback = new Nan::Callback(args[0].As<Function>());
+//        
+//        //Persistent<Function> callback = new Persistent<Function>(args[0]);
+//        
+//    }
 
     Reply::Reply() : Nan::ObjectWrap() {
         dentry_acc_size = 0;
@@ -51,6 +155,7 @@ namespace NodeFuse {
         dentry_offset = 0;
         dentry_buffer = NULL;
         b_hasReplied = false;
+        b_wasInterrupted = false;
     }
 
     Reply::~Reply() {
@@ -530,5 +635,33 @@ namespace NodeFuse {
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(info.This());
         info.GetReturnValue().Set(reply->b_hasReplied ? Nan::True() : Nan::False());
     }
+    
+    NAN_GETTER(Reply::wasInterrupted){
+        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(info.This());
+        info.GetReturnValue().Set(reply->b_wasInterrupted ? Nan::True() : Nan::False());
+    }
+    
+   
+    
+//    NAN_GETTER(Reply::interruptCallback){
+//        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(info.This());
+//        
+//        //if(reply->b_interruptCallback.IsEmpty()){
+//            info.GetReturnValue().Set(Nan::Undefined());
+//        //}else{
+//        //    v8::Local<v8::Function>  cb = reply->b_interruptCallback.GetFunction();
+//        //    info.GetReturnValue().Set(cb);
+//        //}
+//        
+//    }
+//    
+//    NAN_SETTER(Reply::interruptCallback){
+//        Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(info.This());
+//
+//        reply->b_interruptCallback = Local<Function>::Cast(value);
+//        
+////        reply->b_interruptCallback.SetFunction(value.As<Function>());
+//
+//    }
 
 } //ends namespace NodeFuse
