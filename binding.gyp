@@ -13,11 +13,14 @@
                         ],
           "include_dirs": [
             './include',
-            '<!@(pkg-config fuse --cflags-only-I | sed s/-I//g)',
             "<!(node -e \"require('nan')\")"
           ],
         "conditions": [
             ['OS!="win"', {
+              "include_dirs": [
+                './include',
+                '<!@(pkg-config fuse --cflags-only-I | sed s/-I//g)'
+              ],
                 "cflags_cc": [ 
                 "-std=c++11",
                 "-Wall", "-Warray-bounds", 
