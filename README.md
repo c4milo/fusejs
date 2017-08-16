@@ -1,5 +1,5 @@
 ## FuseJS - Low level bindings for Fuse
-[![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/c4milo/fusejs?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/c4milo/fusejs?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Build Status](https://travis-ci.org/c4milo/fusejs.svg)](https://travis-ci.org/c4milo/fusejs)
 
 Fusejs are a set of NodeJS bindings for [Fuse](http://fuse.sourceforge.net/) low level API.
