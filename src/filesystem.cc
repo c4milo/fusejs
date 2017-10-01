@@ -290,7 +290,7 @@ namespace NodeFuse {
         fuse_ops.read       = FileSystem::Read;
         fuse_ops.readdir    = FileSystem::ReadDir;
         fuse_ops.write      = FileSystem::Write;
-        fuse_ops.create     = FileSystem::Create;
+ //       fuse_ops.create     = FileSystem::Create;
         fuse_ops.setattr    = FileSystem::SetAttr;
         fuse_ops.init       = FileSystem::Init;
         fuse_ops.destroy    = FileSystem::Destroy;
