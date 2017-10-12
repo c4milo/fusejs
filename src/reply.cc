@@ -67,7 +67,7 @@ namespace NodeFuse {
         
         // respond
         int ret = -1;
-        ret = fuse_reply_err(reply->request, ETIMEDOUT);
+        ret = fuse_reply_err(reply->request, EINTR);
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Reply error on interrupt failed", "Unable to reply the operation");
         }
