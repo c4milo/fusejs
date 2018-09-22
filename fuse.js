@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-var bindings = require('./build/Release/fusejs.node');
+var bindings = require('./build/Release/fusejs.node');    
+//var bindings = require('./build/Debug/fusejs.node');
 var warn_not_implemented = false;
 var FileSystem = function() {
 
@@ -642,9 +643,14 @@ var PosixError = {
 var fuse = new bindings.Fuse();
 fuse.fuse_version = bindings.fuse_version;
 
+var instance =0;
+console.log("fusejs was required - instance: "+instance);
+
 module.exports = {
     fuse: fuse,
+    bindings: bindings,
     FileSystem: FileSystem,
-    PosixError: PosixError
+    PosixError: PosixError,
+    instance: ++instance
 };
 

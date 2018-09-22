@@ -98,6 +98,7 @@ namespace NodeFuse {
         len_sym.Reset( Nan::New<String>("len").ToLocalChecked());
         pid_sym.Reset( Nan::New<String>("pid").ToLocalChecked());
         umask_sym.Reset( Nan::New<String>("umask").ToLocalChecked());
+        
         Fuse::Initialize(target);
         FileSystem::Initialize(target);
         Reply::Initialize(target);

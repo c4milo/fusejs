@@ -9,6 +9,8 @@
 #include "forget_data.h"
 #include "node_buffer.h"
 #include "spsc_queue.h"
+#include "unistd.h"
+
  
 namespace NodeFuse {
     Persistent<Function> FileSystem::constructor;
@@ -57,71 +59,9 @@ namespace NodeFuse {
     static Nan::Persistent<String> conn_info_want_sym;
     static Nan::Persistent<String> multiforget_sym;
 
-    // struct vrt_fuse_cmd_value
-    // {
-    //   struct vrt_value parent;
-    //   // struct fuse_cmd value;
-    //   int8_t op;
-    //   fuse_req_t req;
-    //   fuse_ino_t ino;
-    //   fuse_ino_t newino; //used for renaming files
-    //   size_t size;
-    //   off_t off;
-    //   dev_t dev;
-    //   mode_t mode;
-    //   const char* name;
-    //   const char* newname; //used for renaming files, and for symlinking
-    //   int to_set;
-    //   struct fuse_conn_info conn;
-    //   struct fuse_file_info fi;
-    //   struct stat attr;
-    //   void *userdata;
-    //   unsigned long nlookup;
-    //   #ifdef __APPLE__
-    //   uint32_t position;
-    //   #endif 
-    // };
 
-
-    // static struct vrt_value *
-    // vrt_fuse_cmd__new_value(struct vrt_value_type *type)
-    // {
-    //     struct vrt_fuse_cmd_value  *self = (struct vrt_fuse_cmd_value *) cork_new(struct vrt_fuse_cmd_value);
-    //     return &self->parent;
-    // }
-
-    // static void
-    // vrt_fuse_cmd__free_value(struct vrt_value_type *type, struct vrt_value *value)
-    // {
-    //     struct vrt_fuse_cmd_value  *self =
-    //         cork_container_of(value, struct vrt_fuse_cmd_value, parent);
-    //     free(self);
-    // }
-
-    // /* The following hash value is produced by the cork-hash utility function */
-    // // #define VRT_FUSE_CMD_TYPE 0x0f0ea3c9
-
-    // static struct vrt_value_type  _vrt_fuse_cmd_type  = {
-    //     vrt_fuse_cmd__new_value,
-    //     vrt_fuse_cmd__free_value
-    // };
-
-    // static struct vrt_value_type *
-    // vrt_fuse_cmd_type(void)
-    // {
-    //     return &_vrt_fuse_cmd_type;
-    // }
-
-
-
-
-    // static struct vrt_queue *ring_buffer; // =  vrt_queue_new("queue", vrt_fuse_cmd_type, __RING_SIZE__);
-    // static struct vrt_producer **producers;// = (struct vrt_producer *) malloc(sizeof(struct vrt_producer *) * _NUMBER_OF_FUSE_OPERATIONS_)
-    // static struct vrt_consumer *consumer;
     static struct fuse_lowlevel_ops fuse_ops;
-
-    // static mpsc_queue_t<struct fuse_cmd> ring_buffer(__RING_SIZE__);
-    static spsc_bounded_queue_t<struct fuse_cmd> ring_buffer(__RING_SIZE__);
+    static spsc_bounded_queue_t<struct fuse_cmd> *ring_buffer;
 
     void FileSystem::DispatchOp(uv_async_t* handle, int status)
     {
@@ -131,7 +71,7 @@ namespace NodeFuse {
     //     struct vrt_fuse_cmd_value *value;
         struct fuse_cmd value;
         volatile int result;
-        while (   (result = ring_buffer.consume(value)) ){
+        while (   (result = ring_buffer->consume(value)) ){
 
             switch(value.op){
                 case _FUSE_OPS_LOOKUP_:
@@ -274,6 +214,8 @@ namespace NodeFuse {
 
         // ring_buffer =  vrt_queue_new("queue", vrt_fuse_cmd_type(), __RING_SIZE__);
         
+        ring_buffer = new spsc_bounded_queue_t<struct fuse_cmd>(__RING_SIZE__);
+        
         // producers = (struct vrt_producer **) malloc(sizeof(struct vrt_producer *) * 1);
         // int i;
         // for( i = 0; i < 1; ++i){
@@ -378,24 +320,15 @@ namespace NodeFuse {
 
         struct fuse_cmd value;
         
-        // if( (idx = ring_buffer.producer_claim_next(&value)) == MPSC_QUEUE_FULL ){
-        //     printf("ring buffer was full while trying to enqueue init\n");
-        //     return;
-        // }
         value.op = _FUSE_OPS_INIT_;
         value.userdata =  userdata;
         if(conn != NULL){
             memcpy( &(value.conn), conn, sizeof(struct fuse_conn_info));
         }
-        bool result = ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_INIT_*/]);
-        while( !result){
-            //the queue was full
-            uv_async_send(&uv_async_handle);
-            result = ring_buffer.produce(value);
-        }
-        uv_async_send(&uv_async_handle);
-
+        
+        QueueRequest(value);
     }
+    
     void FileSystem::RemoteInit(void* userdata,
                           struct fuse_conn_info conn) {
         Nan::HandleScope scope;;
@@ -436,15 +369,17 @@ namespace NodeFuse {
         // }
 
         value.op = _FUSE_OPS_DESTROY_;
-        value.userdata =  userdata;        
+        value.userdata =  userdata;
+        
+        QueueRequest(value);
 
-        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_DESTROY_*/]);
-        while( !result){
-            //the queue was full
-            uv_async_send(&uv_async_handle);
-            result = ring_buffer.produce(value);
-        }
-        uv_async_send(&uv_async_handle);
+//        bool result = ring_buffer->produce(value);//(producers[  0/*_FUSE_OPS_DESTROY_*/]);
+//        while( !result){
+//            //the queue was full
+//            uv_async_send(&uv_async_handle);
+//            result = ring_buffer->produce(value);
+//        }
+//        uv_async_send(&uv_async_handle);
     }
 
     void FileSystem::RemoteDestroy(void* userdata) {
@@ -479,13 +414,15 @@ namespace NodeFuse {
         value.ino = parent;
         value.name = strdup(name);
 
-        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_LOOKUP_*/]);
-        while( !result){
-            //the queue was full
-            uv_async_send(&uv_async_handle);
-            result = ring_buffer.produce(value);
-        }
-        uv_async_send(&uv_async_handle);
+        QueueRequest(value);
+
+//        bool result = ring_buffer->produce(value);//(producers[  0/*_FUSE_OPS_LOOKUP_*/]);
+//        while( !result){
+//            //the queue was full
+//            uv_async_send(&uv_async_handle);
+//            result = ring_buffer->produce(value);
+//        }
+//        uv_async_send(&uv_async_handle);
 
     }
 
@@ -541,13 +478,16 @@ namespace NodeFuse {
         value.size = count;
         value.userdata = malloc( sizeof(struct fuse_forget_data) * count); 
         memcpy(value.userdata, forget, count * sizeof(struct fuse_forget_data));
-        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_FORGET_*/]);
-        while( !result){
-            //the queue was full
-            uv_async_send(&uv_async_handle);
-            result = ring_buffer.produce(value);
-        }
-        uv_async_send(&uv_async_handle);
+        
+        QueueRequest(value);
+        
+//        bool result = ring_buffer->produce(value);//(producers[  0/*_FUSE_OPS_FORGET_*/]);
+//        while( !result){
+//            //the queue was full
+//            uv_async_send(&uv_async_handle);
+//            result = ring_buffer->produce(value);
+//        }
+//        uv_async_send(&uv_async_handle);
 
     }
     void FileSystem::RemoteMultiForget(fuse_req_t req,
@@ -609,13 +549,15 @@ namespace NodeFuse {
         value.ino = ino;
         value.nlookup = nlookup;
 
-        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_FORGET_*/]);
-        while( !result){
-            //the queue was full
-            uv_async_send(&uv_async_handle);
-            result = ring_buffer.produce(value);
-        }
-        uv_async_send(&uv_async_handle);
+        QueueRequest(value);
+        
+//        bool result = ring_buffer->produce(value);//(producers[  0/*_FUSE_OPS_FORGET_*/]);
+//        while( !result){
+//            //the queue was full
+//            uv_async_send(&uv_async_handle);
+//            result = ring_buffer->produce(value);
+//        }
+//        uv_async_send(&uv_async_handle);
 
     }
 
@@ -673,13 +615,15 @@ namespace NodeFuse {
             memcpy( (void *) &(value.fi),  fi, sizeof(struct fuse_file_info));
         }
 
-        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_GETATTR_*/ ]);
-        while( !result){
-            //the queue was full
-            uv_async_send(&uv_async_handle);
-            result = ring_buffer.produce(value);
-        }
-        uv_async_send(&uv_async_handle);
+        QueueRequest(value);
+        
+//        bool result = ring_buffer->produce(value);//(producers[  0/*_FUSE_OPS_GETATTR_*/ ]);
+//        while( !result){
+//            //the queue was full
+//            uv_async_send(&uv_async_handle);
+//            result = ring_buffer->produce(value);
+//        }
+//        uv_async_send(&uv_async_handle);
 
     }
     void FileSystem::RemoteGetAttr(fuse_req_t req,
@@ -739,14 +683,15 @@ namespace NodeFuse {
             value.fi = *fi;
         }
 
+        QueueRequest(value);
 
-        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_SETATTR_*/]);
-        while( !result){
-            //the queue was full
-            uv_async_send(&uv_async_handle);
-            result = ring_buffer.produce(value);
-        }
-        uv_async_send(&uv_async_handle);
+//        bool result = ring_buffer->produce(value);//(producers[  0/*_FUSE_OPS_SETATTR_*/]);
+//        while( !result){
+//            //the queue was full
+//            uv_async_send(&uv_async_handle);
+//            result = ring_buffer->produce(value);
+//        }
+//        uv_async_send(&uv_async_handle);
 
     }
     void FileSystem::RemoteSetAttr(fuse_req_t req,
@@ -802,14 +747,16 @@ namespace NodeFuse {
         value.op = _FUSE_OPS_READLINK_;
         value.req = req;
         value.ino = ino;
+        
+        QueueRequest(value);
 
-        bool result = ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_READLINK_*/ ]);
-        while( !result){
-            //the queue was full
-            uv_async_send(&uv_async_handle);
-            result = ring_buffer.produce(value);
-        }
-        uv_async_send(&uv_async_handle);
+//        bool result = ring_buffer->produce(value);//(producers[ 0/*_FUSE_OPS_READLINK_*/ ]);
+//        while( !result){
+//            //the queue was full
+//            uv_async_send(&uv_async_handle);
+//            result = ring_buffer->produce(value);
+//        }
+//        uv_async_send(&uv_async_handle);
     }
     void FileSystem::RemoteReadLink(fuse_req_t req, fuse_ino_t ino) {
         Nan::HandleScope scope;;
@@ -862,13 +809,15 @@ namespace NodeFuse {
         value.mode = mode;
         value.dev = rdev;
 
-        bool result = ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_MKNOD_*/ ]);
-        while( !result){
-            //the queue was full
-            uv_async_send(&uv_async_handle);
-            result = ring_buffer.produce(value);
-        }
-        uv_async_send(&uv_async_handle);
+        QueueRequest(value);
+        
+//        bool result = ring_buffer->produce(value);//(producers[ 0/*_FUSE_OPS_MKNOD_*/ ]);
+//        while( !result){
+//            //the queue was full
+//            uv_async_send(&uv_async_handle);
+//            result = ring_buffer->produce(value);
+//        }
+//        uv_async_send(&uv_async_handle);
 
 
 
@@ -935,13 +884,15 @@ namespace NodeFuse {
         value.name = strdup(name);
         value.mode = mode;
 
-        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_MKDIR_*/ ]);
-        while( !result){
-            //the queue was full
-            uv_async_send(&uv_async_handle);
-            result = ring_buffer.produce(value);
-        }
-        uv_async_send(&uv_async_handle);
+        QueueRequest(value);
+//        
+//        bool result = ring_buffer->produce(value);//(producers[  0/*_FUSE_OPS_MKDIR_*/ ]);
+//        while( !result){
+//            //the queue was full
+//            uv_async_send(&uv_async_handle);
+//            result = ring_buffer->produce(value);
+//        }
+//        uv_async_send(&uv_async_handle);
 
     }
     void FileSystem::RemoteMkDir(fuse_req_t req,
@@ -1000,13 +951,15 @@ namespace NodeFuse {
         value.ino = parent;
         value.name = strdup(name);
 
-        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_UNLINK_*/]);
-        while( !result){
-            //the queue was full
-            uv_async_send(&uv_async_handle);
-            result = ring_buffer.produce(value);
-        }
-        uv_async_send(&uv_async_handle);
+        QueueRequest(value);
+        
+//        bool result = ring_buffer->produce(value);//(producers[  0/*_FUSE_OPS_UNLINK_*/]);
+//        while( !result){
+//            //the queue was full
+//            uv_async_send(&uv_async_handle);
+//            result = ring_buffer->produce(value);
+//        }
+//        uv_async_send(&uv_async_handle);
 
     }
     void FileSystem::RemoteUnlink(fuse_req_t req,
@@ -1060,13 +1013,15 @@ namespace NodeFuse {
         value.ino = parent;
         value.name = strdup(name);
 
-        bool result = ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_RMDIR_*/ ]);
-        while( !result){
-            //the queue was full
-            uv_async_send(&uv_async_handle);
-            result = ring_buffer.produce(value);
-        }
-        uv_async_send(&uv_async_handle);
+        QueueRequest(value);
+        
+//        bool result = ring_buffer->produce(value);//(producers[ 0/*_FUSE_OPS_RMDIR_*/ ]);
+//        while( !result){
+//            //the queue was full
+//            uv_async_send(&uv_async_handle);
+//            result = ring_buffer->produce(value);
+//        }
+//        uv_async_send(&uv_async_handle);
 
     }
     void FileSystem::RemoteRmDir(fuse_req_t req,
@@ -1121,14 +1076,15 @@ namespace NodeFuse {
         value.ino = parent;
         value.newname = strdup(name);
 
+        QueueRequest(value);
 
-        bool result = ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_SYMLINK_*/ ]);
-        while( !result){
-            //the queue was full
-            uv_async_send(&uv_async_handle);
-            result = ring_buffer.produce(value);
-        }
-        uv_async_send(&uv_async_handle);
+//        bool result = ring_buffer->produce(value);//(producers[ 0/*_FUSE_OPS_SYMLINK_*/ ]);
+//        while( !result){
+//            //the queue was full
+//            uv_async_send(&uv_async_handle);
+//            result = ring_buffer->produce(value);
+//        }
+//        uv_async_send(&uv_async_handle);
 
     }
 
@@ -1187,13 +1143,15 @@ namespace NodeFuse {
         value.name = strdup(name);
         value.newname = strdup(newname);
 
-        bool result = ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_RENAME_*/ ]);
-        while( !result){
-            //the queue was full
-            uv_async_send(&uv_async_handle);
-            result = ring_buffer.produce(value);
-        }
-        uv_async_send(&uv_async_handle);
+        QueueRequest(value);
+        
+//        bool result = ring_buffer->produce(value);//(producers[ 0/*_FUSE_OPS_RENAME_*/ ]);
+//        while( !result){
+//            //the queue was full
+//            uv_async_send(&uv_async_handle);
+//            result = ring_buffer->produce(value);
+//        }
+//        uv_async_send(&uv_async_handle);
 
     }
 
@@ -1254,13 +1212,15 @@ namespace NodeFuse {
         value.newino = newparent;
         value.name = strdup(newname);
 
-        bool result = ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_LINK_*/ ]);
-        while( !result){
-            //the queue was full
-            uv_async_send(&uv_async_handle);
-            result = ring_buffer.produce(value);
-        }
-        uv_async_send(&uv_async_handle);
+        QueueRequest(value);
+        
+//        bool result = ring_buffer->produce(value);//(producers[ 0/*_FUSE_OPS_LINK_*/ ]);
+//        while( !result){
+//            //the queue was full
+//            uv_async_send(&uv_async_handle);
+//            result = ring_buffer->produce(value);
+//        }
+//        uv_async_send(&uv_async_handle);
     }
 
     void FileSystem::RemoteLink(fuse_req_t req,
@@ -1316,14 +1276,16 @@ namespace NodeFuse {
         if(fi != NULL){
             value.fi = *fi;
         }
+        
+        QueueRequest(value);
 
-        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_OPEN_*/]);
-        while( !result){
-            //the queue was full
-            uv_async_send(&uv_async_handle);
-            result = ring_buffer.produce(value);
-        }
-        uv_async_send(&uv_async_handle);
+//        bool result = ring_buffer->produce(value);//(producers[  0/*_FUSE_OPS_OPEN_*/]);
+//        while( !result){
+//            //the queue was full
+//            uv_async_send(&uv_async_handle);
+//            result = ring_buffer->produce(value);
+//        }
+//        uv_async_send(&uv_async_handle);
 
     }
     void FileSystem::RemoteOpen(fuse_req_t req,
@@ -1391,14 +1353,16 @@ namespace NodeFuse {
         if(fi != NULL){
             value.fi = *fi;
         }
+        
+        QueueRequest(value);
 
-        bool result = ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_READ_*/ ]);
-        while( !result){
-            //the queue was full
-            uv_async_send(&uv_async_handle);
-            result = ring_buffer.produce(value);
-        }
-        uv_async_send(&uv_async_handle);
+//        bool result = ring_buffer->produce(value);//(producers[ 0/*_FUSE_OPS_READ_*/ ]);
+//        while( !result){
+//            //the queue was full
+//            uv_async_send(&uv_async_handle);
+//            result = ring_buffer->produce(value);
+//        }
+//        uv_async_send(&uv_async_handle);
 
 
     }
@@ -1477,13 +1441,15 @@ namespace NodeFuse {
             value.fi = *fi;
         }
 
-        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_WRITE_*/]);
-        while( !result){
-            //the queue was full
-            uv_async_send(&uv_async_handle);
-            result = ring_buffer.produce(value);
-        }
-        uv_async_send(&uv_async_handle);
+        QueueRequest(value);
+        
+//        bool result = ring_buffer->produce(value);//(producers[  0/*_FUSE_OPS_WRITE_*/]);
+//        while( !result){
+//            //the queue was full
+//            uv_async_send(&uv_async_handle);
+//            result = ring_buffer->produce(value);
+//        }
+//        uv_async_send(&uv_async_handle);
 
 
     }
@@ -1560,13 +1526,15 @@ namespace NodeFuse {
             value.fi = *fi;
         }
 
-        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_FLUSH_*/]);
-        while( !result){
-            //the queue was full
-            uv_async_send(&uv_async_handle);
-            result = ring_buffer.produce(value);
-        }
-        uv_async_send(&uv_async_handle);
+        QueueRequest(value);
+        
+//        bool result = ring_buffer->produce(value);//(producers[  0/*_FUSE_OPS_FLUSH_*/]);
+//        while( !result){
+//            //the queue was full
+//            uv_async_send(&uv_async_handle);
+//            result = ring_buffer->produce(value);
+//        }
+//        uv_async_send(&uv_async_handle);
 
     }
     void FileSystem::RemoteFlush(fuse_req_t req,
@@ -1630,14 +1598,16 @@ namespace NodeFuse {
         if(fi != NULL){
             value.fi = *fi;
         }
+        
+        QueueRequest(value);
 
-        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_RELEASE_*/]);
-        while( !result){
-            //the queue was full
-            uv_async_send(&uv_async_handle);
-            result = ring_buffer.produce(value);
-        }
-        uv_async_send(&uv_async_handle);
+//        bool result = ring_buffer->produce(value);//(producers[  0/*_FUSE_OPS_RELEASE_*/]);
+//        while( !result){
+//            //the queue was full
+//            uv_async_send(&uv_async_handle);
+//            result = ring_buffer->produce(value);
+//        }
+//        uv_async_send(&uv_async_handle);
 
     }
     void FileSystem::RemoteRelease(fuse_req_t req,
@@ -1701,14 +1671,16 @@ namespace NodeFuse {
         if(fi != NULL){
             value.fi = *fi;
         }
+        
+        QueueRequest(value);
 
-        bool result = ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_FSYNC_*/]);
-        while( !result){
-            //the queue was full
-            uv_async_send(&uv_async_handle);
-            result = ring_buffer.produce(value);
-        }
-        uv_async_send(&uv_async_handle);
+//        bool result = ring_buffer->produce(value);//(producers[ 0/*_FUSE_OPS_FSYNC_*/]);
+//        while( !result){
+//            //the queue was full
+//            uv_async_send(&uv_async_handle);
+//            result = ring_buffer->produce(value);
+//        }
+//        uv_async_send(&uv_async_handle);
 
     }
 
@@ -1774,13 +1746,15 @@ namespace NodeFuse {
             value.fi = *fi;
         }
 
-        bool result = ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_OPENDIR_*/ ]);
-        while( !result){
-            //the queue was full
-            uv_async_send(&uv_async_handle);
-            result = ring_buffer.produce(value);
-        }
-        uv_async_send(&uv_async_handle);
+        QueueRequest(value);
+        
+//        bool result = ring_buffer->produce(value);//(producers[ 0/*_FUSE_OPS_OPENDIR_*/ ]);
+//        while( !result){
+//            //the queue was full
+//            uv_async_send(&uv_async_handle);
+//            result = ring_buffer->produce(value);
+//        }
+//        uv_async_send(&uv_async_handle);
     }
 
     void FileSystem::RemoteOpenDir(fuse_req_t req,
@@ -1847,13 +1821,15 @@ namespace NodeFuse {
             value.fi = *fi;
         }
 
-        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_READDIR_*/]);
-        while( !result){
-            //the queue was full
-            uv_async_send(&uv_async_handle);
-            result = ring_buffer.produce(value);
-        }
-        uv_async_send(&uv_async_handle);
+        QueueRequest(value);
+        
+//        bool result = ring_buffer->produce(value);//(producers[  0/*_FUSE_OPS_READDIR_*/]);
+//        while( !result){
+//            //the queue was full
+//            uv_async_send(&uv_async_handle);
+//            result = ring_buffer->produce(value);
+//        }
+//        uv_async_send(&uv_async_handle);
     }
     void FileSystem::RemoteReadDir(fuse_req_t req,
                              fuse_ino_t ino,
@@ -1885,6 +1861,11 @@ namespace NodeFuse {
 
         Reply *reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
         reply->request = req;
+        reply->dentry_offset = off;
+        reply->dentry_size = size_;
+
+        char* buf = (char *)malloc(size_); // early init of the full buffer
+        reply->dentry_buffer = buf;
         
         // listen to interrupts
         reply->HookInterrupt();
@@ -1924,14 +1905,15 @@ namespace NodeFuse {
             value.fi = *fi;
         }
 
-
-        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_RELEASEDIR_*/]);
-        while( !result){
-            //the queue was full
-            uv_async_send(&uv_async_handle);
-            result = ring_buffer.produce(value);
-        }
-        uv_async_send(&uv_async_handle);
+        QueueRequest(value);
+        
+//        bool result = ring_buffer->produce(value);//(producers[  0/*_FUSE_OPS_RELEASEDIR_*/]);
+//        while( !result){
+//            //the queue was full
+//            uv_async_send(&uv_async_handle);
+//            result = ring_buffer->produce(value);
+//        }
+//        uv_async_send(&uv_async_handle);
 
     }
     void FileSystem::RemoteReleaseDir(fuse_req_t req,
@@ -1996,14 +1978,16 @@ namespace NodeFuse {
         if(fi != NULL){
             value.fi = *fi;
         }
-
-        bool result = ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_FSYNCDIR_*/ ]);
-        while( !result){
-            //the queue was full
-            uv_async_send(&uv_async_handle);
-            result = ring_buffer.produce(value);
-        }
-        uv_async_send(&uv_async_handle);
+        
+        QueueRequest(value);
+//
+//        bool result = ring_buffer->produce(value);//(producers[ 0/*_FUSE_OPS_FSYNCDIR_*/ ]);
+//        while( !result){
+//            //the queue was full
+//            uv_async_send(&uv_async_handle);
+//            result = ring_buffer->produce(value);
+//        }
+//        uv_async_send(&uv_async_handle);
     }
     void FileSystem::RemoteFSyncDir(fuse_req_t req,
                               fuse_ino_t ino,
@@ -2049,6 +2033,12 @@ namespace NodeFuse {
             Nan::FatalException(try_catch);
         }
     }
+    
+//    static struct statvfs* last_statfs_response;
+//    
+//    static void SetStatFsResponse(struct statvfs *resp){
+//        last_statfs_response = resp;
+//    }
 
     void FileSystem::StatFs(fuse_req_t req, fuse_ino_t ino) {
         struct fuse_cmd value;
@@ -2057,20 +2047,37 @@ namespace NodeFuse {
         //     printf("ring buffer was full while trying to statfs inode %d\n", (int) ino);
         //     return;
         // }
+        
+        /*if(last_statfs_response){
+            int ret = -1;
+            ret = fuse_reply_statfs(req, last_statfs_response);
+            if (ret == -1) {
+                FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
+            }
+            return;
+        }*/
 
         value.op = _FUSE_OPS_STATFS_;
         value.req = req;
         value.ino = ino;
+        
+        QueueRequest(value);
 
-        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_STATFS_*/]);
-        while( !result){
-            //the queue was full
-            uv_async_send(&uv_async_handle);
-            result = ring_buffer.produce(value);
-        }
-        uv_async_send(&uv_async_handle);
+        
+        //bool result = ring_buffer->produce(value);//(producers[  0/*_FUSE_OPS_STATFS_*/]);
+        //while( !result){
+        //    //the queue was full
+        //    usleep(100000); // sleep 100ms
+        //    uv_async_send(&uv_async_handle);
+        //    result = ring_buffer->produce(value);
+        //}
+        //uv_async_send(&uv_async_handle);
+        
 
     }
+    
+    
+    
     void FileSystem::RemoteStatFs(fuse_req_t req, fuse_ino_t ino) {
 
         Nan::HandleScope scope;;
@@ -2096,7 +2103,7 @@ namespace NodeFuse {
         Nan::TryCatch try_catch;
 
         statfs->Call(fsobj, 3, argv);
-
+        
         if (try_catch.HasCaught()) {
             Nan::FatalException(try_catch);
         }
@@ -2133,13 +2140,14 @@ namespace NodeFuse {
         value.position = position_;
         #endif
 
-        bool result = ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_SETXATTR_*/]);
-        while( !result){
-            //the queue was full
-            uv_async_send(&uv_async_handle);
-            result = ring_buffer.produce(value);
-        }
-        uv_async_send(&uv_async_handle);
+        QueueRequest(value);
+//        bool result = ring_buffer->produce(value);//(producers[ 0/*_FUSE_OPS_SETXATTR_*/]);
+//        while( !result){
+//            //the queue was full
+//            uv_async_send(&uv_async_handle);
+//            result = ring_buffer->produce(value);
+//        }
+//        uv_async_send(&uv_async_handle);
 
     }
     void FileSystem::RemoteSetXAttr(fuse_req_t req,
@@ -2230,14 +2238,14 @@ namespace NodeFuse {
     value.position = position_;
     #endif
 
-
-    bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_GETXATTR_*/]);
-    while( !result){
-        //the queue was full
-        uv_async_send(&uv_async_handle);
-        result = ring_buffer.produce(value);
-    }
-    uv_async_send(&uv_async_handle);
+    QueueRequest(value);
+//    bool result = ring_buffer->produce(value);//(producers[  0/*_FUSE_OPS_GETXATTR_*/]);
+//    while( !result){
+//        //the queue was full
+//        uv_async_send(&uv_async_handle);
+//        result = ring_buffer->produce(value);
+//    }
+//    uv_async_send(&uv_async_handle);
 
     }
     void FileSystem::RemoteGetXAttr(fuse_req_t req,
@@ -2311,13 +2319,16 @@ namespace NodeFuse {
         value.req = req;
         value.ino = ino;
         value.size = size_;
-        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_LISTXATTR_*/]);
-        while( !result){
-            //the queue was full
-            uv_async_send(&uv_async_handle);
-            result = ring_buffer.produce(value);
-        }
-        uv_async_send(&uv_async_handle);
+        
+        QueueRequest(value);
+        
+//        bool result = ring_buffer->produce(value);//(producers[  0/*_FUSE_OPS_LISTXATTR_*/]);
+//        while( !result){
+//            //the queue was full
+//            uv_async_send(&uv_async_handle);
+//            result = ring_buffer->produce(value);
+//        }
+//        uv_async_send(&uv_async_handle);
 
     }
 
@@ -2368,13 +2379,16 @@ namespace NodeFuse {
         value.req = req;
         value.ino = ino;
         value.name = strdup(name_);
-        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_REMOVEXATTR_*/]);
-        while( !result){
-            //the queue was full
-            uv_async_send(&uv_async_handle);
-            result = ring_buffer.produce(value);
-        }
-        uv_async_send(&uv_async_handle);
+        
+        QueueRequest(value);
+        
+//        bool result = ring_buffer->produce(value);//(producers[  0/*_FUSE_OPS_REMOVEXATTR_*/]);
+//        while( !result){
+//            //the queue was full
+//            uv_async_send(&uv_async_handle);
+//            result = ring_buffer->produce(value);
+//        }
+//        uv_async_send(&uv_async_handle);
     }
 
     void FileSystem::RemoteRemoveXAttr(fuse_req_t req,
@@ -2426,13 +2440,15 @@ namespace NodeFuse {
         value.ino = ino;
         value.to_set = mask_;
 
-        bool result = ring_buffer.produce(value);//(producers[  0/*_FUSE_OPS_ACCESS_*/]);
-        while( !result){
-            //the queue was full
-            uv_async_send(&uv_async_handle);
-            result = ring_buffer.produce(value);
-        }
-        uv_async_send(&uv_async_handle);
+        QueueRequest(value);
+        
+//        bool result = ring_buffer->produce(value);//(producers[  0/*_FUSE_OPS_ACCESS_*/]);
+//        while( !result){
+//            //the queue was full
+//            uv_async_send(&uv_async_handle);
+//            result = ring_buffer->produce(value);
+//        }
+//        uv_async_send(&uv_async_handle);
 
 
     }
@@ -2494,14 +2510,16 @@ namespace NodeFuse {
         if(fi != NULL){
             value.fi = *fi;
         }
+        
+        QueueRequest(value);
 
-        bool result = ring_buffer.produce(value);//(producers[ 0/*_FUSE_OPS_CREATE_*/ ]);
-        while( !result){
-            //the queue was full
-            uv_async_send(&uv_async_handle);
-            result = ring_buffer.produce(value);
-        }
-        uv_async_send(&uv_async_handle);
+//        bool result = ring_buffer->produce(value);//(producers[ 0/*_FUSE_OPS_CREATE_*/ ]);
+//        while( !result){
+//            //the queue was full
+//            uv_async_send(&uv_async_handle);
+//            result = ring_buffer->produce(value);
+//        }
+//        uv_async_send(&uv_async_handle);
 
     }
     void FileSystem::RemoteCreate(fuse_req_t req,
@@ -2700,10 +2718,24 @@ namespace NodeFuse {
 
     }
 
+        
+    void FileSystem::QueueRequest(struct fuse_cmd value){
+            
+        bool result = ring_buffer->produce(value);//(producers[  0/*_FUSE_OPS_STATFS_*/]);
+        while( !result){
+            printf("Queue was full \n");
+            usleep(100000); // sleep 100ms
+            uv_async_send(&uv_async_handle);
+            result = ring_buffer->produce(value);
+        }
+        uv_async_send(&uv_async_handle);
+    }
 
     struct fuse_lowlevel_ops* FileSystem::GetOperations() {
         return &fuse_ops;
     }
+        
+
 }
 
 

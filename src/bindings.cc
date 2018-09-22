@@ -50,13 +50,20 @@ namespace NodeFuse {
 
     NAN_METHOD( Fuse::New) {
         if (info.IsConstructCall()) {
-          Fuse *fuse = new Fuse();
-          Local<Object> obj = info.This();
-          fuse->Wrap(obj);
-              info.GetReturnValue().Set( obj );
+            Fuse *fuse = new Fuse();
+            Local<Object> obj = info.This();
+            
+            //FileSystem::Initialize(obj);
+            //Reply::Initialize(obj);
+            //FileInfo::Initialize(obj);
+            
+            fuse->Wrap(obj);
+            info.GetReturnValue().Set( obj );
         } else {
-          Local<Function> cons = Nan::New<Function>(constructor);
-          info.GetReturnValue().Set(cons->NewInstance());
+            Local<Function> cons = Nan::New<Function>(constructor);
+            info.GetReturnValue().Set(Nan::NewInstance(cons).ToLocalChecked());
+            //info.GetReturnValue().Set(cons->NewInstance());
+            //Nan::NewInstance(cons, argc, argv).ToLocalChecked()
         }
 
 
@@ -70,6 +77,9 @@ namespace NodeFuse {
         //     FUSEJS_THROW_EXCEPTION("Unable to mount filesystem: ", strerror(errno));
         //     return;
         // }
+        
+//        const char *opt_name = "async_read";
+//        fuse_opt_add_arg(fuse->fargs, opt_name);
 
         struct fuse_lowlevel_ops *operations = FileSystem::GetOperations();
 
@@ -97,7 +107,7 @@ namespace NodeFuse {
         //if(0){
             ret = fuse_session_loop_mt(fuse->session); //blocks here
         //}else{
-            //ret = fuse_session_loop(fuse->session); //blocks here
+//            ret = fuse_session_loop(fuse->session); //blocks here
         //}
 
         //Continues executing if user unmounts the fs
@@ -167,7 +177,10 @@ namespace NodeFuse {
 
         Local<Object> currentInstance = info.This();
         Fuse *fuse  = Nan::ObjectWrap::Unwrap<Fuse>(currentInstance);
+        
+        
         struct fuse_args fargs = FUSE_ARGS_INIT(0, NULL);
+        
         fuse->fargs = (struct fuse_args *)malloc(sizeof(fargs));
         memcpy( fuse->fargs, &fargs, sizeof(fargs) );   
 
@@ -208,7 +221,9 @@ namespace NodeFuse {
         
         //NanAssignPersistent(fuse->fsobj, NanNew(filesystem)->NewInstance(2, argv) );
 
-        fuse->fsobj.Reset( filesystem->NewInstance(2,argv) );
+        fuse->fsobj.Reset( Nan::NewInstance(filesystem,2,argv).ToLocalChecked());
+        //fuse->fsobj.Reset( filesystem->NewInstance(2,argv) );
+        //Nan::NewInstance(cons, argc, argv).ToLocalChecked()
         assert(Nan::New(fuse->fsobj)->IsObject());
         assert(
             Nan::Get( Nan::New(fuse->fsobj), 

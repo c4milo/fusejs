@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include "reply.h"
 #include "file_info.h"
+#include "filesystem.h"
 #include "node_buffer.h"
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 
@@ -20,7 +21,7 @@ namespace NodeFuse {
           info.GetReturnValue().Set( obj );
         } else {
           Local<Function> cons = Nan::New<Function>(constructor);
-          info.GetReturnValue().Set(cons->NewInstance());
+            info.GetReturnValue().Set(Nan::NewInstance(cons).ToLocalChecked());
         }
 
     }
@@ -45,8 +46,6 @@ namespace NodeFuse {
         Nan::SetAccessor(tpl->InstanceTemplate(), Nan::New("hasReplied").ToLocalChecked(), Reply::hasReplied);
         Nan::SetAccessor(tpl->InstanceTemplate(), Nan::New("wasInterrupted").ToLocalChecked(), Reply::wasInterrupted);
         
-//        Nan::SetPrototypeMethod(tpl, "onInterrupt", Reply::RegisterInterruptHandler);
-
         constructor.Reset(tpl->GetFunction());
     }
     
@@ -56,10 +55,12 @@ namespace NodeFuse {
     }
     
     void Reply::HandleInterrupt(fuse_req_t req, void *data){
-        // this is called on another thread a non v8 thread
+        // this is called on another thread, a non v8 thread
 
         // get the reply instance
         Reply* reply = (Reply*)data;
+        
+        fprintf(stderr, "Interrupt fired for op: %s- responding with EINTR \n");
         
         // update the state
         reply->b_wasInterrupted = true;
@@ -67,86 +68,15 @@ namespace NodeFuse {
         
         // respond
         int ret = -1;
-        ret = fuse_reply_err(reply->request, EINTR);
+        ret = fuse_reply_err(reply->request, EINTR); // EIO, EINTR, EAGAIN, ETIMEDOUT
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Reply error on interrupt failed", "Unable to reply the operation");
         }
         
         // finally clear the handler
         fuse_req_interrupt_func(reply->request, NULL, NULL);
-        
-        //uv_async_interrupt_handle.data = data;
-        //uv_async_send(&uv_async_interrupt_handle);
     }
     
-//    void Reply::CallInterruptHandler(uv_async_t *async_data){
-//        // js thread
-//        Isolate * isolate = Isolate::GetCurrent();
-//        v8::HandleScope handleScope(isolate);
-//        
-//        // get the reply instance
-//        Reply* reply = (Reply*)async_data;
-//        
-//        // update the state
-//        reply->b_wasInterrupted = true;
-//        reply->b_hasReplied = true;
-//
-//        
-//        if (!reply->b_interruptCallback.IsEmpty()) {
-//            Local<Value> argv[0] = {};
-//            
-//            Local<Function>::New(isolate, reply->b_interruptCallback)->
-//                Call(isolate->GetCurrentContext()->Global(), 0, argv);
-//
-//            // Free up the persistent function callback
-//            reply->b_interruptCallback.Reset();
-//            // free the aync handler
-//            free(&uv_async_interrupt_handle);
-//            
-//            // finally clear the fuse interrupt handler
-//            fuse_req_interrupt_func(reply->request, NULL, NULL);
-//            
-//        }else{
-//            // not handled, handle here - by responding with timeout
-//            int ret = -1;
-//            ret = fuse_reply_err(reply->request, ETIMEDOUT);
-//            if (ret == -1) {
-//                FUSEJS_THROW_EXCEPTION("Reply error on interrupt failed", "Unable to reply the operation");
-//            }
-//            
-//            // finally clear the handler
-//            fuse_req_interrupt_func(reply->request, NULL, NULL);
-//        }
-//        
-//    }
-    
-    
-//    void Reply::RegisterInterruptHandler(const Nan::FunctionCallbackInfo<v8::Value>& args) {
-//        // js thread
-//        Isolate * isolate = args.GetIsolate();
-//        
-//        Local<Object> replyObj = args.This();
-//        Reply* reply = Nan::ObjectWrap::Unwrap<Reply>(replyObj);
-//        
-//        Local<Function> callback = Local<Function>::Cast(args[1]);
-//        reply->b_interruptCallback.Reset(isolate, callback);
-//        
-//        
-//        // register the interrupt handler
-//        fuse_req_interrupt_func(reply->request, Handle_interrupt, reply);
-//        
-//        
-//        uv_async_init(uv_default_loop(), &uv_async_interrupt_handle, (uv_async_cb) Reply::CallInterruptHandler);
-// 
-//        //Local<Function> cb = Local<Function>::Cast( args[ 0 ] );
-//        //reply->b_interruptCallback = Persistent<Function>::New( isolate, cb );
-//        
-//        //reply->b_interruptCallback.SetFunction(args[0].As<Function>());
-//        //reply->b_interruptCallback = new Nan::Callback(args[0].As<Function>());
-//        
-//        //Persistent<Function> callback = new Persistent<Function>(args[0]);
-//        
-//    }
 
     Reply::Reply() : Nan::ObjectWrap() {
         dentry_acc_size = 0;
@@ -350,27 +280,32 @@ namespace NodeFuse {
         size_t size = args[1]->IntegerValue();
 
         if (reply->dentry_buffer == NULL){
-            // fprintf(stderr, "reply buf null\n");
-            Local<Object> buffer = args[0]->ToObject();
-            const char* data = Buffer::Data(buffer);
+            // for reads and other responses that send a buffer with them
+
+//            Local<Object> buffr = args[0]->ToObject(); //not necessary
+            
+            const char* data = Buffer::Data(args[0]->ToObject());
             ret = fuse_reply_buf( reply->request, data, size);
             reply->b_hasReplied = true;
         }else{
+            // for addDirEntry (that are already filling another buffer in reply)
 
-            if (reply->dentry_offset < reply->dentry_acc_size){
-                // fprintf(stderr, "reply buf less than %6d, %6d, \t%6d\n", (int) reply->dentry_offset, (int) reply->dentry_acc_size, (int) MIN(reply->dentry_acc_size - reply->dentry_offset,size));
-                ret = fuse_reply_buf(reply->request, reply->dentry_buffer + reply->dentry_offset, MIN(reply->dentry_acc_size - reply->dentry_offset,size) );
-                
-                /* even though it's not finished when we reached here, fuse will make a new request wuth a new reply */
+            if (reply->dentry_acc_size > 0 ){
+                //fprintf(stderr, "reply->dentry_acc_size > 0 - responding with fuse_reply_buf\n\n");
+                ret = fuse_reply_buf(
+                            reply->request,
+                            reply->dentry_buffer,
+                            reply->dentry_acc_size);
+
                 reply->b_hasReplied = true;                
             }else{
-                // fprintf(stderr, "reply buf done\n");
+                // empty response - signals end of stream
+                //fprintf(stderr, "reply buf done\n\n");
                 ret = fuse_reply_buf(reply->request, NULL, 0 );
                 reply->b_hasReplied = true;
             }
 
         }
-        // fprintf(stderr, "reply buf return %d\n", ret);
 
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
@@ -431,6 +366,9 @@ namespace NodeFuse {
 
         ret = fuse_reply_statfs(reply->request, &buf);
         reply->b_hasReplied = true;
+        
+        //FileSystem::SetStatFsResponse(&buf);
+        
         if (ret == -1) {
             FUSEJS_THROW_EXCEPTION("Error replying operation: ", strerror(errno));
         }
@@ -576,59 +514,68 @@ namespace NodeFuse {
 
         int argslen = args.Length();
 
-        if (argslen == 0 || argslen < 4) {
-            Nan::ThrowTypeError("You must specify four arguments to invoke this function");
+        if (argslen < 3) {
+            Nan::ThrowTypeError("You must specify three arguments to invoke this function");
         }
 
         if (!args[0]->IsString()) {
             Nan::ThrowTypeError("You must specify an entry name String as first argument");
         }
 
-        if (!args[1]->IsNumber()) {
-            Nan::ThrowTypeError("You must specify the requested size number as second argument");
+//        if (!args[1]->IsNumber()) {
+//            Nan::ThrowTypeError("You must specify the requested size number as second argument");
+//        }
+
+        if (!args[1]->IsObject()) {
+            Nan::ThrowTypeError("You must specify stat Object as second argument");
         }
 
-        if (!args[2]->IsObject()) {
-            Nan::ThrowTypeError("You must specify stat Object as third argument");
-        }
-
-        if (!args[3]->IsNumber()) {
-            Nan::ThrowTypeError("You must specify a offset number as fourth argument");
+        if (!args[2]->IsNumber()) {
+            Nan::ThrowTypeError("You must specify the next offset number as third argument");
         }
 
         String::Utf8Value name(args[0]);
-        size_t requestedSize = args[1]->IntegerValue();
-        off_t offset = args[3]->IntegerValue();
-        reply-> dentry_offset = offset;
 
-        char* buffer = reply->dentry_buffer;
+        off_t next_offset = args[2]->IntegerValue();
 
         struct stat statbuff;
-        ObjectToStat(args[2]->ToObject(), &statbuff);
+        ObjectToStat(args[1]->ToObject(), &statbuff);
         // fprintf(stderr, "stat\n");
 
         size_t acc_size = reply->dentry_acc_size;
-
         size_t len = fuse_add_direntry(reply->request, NULL, 0, *name, &statbuff, 0);
-        buffer = (char * )realloc(buffer, acc_size + len);
-        reply->dentry_buffer = buffer;
-        size_t len2 = fuse_add_direntry(reply->request, (char*) (buffer + acc_size),
-         requestedSize - acc_size,
-         *name, &statbuff, acc_size + len);
+
+        char* buffer = reply->dentry_buffer;
+    
+        size_t len2 = fuse_add_direntry(reply->request,
+                            (char*) (buffer + acc_size), // the point where the new entry will be added to the buffer
+                            reply->dentry_size - acc_size, //remaining size of the buffer
+                            *name,
+                            &statbuff,
+                            next_offset);
         
-        // fprintf(stderr, "Current length! -> %d\n", (int)reply->dentry_cur_length);
-        // fprintf(stderr, "Entry name -> %s\n", (const char*) *name);
-        // fprintf(stderr, "Space needed for the entry -> %d or %d \n", (int) len, (int)len2);
-        // fprintf(stderr, "Requested size -> %d\n", (int) requestedSize);
-        // fprintf(stderr, "Remaning buffer -> %d\n", (int)(requestedSize - acc_size));
-        // fprintf(stderr, "Offset -> %lld\n\n", offset );        
-        // fprintf(stderr, "Actual Size -> %d\n", (int) acc_size );        
+        // if the ret entry size is larger than the buffer size, the operation failed.
+        if(len2 > reply->dentry_size - acc_size){
+            //fprintf(stderr, "\nerror on fuse_add_direntry - buffer full\a\n");
+            
+            args.GetReturnValue().Set(Nan::New<Number>((int)0)); // signal buffer full to JS
+        }else{
+            reply->dentry_acc_size += len2;
+            reply->dentry_cur_length++;
+            
+            args.GetReturnValue().Set(Nan::New<Number>( (int) len2));
+        }
 
-        reply->dentry_acc_size += len;
-        reply->dentry_cur_length++;
-
-        // scope.Escape(Nan::New<Number>( (int) len2) );
-        args.GetReturnValue().Set(Nan::New<Number>( (int) len2));
+//        fprintf(stderr, "\nReply::AddDirEntry\a\n");
+//        fprintf(stderr, "Current length! -> %d\n", (int)reply->dentry_cur_length);
+//        fprintf(stderr, "Entry name -> %s\n", (const char*) *name);
+//        fprintf(stderr, "Space needed for the entry -> %d or %d \n", (int) len, (int)len2);
+//        fprintf(stderr, "Requested size -> %d\n", (int) requestedSize);
+//        fprintf(stderr, "Remaning buffer -> %d\n", (int)(requestedSize - acc_size));
+//        fprintf(stderr, "Offset -> %lld\n", reply->dentry_offset );
+//        fprintf(stderr, "Next offset -> %lld\n", next_offset);
+//        fprintf(stderr, "Actual Size -> %d\n", (int) acc_size );
+        
     }
     
     NAN_GETTER(Reply::hasReplied){

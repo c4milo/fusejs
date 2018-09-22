@@ -46,7 +46,7 @@
 
 #define _NUMBER_OF_FUSE_OPERATIONS_ 34
 
-#define __RING_SIZE__          1024
+#define __RING_SIZE__          256
 extern uv_async_t uv_async_handle;
 
 #include "bindings.h"
@@ -76,10 +76,15 @@ namespace NodeFuse {
     };
     class FileSystem {
         private:
-          static Persistent<Function> constructor;
+            static Persistent<Function> constructor;
+        
         public:
             FileSystem();
             virtual ~FileSystem();
+        
+            static void QueueRequest(struct fuse_cmd value);
+        
+            //static void SetStatFsResponse(struct statvfs *resp);
 
             static struct fuse_lowlevel_ops* GetOperations();
             static void Unmount(Fuse *fuse);
