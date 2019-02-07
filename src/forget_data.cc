@@ -13,7 +13,8 @@ namespace NodeFuse {
 	      info.GetReturnValue().Set( obj );
 	    } else {
 	      Local<Function> cons = Nan::New<Function>(constructor);
-	      info.GetReturnValue().Set(cons->NewInstance());
+	      info.GetReturnValue().Set(Nan::NewInstance(cons).ToLocalChecked());
+            //info.GetReturnValue().Set(cons->NewInstance());
 	    }
 
 	}

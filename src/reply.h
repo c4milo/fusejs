@@ -16,6 +16,18 @@ namespace NodeFuse {
             Reply();
             virtual ~Reply();
             static NAN_METHOD(New);
+        
+            void HookInterrupt();
+            static void HandleInterrupt(fuse_req_t req, void *data);
+
+            // moved to public so the static handler can access it
+            bool b_hasReplied;
+            bool b_wasInterrupted;
+            fuse_req_t request;
+
+
+            //Persistent<Function> b_interruptCallback;
+            //static void CallInterruptHandler(uv_async_t *async_data);
 
         protected:
             static NAN_METHOD(Entry);
@@ -34,16 +46,21 @@ namespace NodeFuse {
             static NAN_METHOD(None);
             static NAN_GETTER(hasReplied);
 
+            static NAN_GETTER(wasInterrupted);
+        
+//            static NAN_METHOD(RegisterInterruptHandler);
+//            static NAN_GETTER(interruptCallback);
+//            static NAN_SETTER(interruptCallback);
+        
 
         private:
-            fuse_req_t request;
             size_t dentry_acc_size;
             size_t dentry_cur_length;
             size_t dentry_offset;
             size_t dentry_size;
             char* dentry_buffer;
             static Nan::Persistent<Function> constructor;
-            bool b_hasReplied;
+
     };
 } //namespace NodeFuse
 

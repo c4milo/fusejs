@@ -28,11 +28,13 @@
     "should": "0.6.0"
   },
   "scripts": {
-    "install": "node-gyp rebuild"
+    "install": "node-gyp rebuild",
+    "gen_proj": "node_modules/.bin/node-gyp configure -- -f xcode",
+    "build": "node_modules/.bin/node-gyp build"
   },
   "license": "MPL-2.0",
   "main": "./fuse",
   "dependencies": {
-    "nan": "^2.1.0"
+    "nan": "^2.10.0"
   }
 }

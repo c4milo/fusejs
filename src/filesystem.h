@@ -76,10 +76,15 @@ namespace NodeFuse {
     };
     class FileSystem {
         private:
-          static Persistent<Function> constructor;
+            static Persistent<Function> constructor;
+        
         public:
             FileSystem();
             virtual ~FileSystem();
+        
+            static void QueueRequest(struct fuse_cmd value);
+        
+            //static void SetStatFsResponse(struct statvfs *resp);
 
             static struct fuse_lowlevel_ops* GetOperations();
             static void Unmount(Fuse *fuse);
